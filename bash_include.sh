@@ -41,6 +41,8 @@ source $joshix_path/general/display.sh
 ############################################################################
 ## FUNCTIONS
 ############################################################################
+source $joshix_path/functions/jcopy.sh
+###############################
 source $joshix_path/functions/jp.sh
 ###############################
 source $joshix_path/functions/jssh.sh
