@@ -50,6 +50,8 @@ source $joshix_path/functions/jssh.sh
 source $joshix_path/functions/jfind.sh
 ###############################
 source $joshix_path/functions/jkill.sh
+###############################
+source $joshix_path/functions/jgrep.sh
 ############################################################################
 
 
