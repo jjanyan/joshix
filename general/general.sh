@@ -1,4 +1,4 @@
-alias destroy='rm -rf '
+alias jdestroy='rm -rf '
 
 GREP_OPTIONS="--exclude-dir=\.svn"
 export GREP_OPTIONS

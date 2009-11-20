@@ -1,7 +1,7 @@
 ############################################################################
 ## ORIGINAL SETTINGS
 ############################################################################
-source general/basic.sh
+source $joshix_path/general/basic.sh
 ############################################################################
 
 
@@ -14,48 +14,48 @@ set -o vi
 ############################################################################
 ## NON-MOVEMENT ALIASES
 ############################################################################
-source general/mac.sh
+source $joshix_path/general/mac.sh
 ###############################
-source general/general.sh
+source $joshix_path/general/general.sh
 ############################################################################
 
 
 ############################################################################
 ## MOVEMENT
 ############################################################################
-source movement/general.sh
+source $joshix_path/movement/general.sh
 ###############################
-source movement/mac.sh
+source $joshix_path/movement/mac.sh
 ###############################
-source functions/j.sh
+source $joshix_path/functions/j.sh
 ############################################################################
 
 
 ############################################################################
 ## DISPLAY ALIASES
 ############################################################################
-source general/display.sh
+source $joshix_path/general/display.sh
 ############################################################################
 
 
 ############################################################################
 ## FUNCTIONS
 ############################################################################
-source functions/jp.sh
+source $joshix_path/functions/jp.sh
 ###############################
-source functions/jssh.sh
+source $joshix_path/functions/jssh.sh
 ###############################
-source functions/jfind.sh
+source $joshix_path/functions/jfind.sh
 ###############################
-source functions/jkill.sh
+source $joshix_path/functions/jkill.sh
 ############################################################################
 
 
 ############################################################################
 ## SETTINGS/FUNCTION EXECUTION
 ############################################################################
-source functions/parse_git_branch.sh
+source $joshix_path/functions/parse_git_branch.sh
 ###############################
-source options/general.sh
+source $joshix_path/options/general.sh
 ############################################################################
 
