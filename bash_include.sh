@@ -1,7 +1,7 @@
 ############################################################################
 ## ORIGINAL SETTINGS
 ############################################################################
-source ~/.bash_scripts/general/basic.sh
+source general/basic.sh
 ############################################################################
 
 
@@ -14,50 +14,48 @@ set -o vi
 ############################################################################
 ## NON-MOVEMENT ALIASES
 ############################################################################
-source ~/.bash_scripts/general/mac.sh
+source general/mac.sh
 ###############################
-source ~/.bash_scripts/general/general.sh
+source general/general.sh
 ############################################################################
 
 
 ############################################################################
 ## MOVEMENT
 ############################################################################
-source ~/.bash_scripts/movement/general.sh
+source movement/general.sh
 ###############################
-source ~/.bash_scripts/movement/mac.sh
+source movement/mac.sh
 ###############################
-source ~/.bash_scripts/movement/work.sh
-###############################
-source ~/.bash_scripts/functions/j.sh
+source functions/j.sh
 ############################################################################
 
 
 ############################################################################
 ## DISPLAY ALIASES
 ############################################################################
-source ~/.bash_scripts/general/display.sh
+source general/display.sh
 ############################################################################
 
 
 ############################################################################
 ## FUNCTIONS
 ############################################################################
-source ~/.bash_scripts/functions/jp.sh
+source functions/jp.sh
 ###############################
-source ~/.bash_scripts/functions/jssh.sh
+source functions/jssh.sh
 ###############################
-source ~/.bash_scripts/functions/jfind.sh
+source functions/jfind.sh
 ###############################
-source ~/.bash_scripts/functions/jkill.sh
+source functions/jkill.sh
 ############################################################################
 
 
 ############################################################################
 ## SETTINGS/FUNCTION EXECUTION
 ############################################################################
-source ~/.bash_scripts/functions/parse_git_branch.sh
+source functions/parse_git_branch.sh
 ###############################
-source ~/.bash_scripts/options/general.sh
+source options/general.sh
 ############################################################################
 
