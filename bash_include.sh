@@ -51,7 +51,13 @@ source $joshix_path/functions/jfind.sh
 ###############################
 source $joshix_path/functions/jkill.sh
 ###############################
+source $joshix_path/functions/jhash.sh
+###############################
+source $joshix_path/functions/jstable.sh
+###############################
 source $joshix_path/functions/jgrep.sh
+###############################
+source $joshix_path/functions/jcheckout.sh
 ############################################################################
 
 

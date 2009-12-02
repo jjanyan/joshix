@@ -9,5 +9,6 @@ export LSCOLORS="gxfxcxdxbxegedabagacad"
 #PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\] \[\033[01;34m\]\w\[\033[01;34m\] \$\[\033[00m\] '
 GREEN="\[\033[0;32m\]"
 BLUE="\[\033[1;34m\]"
+RED="\[\033[1;31m\]"
 #PS1="\[\033[0;33m\]\u@\h\[\033[00m\]:\n\w\$(parse_git_branch)$\[\033[00m\] "
-PS1="\[\033[0;33m\]\u@\h\[\033[00m\]:\n\w$BLUE\$(parse_git_branch)$GREEN $\[\033[00m\] "
+PS1="\[\033[0;33m\]\u@\h\[\033[00m\]:\n\w$BLUE\$(parse_git_branch)$RED $\[\033[00m\] "
