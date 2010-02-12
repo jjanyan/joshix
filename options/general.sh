@@ -1,8 +1,5 @@
 export PATH=/opt/local/bin:/opt/local/sbin:$PATH
 export DISPLAY=:0.0
-red="\033[1;31m";
-norm="\033[0;39m";
-cyan="\033[1;36m";
 export TERM='xterm-color'
 export CLICOLOR='true'
 export LSCOLORS="gxfxcxdxbxegedabagacad"

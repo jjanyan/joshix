@@ -58,6 +58,8 @@ source $joshix_path/functions/jstable.sh
 source $joshix_path/functions/jgrep.sh
 ###############################
 source $joshix_path/functions/jcheckout.sh
+###############################
+source $joshix_path/functions/jpc.sh
 ############################################################################
 
 
