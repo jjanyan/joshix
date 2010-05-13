@@ -1,0 +1,39 @@
+:set titleold=
+:set ignorecase
+:set cindent
+:set noautoindent
+:let loaded_matchparen = 1
+map <C-k> <C-y><C-y>
+map <C-j> <C-e><C-e>
+map F zO
+vnoremap p <Esc>:let current_reg = @"<CR>gvs<C-R>=current_reg<CR><Esc>
+
+if version >= 600
+	set foldenable
+	set foldmarker={,}
+	set foldmethod=marker
+endif
+
+map <C-B> :!php -l %<CR>
+
+autocmd BufReadPost *
+\ if line("'\"") > 0 && line("'\"") <= line("$") |
+\ exe "normal g`\"" |
+\ endif
+augroup END
+
+if version >= 500
+  let c_comment_strings=1
+  if !exists("syntax_on")
+    syntax on
+  endif
+  highlight Normal guibg=grey90
+  highlight Cursor guibg=Green guifg=NONE
+  highlight lCursor guibg=Cyan guifg=NONE
+  highlight NonText guibg=grey80
+  highlight Constant gui=NONE guibg=grey95
+  highlight Special gui=NONE guibg=grey95
+endif
+
+au BufWinLeave * mkview
+au BufWinEnter * silent loadview
