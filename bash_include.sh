@@ -45,7 +45,7 @@ source $joshix_path/functions/jcopy.sh
 ###############################
 source $joshix_path/functions/jp.sh
 ###############################
-source $joshix_path/functions/jssh.sh
+#source $joshix_path/functions/jssh.sh
 ###############################
 source $joshix_path/functions/jfind.sh
 ###############################
@@ -60,6 +60,12 @@ source $joshix_path/functions/jgrep.sh
 source $joshix_path/functions/jcheckout.sh
 ###############################
 source $joshix_path/functions/jpc.sh
+###############################
+source $joshix_path/functions/gf.sh
+###############################
+source $joshix_path/functions/gs.sh
+###############################
+source $joshix_path/functions/jhistory.sh
 ############################################################################
 
 
