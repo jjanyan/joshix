@@ -66,6 +66,8 @@ source $joshix_path/functions/gf.sh
 source $joshix_path/functions/gs.sh
 ###############################
 source $joshix_path/functions/jhistory.sh
+###############################
+source $joshix_path/functions/jnotify.sh
 ############################################################################
 
 
