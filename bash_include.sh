@@ -43,6 +43,8 @@ source $joshix_path/general/display.sh
 ############################################################################
 source $joshix_path/functions/jcopy.sh
 ###############################
+source $joshix_path/functions/jps.sh
+###############################
 source $joshix_path/functions/notify.sh
 ###############################
 source $joshix_path/functions/jq.sh
