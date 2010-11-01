@@ -1,4 +1,5 @@
 :set titleold=
+:set nohls
 :set ignorecase
 :set cindent
 :set noautoindent
