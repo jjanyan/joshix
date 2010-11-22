@@ -1,3 +1,4 @@
+:set nohlsearch
 :set titleold=
 :set nohls
 :set ignorecase
