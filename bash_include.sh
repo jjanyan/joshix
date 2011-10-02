@@ -24,10 +24,6 @@ source $joshix_path/general/general.sh
 ## MOVEMENT
 ############################################################################
 source $joshix_path/movement/general.sh
-###############################
-source $joshix_path/movement/mac.sh
-###############################
-source $joshix_path/functions/j.sh
 ############################################################################
 
 
