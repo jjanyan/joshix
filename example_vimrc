@@ -2,9 +2,12 @@
 :set titleold=
 :set nohls
 :set ignorecase
+:set smartcase
 :set cindent
-:set noautoindent
+:set autoindent
 :let loaded_matchparen = 1
+:set cinkeys = "0{,0},0),:,!^F,o,O,e"
+:filetype plugin on
 map <C-k> <C-y><C-y>
 map <C-j> <C-e><C-e>
 map F zO
@@ -29,13 +32,22 @@ if version >= 500
   if !exists("syntax_on")
     syntax on
   endif
-  highlight Normal guibg=grey90
-  highlight Cursor guibg=Green guifg=NONE
-  highlight lCursor guibg=Cyan guifg=NONE
-  highlight NonText guibg=grey80
-  highlight Constant gui=NONE guibg=grey95
-  highlight Special gui=NONE guibg=grey95
+"  highlight Normal guibg=grey90
+"  highlight Cursor guibg=Green guifg=NONE
+"  highlight lCursor guibg=Cyan guifg=NONE
+"  highlight NonText guibg=grey80
+"  highlight Constant gui=NONE guibg=grey95
+"  highlight Special gui=NONE guibg=grey95
 endif
 
 au BufWinLeave * mkview
 au BufWinEnter * silent loadview
+
+
+:set tabstop=4
+:set shiftwidth=4
+:set expandtab
+:set softtabstop=4
+
+
+:au BufRead,BufNewFile *.ejs set filetype=html

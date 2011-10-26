@@ -41,6 +41,7 @@ LightCyan="$(tput bold ; tput setaf 6)"
 NC="$(tput sgr0)" # No Color
 # }}
 
+
 PS1="\[$LightBlue\]\u\[$Brown\]@\[$LightBlue\]\h:\[$Yellow\]\n\w\[$Blue\]\$(parse_git_branch)\[$Green\] $\[$NC\] "
 
 CDPATH=".:~:/var/www/html/announcemedia/"
