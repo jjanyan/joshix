@@ -1,6 +1,6 @@
 alias vibash='vi /etc/bashrc'
 alias vihosts='vi /etc/hosts'
-alias jsource='source /etc/bashrc'
+alias jsource='source ~/.bashrc'
 alias sha1='/usr/bin/openssl sha1'
 alias jopen='open .'
 alias cl='clear'
