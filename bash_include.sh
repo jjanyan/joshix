@@ -41,6 +41,10 @@ source $joshix_path/functions/jq.sh
 ###############################
 source $joshix_path/functions/jp.sh
 ###############################
+source $joshix_path/functions/jfk.sh
+###############################
+source $joshix_path/functions/jfp.sh
+###############################
 #source $joshix_path/functions/jssh.sh
 ###############################
 source $joshix_path/functions/jfind.sh
