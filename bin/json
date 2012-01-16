@@ -1,0 +1,22 @@
+#! /usr/bin/env php
+<?
+$f = fopen('php://stdin', 'r');
+
+$index = NULL;
+if(isset($argv[1]) === TRUE)
+{
+    $index = $argv[1];
+}
+
+while ($line = fgets($f))
+{
+    //$json = json_decode($line,true);
+    $json = json_decode(utf8_decode($line),true);
+    if($index !== NULL && isset($json[$index]) === TRUE)
+    {
+        $json = $json[$index];
+    }
+    print_r($json);
+    print "\n";
+}
+?>

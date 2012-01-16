@@ -1,0 +1,9 @@
+NUM_ARGS=2
+if [ $# -ne $NUM_ARGS ]; then
+   echo "mkscript filename filetype"
+   exit
+fi
+touch $1
+chmod 700 $1
+echo '#! /usr/bin/env '$2 > $1
+#echo '# vim: set filetype=python :'$2 >> $1
