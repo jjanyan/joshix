@@ -10,4 +10,4 @@ cd;
 mkdir ~/bin
 cp ~/scripts/joshix/bin/* ~/bin
 # so i can keep state when developing
-mkdir ~/.vim/view
+mkdir -p ~/.vim/view
