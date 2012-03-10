@@ -1,0 +1,10 @@
+#! /usr/bin/env bash
+# the first set of commands have to be ran manually
+# mkdir scripts; cd scripts; git clone git://github.com/jjanyan/joshix.git;
+cp ~/scripts/joshix/example_bashrc.sh ~/.bashrc;
+cp ~/scripts/joshix/example_vimrc ~/.vimrc;
+cp ~/scripts/joshix/example_gitconfig ~/.gitconfig;
+source ~/.bashrc;
+cd;
+mkdir ~/bin
+cp ~/scripts/joshix/bin/* ~/bin

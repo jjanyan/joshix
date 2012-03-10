@@ -1,0 +1,26 @@
+[color]
+    diff = auto
+    status = auto
+    branch = auto
+    interactive = auto
+    grep = auto
+    showbranch = auto
+    ui = auto
+[color "branch"]
+    current = yellow reverse
+    local = yellow
+    remote = green
+[color "diff"]
+    meta = yellow bold
+    frag = magenta bold
+    old = red bold
+    new = green bold
+[color "status"]
+    added = yellow
+    changed = green
+    untracked = cyan
+[mergetool]
+    keepBackup = false
+[user]
+    name = Joshua Anyan
+    email = github@anyan.org
