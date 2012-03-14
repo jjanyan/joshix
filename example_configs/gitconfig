@@ -24,3 +24,5 @@
 [user]
     name = Joshua Anyan
     email = github@anyan.org
+[push]
+    default = matching
