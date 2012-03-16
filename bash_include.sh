@@ -11,6 +11,8 @@ source $joshix_path/general/basic.sh
 source $joshix_path/general/mac.sh
 ###############################
 source $joshix_path/general/general.sh
+###############################
+source $joshix_path/general/fab.autocomplete.sh
 ############################################################################
 
 
@@ -31,7 +33,7 @@ source $joshix_path/general/display.sh
 ############################################################################
 ## FUNCTIONS
 ############################################################################
-source $joshix_path/functions/*
+for f in $joshix_path/functions/*; do source $f; done
 #source $joshix_path/functions/jps.sh
 ################################
 #source $joshix_path/functions/notify.sh
