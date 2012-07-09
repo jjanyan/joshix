@@ -1,0 +1,13 @@
+#! /usr/bin/env python
+import json
+import sys
+from betterprint import pprint
+
+for line in sys.stdin:
+    line_pieces = line.split('|',2)
+    row = {'dt':line_pieces[0],'uuid':line_pieces[1]}
+    try:
+        row['data'] = json.loads(line_pieces[2])
+    except:
+        row['data'] = ''
+    pprint(row)

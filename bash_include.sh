@@ -12,7 +12,9 @@ source $joshix_path/general/mac.sh
 ###############################
 source $joshix_path/general/general.sh
 ###############################
-source $joshix_path/general/fab.autocomplete.sh
+#source $joshix_path/general/fab.autocomplete.sh
+###############################
+source $joshix_path/general/git.autocomplete.sh
 ############################################################################
 
 
