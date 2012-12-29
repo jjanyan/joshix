@@ -42,7 +42,7 @@ NC="$(tput sgr0)" # No Color
 # }}
 
 
-PS1="\[$LightBlue\]\u\[$Brown\]@\[$LightBlue\]\h:\[$Yellow\]\n\w\[$Blue\]\$(parse_git_branch)\[$Green\] $\[$NC\] "
+PS1="\[$LightBlue\]\u\[$Brown\]@\[$LightBlue\]\h:\[$Brown\](\@)\[$Yellow\]\n\w\[$Blue\]\$(parse_git_branch)\[$Green\] $\[$NC\] "
 
 if [ -f /opt/local/etc/bash_completion ]; then
 	. /opt/local/etc/bash_completion
