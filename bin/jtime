@@ -1,0 +1,18 @@
+#! /usr/bin/env php
+<?
+$f = fopen('php://stdin', 'r');
+while ($line = fgets($f))
+{
+    $line = trim($line);
+    if(is_numeric($line) == TRUE)
+    {
+        print date("Y-m-d H:i:s",(int)$line);
+        print "\n";
+    }
+    else
+    {
+        print date("Y-m-d H:i:s",strtotime($line));
+        print "\n";
+    }
+}
+?>
