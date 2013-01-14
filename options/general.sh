@@ -1,6 +1,7 @@
 export PATH=/opt/local/bin:/opt/local/sbin:$PATH
 export DISPLAY=:0.0
-export TERM='xterm-color'
+#export TERM='xterm-color'
+export TERM='xterm-256color'
 export CLICOLOR='true'
 export LSCOLORS="gxfxcxdxbxegedabagacad"
 
@@ -42,7 +43,14 @@ NC="$(tput sgr0)" # No Color
 # }}
 
 
-PS1="\[$LightBlue\]\u\[$Brown\]@\[$LightBlue\]\h:\[$Brown\](\@)\[$Yellow\]\n\w\[$Blue\]\$(parse_git_branch)\[$Green\] $\[$NC\] "
+#PS1="\[$LightBlue\]\u\[$Brown\]@\[$LightBlue\]\h:\[$Brown\](\@)\[$Yellow\]\n\w\[$Blue\]\$(parse_git_branch)\[$Green\] $\[$NC\] "
+#PS1="$(~/bin/powerline-bash.py $?)"
+
+function _update_ps1() {
+   export PS1="$(~/bin/powerline-bash.py $?)"
+}
+
+export PROMPT_COMMAND="_update_ps1"
 
 if [ -f /opt/local/etc/bash_completion ]; then
 	. /opt/local/etc/bash_completion
