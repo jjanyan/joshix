@@ -6,6 +6,7 @@ import subprocess
 import sys
 import re
 import argparse
+import socket
 
 
 def warn(msg):
@@ -291,6 +292,12 @@ def add_root_indicator(powerline, error):
         bg = Color.CMD_FAILED_BG
     powerline.append(Segment(powerline, powerline.root_indicator, fg, bg))
 
+def add_host(powerline):
+    bg = Color.CMD_PASSED_BG
+    fg = Color.CMD_PASSED_FG
+    content = socket.gethostname()
+    powerline.append(Segment(powerline,content,fg,bg))
+
 
 def get_valid_cwd():
     """ We check if the current working directory is valid or not. Typically
@@ -325,6 +332,7 @@ if __name__ == '__main__':
     args = arg_parser.parse_args()
 
     p = Powerline(mode=args.mode, shell=args.shell)
+    add_host(p)
     cwd = get_valid_cwd()
     add_virtual_env_segment(p, cwd)
     #p.append(Segment(p, ' \\u ', 250, 240))
