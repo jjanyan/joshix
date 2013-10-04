@@ -15,7 +15,7 @@ export HISTCONTROL=ignoreboth # don't put duplicate lines in the history. & igno
 ############################################################################
 ## SET PATHS
 ############################################################################
-export PATH=$PATH:~/bin
+export PATH=$PATH:~/.bin
 ############################################################################
 
 ## add ssh auto complete

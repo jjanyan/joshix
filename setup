@@ -7,7 +7,7 @@ cp ~/scripts/joshix/example_configs/gitconfig ~/.gitconfig;
 source ~/.bashrc;
 cd;
 # add bin executables
-mkdir ~/bin
-cp ~/scripts/joshix/bin/* ~/bin
+mkdir ~/.bin
+cp ~/scripts/joshix/bin/* ~/.bin
 # so i can keep state when developing
 mkdir -p ~/.vim/view

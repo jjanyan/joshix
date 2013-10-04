@@ -47,7 +47,7 @@ NC="$(tput sgr0)" # No Color
 #PS1="$(~/bin/powerline-bash.py $?)"
 
 function _update_ps1() {
-   export PS1="$(~/bin/powerline-bash.py $?)"
+   export PS1="$(~/.bin/powerline-bash.py $?)"
 }
 
 export PROMPT_COMMAND="_update_ps1"
