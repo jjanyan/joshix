@@ -1,3 +1,4 @@
+#! /usr/bin/env bash
 NUM_ARGS=2
 if [ $# -ne $NUM_ARGS ]; then
    echo "mkscript filename filetype"
