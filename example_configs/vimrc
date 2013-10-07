@@ -50,4 +50,8 @@ au BufWinEnter * silent loadview
 :set softtabstop=4
 
 
+filetype plugin on
 :au BufRead,BufNewFile *.ejs set filetype=html
+:au BufRead,BufNewFile *.twig set filetype=jinja
+:au BufRead,BufNewFile *.html.twig set filetype=jinja
+:au BufRead,BufNewFile /opt/local/etc/nginx/* if &ft == '' | setfiletype nginx | endif
