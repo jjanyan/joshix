@@ -54,7 +54,10 @@ filetype plugin on
 :au BufRead,BufNewFile *.ejs set filetype=html
 :au BufRead,BufNewFile *.twig set filetype=jinja
 :au BufRead,BufNewFile *.html.twig set filetype=jinja
+:au BufRead,BufNewFile *.jinja set filetype=jinja
 :au BufRead,BufNewFile *.node set filetype=javascript
 :au BufRead,BufNewFile /opt/local/etc/nginx/* if &ft == '' | setfiletype nginx | endif
 :au BufRead,BufNewFile /opt/local/etc/nginx/sites-available/* if &ft == '' | setfiletype nginx | endif
 :au BufRead,BufNewFile /opt/local/etc/nginx/sites-enabled/* if &ft == '' | setfiletype nginx | endif
+
+set directory=~/.vim/swp//

@@ -25,3 +25,4 @@ alias gd="git diff $1"
 alias ga="git add $1"
 alias gc="git commit -m \"$@\""
 alias gp="git pull"
+alias gflush='git branch --merged | grep -v "\*" | xargs -n 1 git branch -d'
