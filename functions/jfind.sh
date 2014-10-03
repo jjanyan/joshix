@@ -8,6 +8,6 @@ function jfind()
 		read case
 		jfind $case;
 	else
-		find . -iname \*$1\*
+		find . -path ./.hg -prune -o -iname \*$1\*
 	fi
 }

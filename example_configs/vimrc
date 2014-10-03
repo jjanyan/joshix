@@ -59,5 +59,6 @@ filetype plugin on
 :au BufRead,BufNewFile /opt/local/etc/nginx/* if &ft == '' | setfiletype nginx | endif
 :au BufRead,BufNewFile /opt/local/etc/nginx/sites-available/* if &ft == '' | setfiletype nginx | endif
 :au BufRead,BufNewFile /opt/local/etc/nginx/sites-enabled/* if &ft == '' | setfiletype nginx | endif
+:au BufNewFile,BufReadPost *.md set filetype=markdown
 
 set directory=~/.vim/swp//
