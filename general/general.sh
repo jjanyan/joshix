@@ -23,7 +23,7 @@ complete -W "$(echo `cat ~/.ssh/known_hosts | cut -f 1 -d ' ' | sed -e s/,.*//g 
 alias gs='git status'
 alias gd="git diff $1"
 alias ga="git add -A $1"
-alias gc="git commit -m \"$@\""
+alias gc="git commit"
 alias gp="git pull"
 alias gl="git log --oneline --decorate"
 alias gls="git log --oneline --decorate --stat"
