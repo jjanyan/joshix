@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 # the first set of commands have to be ran manually
 # mkdir scripts; cd scripts; git clone git://github.com/jjanyan/joshix.git; cd joshix; ./setup;
-cp ~/scripts/joshix/example_configs/bashrc.sh ~/.bashrc;
+ln -s ~/scripts/joshix/example_configs/bashrc.sh ~/.bashrc
 cp ~/scripts/joshix/example_configs/vimrc ~/.vimrc;
 cp ~/scripts/joshix/example_configs/gitconfig ~/.gitconfig;
 source ~/.bashrc;

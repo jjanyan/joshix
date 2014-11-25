@@ -2,3 +2,5 @@
 # MODIFY joshix_path TO POINT TO THE FOLDER (WITHOUT THE TRAILING SLASH!)
 joshix_path=~/scripts/joshix
 source $joshix_path"/bash_include.sh"
+source ~/.bashrc_local
+export PYTHONDONTWRITEBYTECODE=1
