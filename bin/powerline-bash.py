@@ -89,7 +89,8 @@ def get_valid_cwd():
         the working directory, so returning our guess will confuse people
     """
     try:
-        cwd = os.getcwd()
+        #cwd = os.getcwd()
+        cwd = os.getenv('PWD')
     except:
         cwd = os.getenv('PWD')  # This is where the OS thinks we are
         parts = cwd.split(os.sep)
