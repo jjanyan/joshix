@@ -8,6 +8,6 @@ function jfind()
 		read case
 		jfind $case;
 	else
-		find . -path .git -prune -o -iname \*$1\*
+		find . -path .git -prune -o -follow -iname \*$1\*
 	fi
 }
