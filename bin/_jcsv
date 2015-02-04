@@ -1,0 +1,13 @@
+#! /usr/bin/env python
+"""
+    tool to convert a list of text into a single csv line. 
+    used as part of the jscv cli utility
+"""
+import fileinput
+
+rows = []
+for line in fileinput.input():
+    rows.append(line.strip())
+
+if len(rows) > 0:
+    print ",".join(rows)
