@@ -7,4 +7,6 @@ fi
 touch $1
 chmod 700 $1
 echo '#! /usr/bin/env '$2 > $1
-#echo '# vim: set filetype=python :'$2 >> $1
+if [ "$2" == "python" ]; then
+    echo 'from betterprint import pprint' >> $1
+fi
