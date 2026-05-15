@@ -33,6 +33,7 @@ Important workflow skills include:
 - `joshix:executing-plans`
 - `joshix:systematic-debugging`
 - `joshix:test-driven-development`
+- `joshix:code-review`
 - `joshix:requesting-code-review`
 - `joshix:receiving-code-review`
 - `joshix:receiving-plan-review`

@@ -16,6 +16,7 @@ Expected skill names use the `joshix:` namespace, for example:
 - `joshix:brainstorming`
 - `joshix:writing-plans`
 - `joshix:subagent-driven-development`
+- `joshix:code-review`
 - `joshix:receiving-plan-review`
 - `joshix:verification-before-completion`
 
@@ -37,7 +38,7 @@ Gemini loads `GEMINI.md`, which points at the local `using-joshix` bootstrap and
 2. **writing-plans** turns approved requirements into executable plans under `.agents/plans/`, including explicit plan-review disclosure.
 3. **subagent-driven-development** or **executing-plans** executes approved plans.
 4. **test-driven-development** applies RED-GREEN-REFACTOR for core behavior changes and bug fixes.
-5. **requesting-code-review**, **receiving-code-review**, and **receiving-plan-review** handle review workflows.
+5. **code-review**, **requesting-code-review**, **receiving-code-review**, and **receiving-plan-review** handle review workflows.
 6. **verification-before-completion** requires fresh evidence before claiming work is done.
 
 ## Agent Artifacts
