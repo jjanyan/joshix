@@ -138,11 +138,50 @@ update the appropriate repo documentation? If not, add one.
 
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 
+## Plan Review Decision
+
+After self-review, decide whether to request an independent plan review using
+`plan-document-reviewer-prompt.md`.
+
+Default to requesting plan review unless the plan is clearly small and low risk.
+Use judgment, but silence is not allowed: the execution handoff must state
+whether plan review happened.
+
+**Plan review may be skipped when all of these are true:**
+- 1-2 tasks
+- Single-file, tightly localized, docs-only, prompt-only, config-only,
+  test-only, or mechanical cleanup
+- No meaningful behavior, architecture, data, deployment, or agent-workflow
+  change
+- No multi-agent execution expected
+- No ambiguity in how the spec maps to the plan
+
+**Request plan review when any of these apply:**
+- 3+ implementation tasks
+- Multiple files/modules, cross-cutting behavior, or multi-agent execution
+- User-facing or agent-facing behavior changes
+- Changes to testing workflow, skill behavior, prompts, execution orchestration,
+  persistence, auth, CI, deployment, migrations, or generated artifacts
+- New abstractions or durable documentation/process changes
+- Any meaningful ambiguity in spec-to-plan coverage
+
+If review is skipped, say why:
+
+```text
+No plan review requested: this is a small, low-risk plan because [reason].
+```
+
+If review is requested, account for it before offering execution:
+
+```text
+Plan review completed and accounted for. Issues found: [count]. [Accepted/rejected summary]. No open blocking review items remain.
+```
+
 ## Execution Handoff
 
 After saving the plan, offer execution choice:
 
-**"Plan complete and saved to `.agents/plans/<filename>.md`. Recommended execution: <subagent-driven or inline>, because <brief reason>.**
+**"Plan complete and saved to `.agents/plans/<filename>.md`. [Plan review disclosure]. Recommended execution: <subagent-driven or inline>, because <brief reason>.**
 
 **Subagent-driven** is a good fit when tasks touch disjoint files or can be reviewed independently.
 

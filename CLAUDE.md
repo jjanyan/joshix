@@ -17,6 +17,9 @@ is not being shaped as an upstream PR.
 - If the user asks an honest question, answer it before making changes.
 - If the user pastes or references an agent code review, evaluate the review
   item by item before editing. Do not apply fixes unless explicitly asked.
+- If the user pastes or references an agent plan review, evaluate the review
+  item by item before editing the plan. Do not apply fixes unless explicitly
+  asked.
 
 ## Skill Names
 
@@ -32,6 +35,7 @@ Important workflow skills include:
 - `joshix:test-driven-development`
 - `joshix:requesting-code-review`
 - `joshix:receiving-code-review`
+- `joshix:receiving-plan-review`
 - `joshix:verification-before-completion`
 
 ## Testing

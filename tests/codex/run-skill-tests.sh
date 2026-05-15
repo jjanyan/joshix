@@ -66,6 +66,7 @@ export CODEX_TEST_TIMEOUT="$TIMEOUT"
 tests=(
     "test-skill-discovery-smoke.sh"
     "test-receiving-code-review-review-review.sh"
+    "test-receiving-plan-review-review-review.sh"
     "test-joshix-guidance-regressions.sh"
     "test-using-joshix-no-implicit-git.sh"
 )
