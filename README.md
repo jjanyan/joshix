@@ -1,6 +1,6 @@
 # joshix
 
-joshix is Josh Anyan's local agentic skills framework for coding agents. It keeps the workflow pieces that are useful here: brainstorming, planning, TDD, systematic debugging, subagent-driven execution, review handling, and verification before completion.
+joshix is Josh's local agentic skills framework for coding agents. It keeps the workflow pieces that are useful here: brainstorming, planning, TDD, systematic debugging, subagent-driven execution, review handling, and verification before completion.
 
 This fork is not intended as an upstream contribution target. It is customized for local agent behavior and local installation.
 
@@ -18,6 +18,7 @@ Expected skill names use the `joshix:` namespace, for example:
 - `joshix:subagent-driven-development`
 - `joshix:code-review`
 - `joshix:commit-message`
+- `joshix:commit-staged`
 - `joshix:receiving-plan-review`
 - `joshix:verification-before-completion`
 
@@ -41,7 +42,8 @@ Gemini loads `GEMINI.md`, which points at the local `using-joshix` bootstrap and
 4. **test-driven-development** applies RED-GREEN-REFACTOR for core behavior changes and bug fixes.
 5. **code-review**, **requesting-code-review**, **receiving-code-review**, and **receiving-plan-review** handle review workflows.
 6. **commit-message** drafts commit messages from staged changes without mutating git state.
-7. **verification-before-completion** requires fresh evidence before claiming work is done.
+7. **commit-staged** commits only when all local changes are already staged.
+8. **verification-before-completion** requires fresh evidence before claiming work is done.
 
 ## Agent Artifacts
 
@@ -65,5 +67,5 @@ MIT License. See `LICENSE` for details.
 
 ## Origin
 
-joshix is a personalized fork of Superpowers, adapted for Josh Anyan's local
+joshix is a personalized fork of Superpowers, adapted for Josh's local
 agent workflow and preferences.

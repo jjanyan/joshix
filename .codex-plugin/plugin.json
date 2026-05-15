@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "An agentic skills framework & software development methodology that works: planning, TDD, debugging, and collaboration workflows.",
   "author": {
-    "name": "Josh Anyan",
+    "name": "Josh",
     "url": "https://github.com/jjanyan"
   },
   "homepage": "https://github.com/jjanyan/joshix",
@@ -24,7 +24,7 @@
     "displayName": "joshix",
     "shortDescription": "Planning, TDD, debugging, and delivery workflows for coding agents",
     "longDescription": "Use joshix to guide agent work through brainstorming, implementation planning, test-driven development, systematic debugging, parallel execution, code review, and verification workflows.",
-    "developerName": "Josh Anyan",
+    "developerName": "Josh",
     "category": "Coding",
     "capabilities": [
       "Interactive",

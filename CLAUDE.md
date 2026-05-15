@@ -1,6 +1,6 @@
 # joshix Claude Guidance
 
-This repository is Josh Anyan's customized fork for local agent workflows. It
+This repository is Josh's customized fork for local agent workflows. It
 is not being shaped as an upstream PR.
 
 ## Working Rules
@@ -35,6 +35,7 @@ Important workflow skills include:
 - `joshix:test-driven-development`
 - `joshix:code-review`
 - `joshix:commit-message`
+- `joshix:commit-staged`
 - `joshix:requesting-code-review`
 - `joshix:receiving-code-review`
 - `joshix:receiving-plan-review`
