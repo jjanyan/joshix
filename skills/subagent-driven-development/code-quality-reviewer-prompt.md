@@ -12,8 +12,9 @@ Task tool (general-purpose):
 
   DESCRIPTION: [task summary, from implementer's report]
   PLAN_OR_REQUIREMENTS: Task N from [plan-file]
-  BASE_SHA: [commit before task]
-  HEAD_SHA: [current commit]
+  CHANGED_FILES: [files changed by the task]
+  DIFF_CONTEXT: [relevant git diff or summary of changes]
+  VERIFICATION: [commands/tests run and results from implementer's report]
 ```
 
 **In addition to standard code quality concerns, the reviewer should check:**
@@ -22,4 +23,4 @@ Task tool (general-purpose):
 - Is the implementation following the file structure from the plan?
 - Did this implementation create new files that are already large, or significantly grow existing files? (Don't flag pre-existing file sizes — focus on what this change contributed.)
 
-**Code reviewer returns:** Strengths, Issues (Critical/Important/Minor), Assessment
+**Code reviewer returns:** Findings (Critical/Important/Minor), Recommendations, Assessment

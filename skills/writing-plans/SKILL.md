@@ -7,16 +7,26 @@ description: Use when you have a spec or requirements for a multi-step task, bef
 
 ## Overview
 
-Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+Write comprehensive implementation plans for a skilled engineer who has limited project context. Document what they need to know: which files to touch for each task, code, testing, docs they might need to check, and how to verify the work. Give them the whole plan as bite-sized tasks. DRY. YAGNI. Use the repository's testing norms.
 
-Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+Assume they are a skilled developer, but know almost nothing about our toolset or problem domain.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Context:** If working in an isolated worktree, it should have been created via the `superpowers:using-git-worktrees` skill at execution time.
+**Git context:** Plans should assume implementation happens in the current checkout and current branch. Include branch or worktree setup only when the user explicitly requested it.
 
-**Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
+**Testing context:** Require TDD for core behavior changes, bug fixes, and testable logic. If expected behavior cannot be expressed clearly, include a clarification step before implementation. For docs, config, metadata, generated assets, exploratory spikes, and mechanical refactors where tests would be artificial, use repo-appropriate verification instead.
+
+**Save plans to:** `.agents/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)
+
+Plans in `.agents/plans/` are execution artifacts, not permanent
+documentation. Include closeout work that updates durable repo documentation
+when implementation changes product behavior, architecture, operational
+workflow, or developer workflow. Do not treat the plan itself as the final
+record of the change. Once the work is implemented and durable docs are updated,
+the plan/spec should be removed or archived as part of explicit cleanup, not left
+as never-ending documentation.
 
 ## Scope Check
 
@@ -36,11 +46,10 @@ This structure informs the task decomposition. Each task should produce self-con
 ## Bite-Sized Task Granularity
 
 **Each step is one action (2-5 minutes):**
-- "Write the failing test" - step
-- "Run it to make sure it fails" - step
-- "Implement the minimal code to make the test pass" - step
+- "Add or update the focused test" - step
+- "Run the targeted verification" - step
+- "Implement the focused change" - step
 - "Run the tests and make sure they pass" - step
-- "Commit" - step
 
 ## Plan Document Header
 
@@ -49,7 +58,7 @@ This structure informs the task decomposition. Each task should produce self-con
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Choose `joshix:subagent-driven-development` when tasks are independent enough for isolated implementation and review. Choose `joshix:executing-plans` when work is tightly coupled, small, or better handled inline. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -70,7 +79,7 @@ This structure informs the task decomposition. Each task should produce self-con
 - Modify: `exact/path/to/existing.py:123-145`
 - Test: `tests/exact/path/to/test.py`
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Add or update focused test coverage**
 
 ```python
 def test_specific_behavior():
@@ -78,12 +87,12 @@ def test_specific_behavior():
     assert result == expected
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run targeted verification**
 
 Run: `pytest tests/path/test.py::test_name -v`
-Expected: FAIL with "function not defined"
+Expected: Fails before the implementation if this is a new behavior, or passes if updating coverage for existing behavior
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **Step 3: Implement the focused change**
 
 ```python
 def function(input):
@@ -95,12 +104,6 @@ def function(input):
 Run: `pytest tests/path/test.py::test_name -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
-
-```bash
-git add tests/path/test.py src/path/file.py
-git commit -m "feat: add specific feature"
-```
 ````
 
 ## No Placeholders
@@ -117,7 +120,7 @@ Every step must contain the actual content an engineer needs. These are **plan f
 - Exact file paths always
 - Complete code in every step — if a step changes code, show the code
 - Exact commands with expected output
-- DRY, YAGNI, TDD, frequent commits
+- DRY, YAGNI, TDD for core behavior and bug fixes, and repo-appropriate verification for everything else
 
 ## Self-Review
 
@@ -129,24 +132,28 @@ After writing the complete plan, look at the spec with fresh eyes and check the 
 
 **3. Type consistency:** Do the types, method signatures, and property names you used in later tasks match what you defined in earlier tasks? A function called `clearLayers()` in Task 3 but `clearFullLayers()` in Task 7 is a bug.
 
+**4. Durable docs:** If the work changes durable product behavior,
+architecture, operations, or developer workflow, does the plan include a task to
+update the appropriate repo documentation? If not, add one.
+
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 
 ## Execution Handoff
 
 After saving the plan, offer execution choice:
 
-**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Two execution options:**
+**"Plan complete and saved to `.agents/plans/<filename>.md`. Recommended execution: <subagent-driven or inline>, because <brief reason>.**
 
-**1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
+**Subagent-driven** is a good fit when tasks touch disjoint files or can be reviewed independently.
 
-**2. Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
+**Inline execution** is a good fit when tasks are tightly coupled, small, or likely to require continuous judgment in one context.
 
-**Which approach?"**
+**Proceed with the recommended approach, or use the other one?"**
 
 **If Subagent-Driven chosen:**
-- **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
+- **REQUIRED SUB-SKILL:** Use joshix:subagent-driven-development
 - Fresh subagent per task + two-stage review
 
 **If Inline Execution chosen:**
-- **REQUIRED SUB-SKILL:** Use superpowers:executing-plans
+- **REQUIRED SUB-SKILL:** Use joshix:executing-plans
 - Batch execution with checkpoints for review

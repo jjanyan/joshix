@@ -1,6 +1,6 @@
-# Testing Superpowers Skills
+# Testing joshix Skills
 
-This document describes how to test Superpowers skills, particularly the integration tests for complex skills like `subagent-driven-development`.
+This document describes how to test joshix skills, particularly the integration tests for complex skills like `subagent-driven-development`.
 
 ## Overview
 
@@ -33,9 +33,9 @@ cd tests/claude-code
 
 ### Requirements
 
-- Must run from the **superpowers plugin directory** (not from temp directories)
+- Must run from the **joshix plugin directory** (not from temp directories)
 - Claude Code must be installed and available as `claude` command
-- Local dev marketplace must be enabled: `"superpowers@superpowers-dev": true` in `~/.claude/settings.json`
+- Local dev marketplace must be enabled: `"joshix@joshix-dev": true` in `~/.claude/settings.json`
 
 ## Integration Test: subagent-driven-development
 
@@ -60,7 +60,7 @@ The integration test verifies the `subagent-driven-development` skill correctly:
    - TodoWrite was used for tracking
    - Implementation files were created
    - Tests pass
-   - Git commits show proper workflow
+   - Git history remains unchanged unless the prompt explicitly asks for commits
 4. **Token Analysis**: Shows token usage breakdown by subagent
 
 ### Test Output
@@ -90,8 +90,8 @@ Test 6: Implementation verification...
   [PASS] test/math.test.js created
   [PASS] Tests pass
 
-Test 7: Git commit history...
-  [PASS] Multiple commits created (3 total)
+Test 5: Git history unchanged...
+  [PASS] No extra commits created
 
 Test 8: No extra features added...
   [PASS] No extra features added
@@ -149,8 +149,8 @@ python3 tests/claude-code/analyze-token-usage.py ~/.claude/projects/<project-dir
 Session transcripts are stored in `~/.claude/projects/` with the working directory path encoded:
 
 ```bash
-# Example for /Users/yourname/Documents/GitHub/superpowers/superpowers
-SESSION_DIR="$HOME/.claude/projects/-Users-yourname-Documents-GitHub-superpowers-superpowers"
+# Example for /Users/yourname/Documents/GitHub/joshix/joshix
+SESSION_DIR="$HOME/.claude/projects/-Users-yourname-Documents-GitHub-joshix-joshix"
 
 # Find recent sessions
 ls -lt "$SESSION_DIR"/*.jsonl | head -5
@@ -182,8 +182,8 @@ ls -lt "$SESSION_DIR"/*.jsonl | head -5
 **Problem**: Skill not found when running headless tests
 
 **Solutions**:
-1. Ensure you're running FROM the superpowers directory: `cd /path/to/superpowers && tests/...`
-2. Check `~/.claude/settings.json` has `"superpowers@superpowers-dev": true` in `enabledPlugins`
+1. Ensure you're running FROM the joshix directory: `cd /path/to/joshix && tests/...`
+2. Check `~/.claude/settings.json` has `"joshix@joshix-dev": true` in `enabledPlugins`
 3. Verify skill exists in `skills/` directory
 
 ### Permission Errors
@@ -258,9 +258,9 @@ python3 "$SCRIPT_DIR/analyze-token-usage.py" "$SESSION_FILE"
 1. **Always cleanup**: Use trap to cleanup temp directories
 2. **Parse transcripts**: Don't grep user-facing output - parse the `.jsonl` session file
 3. **Grant permissions**: Use `--permission-mode bypassPermissions` and `--add-dir`
-4. **Run from plugin dir**: Skills only load when running from the superpowers directory
+4. **Run from plugin dir**: Skills only load when running from the joshix directory
 5. **Show token usage**: Always include token analysis for cost visibility
-6. **Test real behavior**: Verify actual files created, tests passing, commits made
+6. **Test real behavior**: Verify actual files created, tests passing, and git history unchanged unless commits were explicitly requested
 
 ## Session Transcript Format
 

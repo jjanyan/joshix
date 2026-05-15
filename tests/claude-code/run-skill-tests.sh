@@ -5,6 +5,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
+CLAUDE_BIN="${CLAUDE_BIN:-claude}"
+CLAUDE_PLUGIN_DIR="${CLAUDE_PLUGIN_DIR:-$(cd ../.. && pwd)}"
+CLAUDE_PLUGIN_NAME="${CLAUDE_PLUGIN_NAME:-joshix}"
 
 echo "========================================"
 echo " Claude Code Skills Test Suite"
@@ -12,15 +15,34 @@ echo "========================================"
 echo ""
 echo "Repository: $(cd ../.. && pwd)"
 echo "Test time: $(date)"
-echo "Claude version: $(claude --version 2>/dev/null || echo 'not found')"
+echo "Claude version: $($CLAUDE_BIN --version 2>/dev/null || echo 'not found')"
+echo "Plugin dir: $CLAUDE_PLUGIN_DIR"
+echo "Plugin name: $CLAUDE_PLUGIN_NAME"
 echo ""
 
 # Check if Claude Code is available
-if ! command -v claude &> /dev/null; then
+if ! command -v "$CLAUDE_BIN" &> /dev/null; then
     echo "ERROR: Claude Code CLI not found"
     echo "Install Claude Code first: https://code.claude.com"
     exit 1
 fi
+
+export CLAUDE_BIN
+export CLAUDE_PLUGIN_DIR
+export CLAUDE_PLUGIN_NAME
+
+run_with_timeout() {
+    local seconds="$1"
+    shift
+
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$seconds" "$@"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        gtimeout "$seconds" "$@"
+    else
+        "$@"
+    fi
+}
 
 # Parse command line arguments
 VERBOSE=false
@@ -61,6 +83,8 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Integration Tests (use --integration):"
             echo "  test-subagent-driven-development-integration.sh  Full workflow execution"
+            echo "  test-document-review-system.sh  Spec document review behavior"
+            echo "  test-requesting-code-review.sh  Code review behavior"
             exit 0
             ;;
         *)
@@ -79,6 +103,7 @@ tests=(
 # Integration tests (slow, full execution)
 integration_tests=(
     "test-subagent-driven-development-integration.sh"
+    "test-document-review-system.sh"
     "test-requesting-code-review.sh"
 )
 
@@ -119,7 +144,7 @@ for test in "${tests[@]}"; do
     start_time=$(date +%s)
 
     if [ "$VERBOSE" = true ]; then
-        if timeout "$TIMEOUT" bash "$test_path"; then
+        if run_with_timeout "$TIMEOUT" bash "$test_path"; then
             end_time=$(date +%s)
             duration=$((end_time - start_time))
             echo ""
@@ -139,7 +164,7 @@ for test in "${tests[@]}"; do
         fi
     else
         # Capture output for non-verbose mode
-        if output=$(timeout "$TIMEOUT" bash "$test_path" 2>&1); then
+        if output=$(run_with_timeout "$TIMEOUT" bash "$test_path" 2>&1); then
             end_time=$(date +%s)
             duration=$((end_time - start_time))
             echo "  [PASS] (${duration}s)"

@@ -30,13 +30,15 @@ Task tool (general-purpose):
 
     Once you're clear on requirements:
     1. Implement exactly what the task specifies
-    2. Write tests (following TDD if task says to)
+    2. Write tests (following TDD when the TDD skill applies: core behavior
+       changes, bug fixes, or other testable logic)
     3. Verify implementation works
-    4. Commit your work
-    5. Self-review (see below)
-    6. Report back
+    4. Self-review (see below)
+    5. Report back
 
     Work from: [directory]
+
+    Do not stage or commit changes unless the controller explicitly tells you to.
 
     **While you work:** If you encounter something unexpected or unclear, **ask questions**.
     It's always OK to pause and clarify. Don't guess or make assumptions.
@@ -68,8 +70,8 @@ Task tool (general-purpose):
 
     **How to escalate:** Report back with status BLOCKED or NEEDS_CONTEXT. Describe
     specifically what you're stuck on, what you've tried, and what kind of help you need.
-    The controller can provide more context, re-dispatch with a more capable model,
-    or break the task into smaller pieces.
+    The controller can provide more context, split the task into smaller pieces,
+    or follow explicit user/repo/platform guidance for model selection.
 
     ## Before Reporting Back: Self-Review
 
@@ -92,7 +94,7 @@ Task tool (general-purpose):
 
     **Testing:**
     - Do tests actually verify behavior (not just mock behavior)?
-    - Did I follow TDD if required?
+    - Did I follow TDD when the TDD skill applies?
     - Are tests comprehensive?
 
     If you find issues during self-review, fix them now before reporting.

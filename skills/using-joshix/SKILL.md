@@ -1,5 +1,5 @@
 ---
-name: using-superpowers
+name: using-joshix
 description: Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions
 ---
 
@@ -17,13 +17,13 @@ This is not negotiable. This is not optional. You cannot rationalize your way ou
 
 ## Instruction Priority
 
-Superpowers skills override default system prompt behavior, but **user instructions always take precedence**:
+joshix skills override default system prompt behavior, but **user instructions always take precedence**:
 
 1. **User's explicit instructions** (CLAUDE.md, GEMINI.md, AGENTS.md, direct requests) — highest priority
-2. **Superpowers skills** — override default system behavior where they conflict
+2. **joshix skills** — override default system behavior where they conflict
 3. **Default system prompt** — lowest priority
 
-If CLAUDE.md, GEMINI.md, or AGENTS.md says "don't use TDD" and a skill says "always use TDD," follow the user's instructions. The user is in control.
+If CLAUDE.md, GEMINI.md, or AGENTS.md says "don't use TDD" and a skill says to use TDD, follow the user's instructions. The user is in control.
 
 ## How to Access Skills
 
@@ -55,7 +55,7 @@ digraph skill_flow {
     "Invoke Skill tool" [shape=box];
     "Announce: 'Using [skill] to [purpose]'" [shape=box];
     "Has checklist?" [shape=diamond];
-    "Create TodoWrite todo per item" [shape=box];
+    "Create task-list item per checklist item" [shape=box];
     "Follow skill exactly" [shape=box];
     "Respond (including clarifications)" [shape=doublecircle];
 
@@ -69,9 +69,9 @@ digraph skill_flow {
     "Might any skill apply?" -> "Respond (including clarifications)" [label="definitely not"];
     "Invoke Skill tool" -> "Announce: 'Using [skill] to [purpose]'";
     "Announce: 'Using [skill] to [purpose]'" -> "Has checklist?";
-    "Has checklist?" -> "Create TodoWrite todo per item" [label="yes"];
+    "Has checklist?" -> "Create task-list item per checklist item" [label="yes"];
     "Has checklist?" -> "Follow skill exactly" [label="no"];
-    "Create TodoWrite todo per item" -> "Follow skill exactly";
+    "Create task-list item per checklist item" -> "Follow skill exactly";
 }
 ```
 
@@ -115,3 +115,52 @@ The skill itself tells you which.
 ## User Instructions
 
 Instructions say WHAT, not HOW. "Add X" or "Fix Y" doesn't mean skip workflows.
+
+## Honest Questions Before Action
+
+If the user's message contains an honest question, answer the question before
+making changes, running consequential tools, or continuing implementation.
+
+A question is honest when the answer could affect scope, approach, priority, or
+whether work should happen at all. Do not treat an honest question as approval
+to proceed.
+
+Rhetorical questions do not block action when the user also gives a clear
+instruction. Example: "Who would do that? Do the other thing" means do the other
+thing.
+
+When unsure whether a question is honest or rhetorical, answer it and wait.
+
+## Agent Workspace Artifacts
+
+The `.agents/` directory is for agent coordination artifacts, not canonical
+project documentation.
+
+- `.agents/context/` is temporary local scratch context. It is ignored by git.
+  Before creating a context file, scan existing files in `.agents/context/`.
+  Start each context file with an ISO timestamp. Treat context files as
+  scratchpads, not authoritative docs.
+- `.agents/specs/` holds reviewed design specs while work is being planned or
+  executed.
+- `.agents/plans/` holds executable implementation plans while work is being
+  executed.
+
+Specs and plans are working artifacts. After implementation, durable decisions
+belong in repo documentation, product docs, code comments, or other permanent
+project files. Do not let `.agents/specs/` or `.agents/plans/` become stale
+long-term documentation.
+
+Clean up `.agents/context/` files older than 7 days only during explicit cleanup
+work, not as incidental churn in unrelated changes.
+
+## Git Workflow
+
+Work in the current checkout and current branch by default, including `main`,
+`master`, and `dev`. Do not stage, commit, create or switch branches, create
+worktrees, merge, push, or open pull requests unless the user explicitly asks
+for that git operation.
+
+If the harness or the user already put you in a branch or worktree, use that
+workspace as-is. Do not clean up branches or worktrees unless the user asks.
+When the user does ask you to stage or commit, include only files intentionally
+changed for the task unless they ask otherwise.

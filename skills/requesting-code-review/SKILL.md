@@ -1,48 +1,63 @@
 ---
 name: requesting-code-review
-description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
+description: Use when completing tasks, implementing major features, or reviewing substantial changes before proceeding
 ---
 
 # Requesting Code Review
 
-Dispatch a code reviewer subagent to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history. This keeps the reviewer focused on the work product, not your thought process, and preserves your own context for continued work.
+Request a focused code review to catch concrete issues before they cascade.
+Provide the reviewer with relevant implementation context, requirements,
+changed files, and diff context. By default, provide focused context instead of
+the full session history. Inherit or fork session context only when the
+platform or task genuinely requires it.
 
-**Core principle:** Review early, review often.
+**Core principle:** Review concrete risks before proceeding.
+
+## Model Selection
+
+Use the current/default model for delegated review work. Do not downgrade models
+to conserve cost. If the platform inherits the current model by default, let
+that cascade to reviewer subagents. Avoid overriding model selection unless the
+user, repo guidance, or platform-specific workflow explicitly calls for a
+different model.
 
 ## When to Request Review
 
 **Mandatory:**
 - After each task in subagent-driven development
-- After completing major feature
-- Before merge to main
+- After completing a major feature or risky change
+- Before reporting substantial work complete when correctness,
+  maintainability, security, data, or operational risk matters
 
 **Optional but valuable:**
 - When stuck (fresh perspective)
 - Before refactoring (baseline check)
 - After fixing complex bug
 
+If the latest user message contains an honest question that needs an answer,
+answer it before requesting review.
+
 ## How to Request
 
-**1. Get git SHAs:**
-```bash
-BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
-HEAD_SHA=$(git rev-parse HEAD)
-```
+**1. Gather review inputs:**
 
-**2. Dispatch code reviewer subagent:**
-
-Use Task tool with `general-purpose` type, fill template at `code-reviewer.md`
-
-**Placeholders:**
-- `{DESCRIPTION}` - Brief summary of what you built
+- `{DESCRIPTION}` - Brief summary of what changed
 - `{PLAN_OR_REQUIREMENTS}` - What it should do
-- `{BASE_SHA}` - Starting commit
-- `{HEAD_SHA}` - Ending commit
+- `{CHANGED_FILES}` - Files changed by this task or checkpoint
+- `{DIFF_CONTEXT}` - Relevant working tree diff, changed-file diff, or code
+  snippets to review
+- `{VERIFICATION}` - Commands/tests run and results, if available
+
+**2. Dispatch a code reviewer:**
+
+Use the platform's subagent, review, or task tool with the template at
+`code-reviewer.md`.
 
 **3. Act on feedback:**
 - Fix Critical issues immediately
-- Fix Important issues before proceeding
-- Note Minor issues for later
+- Fix Important issues before proceeding or reporting completion, unless there
+  is a clear technical reason to push back
+- Consider Minor issues, but do not let taste-only feedback churn the work
 - Push back if reviewer is wrong (with reasoning)
 
 ## Example
@@ -52,18 +67,15 @@ Use Task tool with `general-purpose` type, fill template at `code-reviewer.md`
 
 You: Let me request code review before proceeding.
 
-BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
-HEAD_SHA=$(git rev-parse HEAD)
-
 [Dispatch code reviewer subagent]
   DESCRIPTION: Added verifyIndex() and repairIndex() with 4 issue types
-  PLAN_OR_REQUIREMENTS: Task 2 from docs/superpowers/plans/deployment-plan.md
-  BASE_SHA: a7981ec
-  HEAD_SHA: 3df7661
+  PLAN_OR_REQUIREMENTS: Task 2 from .agents/plans/deployment-plan.md
+  CHANGED_FILES: src/index.ts, tests/index.test.ts
+  DIFF_CONTEXT: Current working tree diff for the changed files
+  VERIFICATION: npm test tests/index.test.ts - passing
 
 [Subagent returns]:
-  Strengths: Clean architecture, real tests
-  Issues:
+  Findings:
     Important: Missing progress indicators
     Minor: Magic number (100) for reporting interval
   Assessment: Ready to proceed
@@ -84,7 +96,7 @@ You: [Fix progress indicators]
 - Get feedback, apply, continue
 
 **Ad-Hoc Development:**
-- Review before merge
+- Review before reporting large or risky work complete
 - Review when stuck
 
 ## Red Flags
@@ -94,6 +106,9 @@ You: [Fix progress indicators]
 - Ignore Critical issues
 - Proceed with unfixed Important issues
 - Argue with valid technical feedback
+- Ask for review before answering an honest user question
+- Give the reviewer stale or irrelevant diff context
+- Ask the reviewer to judge the whole repo when a changed-file scope is enough
 
 **If reviewer wrong:**
 - Push back with technical reasoning

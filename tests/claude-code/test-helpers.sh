@@ -1,22 +1,41 @@
 #!/usr/bin/env bash
 # Helper functions for Claude Code skill tests
 
+CLAUDE_TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLAUDE_REPO_ROOT="$(cd "$CLAUDE_TEST_DIR/../.." && pwd)"
+CLAUDE_BIN="${CLAUDE_BIN:-claude}"
+CLAUDE_PLUGIN_DIR="${CLAUDE_PLUGIN_DIR:-$CLAUDE_REPO_ROOT}"
+CLAUDE_PLUGIN_NAME="${CLAUDE_PLUGIN_NAME:-joshix}"
+
+run_with_timeout() {
+    local seconds="$1"
+    shift
+
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$seconds" "$@"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        gtimeout "$seconds" "$@"
+    else
+        "$@"
+    fi
+}
+
 # Run Claude Code with a prompt and capture output
 # Usage: run_claude "prompt text" [timeout_seconds] [allowed_tools]
 run_claude() {
     local prompt="$1"
     local timeout="${2:-60}"
     local allowed_tools="${3:-}"
-    local output_file=$(mktemp)
+    local output_file
+    local cmd=("$CLAUDE_BIN" -p "$prompt" --plugin-dir "$CLAUDE_PLUGIN_DIR")
 
-    # Build command
-    local cmd="claude -p \"$prompt\""
     if [ -n "$allowed_tools" ]; then
-        cmd="$cmd --allowed-tools=$allowed_tools"
+        cmd+=(--allowed-tools="$allowed_tools")
     fi
 
-    # Run Claude in headless mode with timeout
-    if timeout "$timeout" bash -c "$cmd" > "$output_file" 2>&1; then
+    output_file=$(mktemp)
+
+    if run_with_timeout "$timeout" "${cmd[@]}" > "$output_file" 2>&1; then
         cat "$output_file"
         rm -f "$output_file"
         return 0
@@ -26,6 +45,43 @@ run_claude() {
         rm -f "$output_file"
         return $exit_code
     fi
+}
+
+run_claude_stream() {
+    local prompt="$1"
+    local timeout="${2:-60}"
+    local output_file="$3"
+    shift 3
+
+    local cmd=("$CLAUDE_BIN" -p "$prompt" --plugin-dir "$CLAUDE_PLUGIN_DIR")
+    if [ "$#" -gt 0 ]; then
+        cmd+=("$@")
+    fi
+
+    set +e
+    run_with_timeout "$timeout" "${cmd[@]}" 2>&1 | tee "$output_file"
+    local statuses=("${PIPESTATUS[@]}")
+    set -e
+
+    local claude_status="${statuses[0]:-1}"
+    local tee_status="${statuses[1]:-1}"
+
+    if [ "$claude_status" -ne 0 ]; then
+        echo "Claude execution failed with exit code $claude_status" >&2
+        return "$claude_status"
+    fi
+
+    if [ "$tee_status" -ne 0 ]; then
+        echo "tee failed while capturing Claude output with exit code $tee_status" >&2
+        return "$tee_status"
+    fi
+
+    if grep -Eiq "Execution failed|API Error|Internal Server Error|status[[:space:]-]*500|500[[:space:]]+Internal" "$output_file"; then
+        echo "Claude reported an execution failure despite exiting 0" >&2
+        return 1
+    fi
+
+    return 0
 }
 
 # Check if output contains a pattern
@@ -143,7 +199,7 @@ cleanup_test_project() {
 create_test_plan() {
     local project_dir="$1"
     local plan_name="${2:-test-plan}"
-    local plan_file="$project_dir/docs/superpowers/plans/$plan_name.md"
+    local plan_file="$project_dir/.agents/plans/$plan_name.md"
 
     mkdir -p "$(dirname "$plan_file")"
 
@@ -192,7 +248,14 @@ EOF
 }
 
 # Export functions for use in tests
+export CLAUDE_TEST_DIR
+export CLAUDE_REPO_ROOT
+export CLAUDE_BIN
+export CLAUDE_PLUGIN_DIR
+export CLAUDE_PLUGIN_NAME
 export -f run_claude
+export -f run_with_timeout
+export -f run_claude_stream
 export -f assert_contains
 export -f assert_not_contains
 export -f assert_count

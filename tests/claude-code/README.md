@@ -1,15 +1,18 @@
 # Claude Code Skills Tests
 
-Automated tests for superpowers skills using Claude Code CLI.
+Automated tests for joshix skills using Claude Code CLI.
 
 ## Overview
 
-This test suite verifies that skills are loaded correctly and Claude follows them as expected. Tests invoke Claude Code in headless mode (`claude -p`) and verify the behavior.
+This test suite verifies that skills are loaded correctly and Claude follows
+them as expected. Tests invoke Claude Code in headless mode (`claude -p`) and
+verify behavior.
 
 ## Requirements
 
 - Claude Code CLI installed and in PATH (`claude --version` should work)
-- Local superpowers plugin installed (see main README for installation)
+- Local joshix plugin available via this checkout. The helper passes
+  `--plugin-dir` to every Claude invocation by default.
 
 ## Running Tests
 
@@ -91,6 +94,8 @@ Tests skill content and requirements (~2 minutes):
 - Spec compliance reviewer skepticism documented
 - Review loops documented
 - Task context provision documented
+- No worktree prerequisite
+- Current checkout/branch default
 
 ### Integration Tests (use --integration flag)
 
@@ -100,32 +105,29 @@ Full workflow execution test (~10-30 minutes):
 - Creates implementation plan with 2 tasks
 - Executes plan using subagent-driven-development
 - Verifies actual behaviors:
-  - Plan read once at start (not per task)
-  - Full task text provided in subagent prompts
-  - Subagents perform self-review before reporting
-  - Spec compliance review happens before code quality
-  - Spec reviewer reads code independently
+  - Skill is invoked
+  - Subagents are dispatched
+  - Task tracking is used
   - Working implementation is produced
   - Tests pass
-  - Proper git commits created
+  - Work remains in the current checkout without extra commits
 
 **What it tests:**
 - The workflow actually works end-to-end
-- Our improvements are actually applied
-- Subagents follow the skill correctly
 - Final code is functional and tested
+- Git history is not changed unless explicitly requested
 
 #### test-requesting-code-review.sh
 Behavioral test for the code reviewer subagent (~5 minutes):
 - Builds a tiny project with a baseline commit
-- Adds a second commit that plants two real bugs (SQL injection, plaintext password handling)
+- Plants working tree changes with two real bugs (SQL injection, plaintext password handling)
 - Dispatches the code reviewer via the requesting-code-review skill
 - Verifies the reviewer flags the planted bugs at Critical/Important severity and refuses to approve
 
 **What it tests:**
 - The skill actually dispatches a working code reviewer subagent
 - The reviewer template produces reviewers that catch obvious security bugs
-- The reviewer is not sycophantic — it does not approve a diff with planted Critical issues
+- The reviewer is not sycophantic — it does not approve a diff with planted Critical issues for proceeding without fixes
 
 ## Adding New Tests
 

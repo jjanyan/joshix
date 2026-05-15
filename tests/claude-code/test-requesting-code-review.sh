@@ -4,7 +4,6 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PLUGIN_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$SCRIPT_DIR/test-helpers.sh"
 
 echo "========================================"
@@ -13,14 +12,14 @@ echo "========================================"
 echo ""
 echo "This test verifies the code reviewer subagent by:"
 echo "  1. Setting up a tiny project with a baseline commit"
-echo "  2. Adding a second commit that plants an obvious bug"
+echo "  2. Planting obvious bugs in the working tree"
 echo "  3. Dispatching the code reviewer via the requesting-code-review skill"
 echo "  4. Verifying the reviewer flags the planted bug as Critical/Important"
 echo ""
 
 TEST_PROJECT=$(create_test_project)
 echo "Test project: $TEST_PROJECT"
-trap "cleanup_test_project $TEST_PROJECT" EXIT
+trap 'cleanup_test_project "$TEST_PROJECT"' EXIT
 
 cd "$TEST_PROJECT"
 
@@ -51,9 +50,8 @@ git config user.email "test@test.com"
 git config user.name "Test User"
 git add .
 git commit -m "Initial: parameterized findUserByEmail" --quiet
-BASE_SHA=$(git rev-parse HEAD)
 
-# Second commit: plant two real bugs
+# Working tree change: plant real bugs without committing
 # 1. SQL injection — switch from parameterized to string concatenation
 # 2. Logs the user's password hash on every successful login
 cat > src/db.js <<'EOF'
@@ -79,12 +77,8 @@ export async function login(email, password) {
 function hash(s) { return s; }
 EOF
 
-git add .
-git commit -m "Refactor user lookup, add login" --quiet
-HEAD_SHA=$(git rev-parse HEAD)
-
 echo ""
-echo "Planted bugs in $BASE_SHA..$HEAD_SHA:"
+echo "Planted bugs in working tree changes:"
 echo "  - SQL injection (string concat instead of parameterized query)"
 echo "  - Password hash logged in plaintext on every successful login"
 echo "  - hash() is the identity function (passwords stored & compared in plaintext)"
@@ -92,25 +86,24 @@ echo ""
 
 OUTPUT_FILE="$TEST_PROJECT/claude-output.txt"
 
-PROMPT="I just finished a refactor. The change is between commits $BASE_SHA and $HEAD_SHA on the current branch.
+PROMPT="I just finished a refactor in the current working tree. The changed file is src/db.js.
 
-Use the superpowers:requesting-code-review skill to review these changes before I merge. Follow the skill exactly: dispatch the code reviewer subagent with the template, give the subagent the SHA range, and report back what it found.
+Use the ${CLAUDE_PLUGIN_NAME}:requesting-code-review skill to review these changes before I proceed. Follow the skill exactly: dispatch the code reviewer subagent with the template, provide CHANGED_FILES, the relevant working tree diff or code context, and verification details if available. Report back what it found.
 
 Print the reviewer's full output."
 
 # Run claude from inside the test project so its session JSONL lands in a
 # project-specific directory under ~/.claude/projects/, isolated from any
 # other concurrent claude sessions.
-echo "Running Claude (plugin-dir: $PLUGIN_DIR, cwd: $TEST_PROJECT)..."
+echo "Running Claude (plugin-dir: $CLAUDE_PLUGIN_DIR, cwd: $TEST_PROJECT)..."
 echo "================================================================================"
-cd "$TEST_PROJECT" && timeout 600 claude -p "$PROMPT" \
-    --plugin-dir "$PLUGIN_DIR" \
-    --permission-mode bypassPermissions 2>&1 | tee "$OUTPUT_FILE" || {
+cd "$TEST_PROJECT"
+if ! run_claude_stream "$PROMPT" 600 "$OUTPUT_FILE" --permission-mode bypassPermissions; then
     echo ""
     echo "================================================================================"
-    echo "EXECUTION FAILED (exit code: $?)"
+    echo "EXECUTION FAILED"
     exit 1
-}
+fi
 echo "================================================================================"
 
 echo ""
@@ -137,11 +130,11 @@ echo "Test 1: requesting-code-review skill invoked + reviewer subagent dispatche
 if [ -z "$SESSION_FILE" ] || [ ! -f "$SESSION_FILE" ]; then
     echo "  [FAIL] Could not locate session transcript in $SESSION_DIR"
     FAILED=$((FAILED + 1))
-elif ! grep -q '"skill":"superpowers:requesting-code-review"' "$SESSION_FILE"; then
+elif ! grep -q "\"skill\":\"${CLAUDE_PLUGIN_NAME}:requesting-code-review\"" "$SESSION_FILE"; then
     echo "  [FAIL] requesting-code-review skill was not invoked"
     echo "         Session: $SESSION_FILE"
     FAILED=$((FAILED + 1))
-elif ! grep -q '"name":"Agent"' "$SESSION_FILE"; then
+elif ! grep -qE '"name":"(Agent|Task)"' "$SESSION_FILE"; then
     echo "  [FAIL] Skill ran but no subagent was dispatched"
     FAILED=$((FAILED + 1))
 else
@@ -179,15 +172,15 @@ else
 fi
 echo ""
 
-# Test 5: Reviewer did NOT approve the diff for merge
+# Test 5: Reviewer did NOT approve the diff for proceeding
 echo "Test 5: Reviewer verdict..."
 # A correct reviewer says No or "With fixes". A broken/sycophantic reviewer says Yes/Ready.
-if grep -qiE "ready to merge.*yes|approved.*for merge|^\s*yes\s*$|safe to merge" "$OUTPUT_FILE" \
-   && ! grep -qiE "ready to merge.*no|with fixes|do not merge|not ready|block.*merge" "$OUTPUT_FILE"; then
+if grep -qiE "ready to proceed.*yes|approved.*to proceed|safe to proceed|proceed without fixes" "$OUTPUT_FILE" \
+   && ! grep -qiE "ready to proceed.*no|ready to proceed.*with fixes|with fixes|not ready|block|critical|important" "$OUTPUT_FILE"; then
     echo "  [FAIL] Reviewer approved a diff with planted Critical bugs"
     FAILED=$((FAILED + 1))
 else
-    echo "  [PASS] Reviewer did not approve the diff"
+    echo "  [PASS] Reviewer did not approve the diff for proceeding without fixes"
 fi
 echo ""
 
@@ -203,7 +196,7 @@ if [ $FAILED -eq 0 ]; then
     echo "  ✓ Flagged the SQL injection"
     echo "  ✓ Flagged the credential handling issues"
     echo "  ✓ Classified findings at Critical/Important severity"
-    echo "  ✓ Did not approve the diff for merge"
+    echo "  ✓ Did not approve the diff for proceeding without fixes"
     exit 0
 else
     echo "STATUS: FAILED"

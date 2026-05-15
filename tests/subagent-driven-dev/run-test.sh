@@ -4,9 +4,9 @@
 #
 # Example:
 #   ./run-test.sh go-fractals
-#   ./run-test.sh svelte-todo --plugin-dir /path/to/superpowers
+#   ./run-test.sh svelte-todo --plugin-dir /path/to/joshix
 
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TEST_NAME="${1:?Usage: $0 <test-name> [--plugin-dir <path>]}"
@@ -43,7 +43,7 @@ fi
 
 # Create timestamped output directory
 TIMESTAMP=$(date +%s)
-OUTPUT_BASE="/tmp/superpowers-tests/$TIMESTAMP/subagent-driven-development"
+OUTPUT_BASE="/tmp/joshix-tests/$TIMESTAMP/subagent-driven-development"
 OUTPUT_DIR="$OUTPUT_BASE/$TEST_NAME"
 mkdir -p "$OUTPUT_DIR"
 
@@ -60,7 +60,7 @@ echo ""
 
 # Prepare the prompt
 PLAN_PATH="$OUTPUT_DIR/project/plan.md"
-PROMPT="Execute this plan using superpowers:subagent-driven-development. The plan is at: $PLAN_PATH"
+PROMPT="Execute this plan using joshix:subagent-driven-development. The plan is at: $PLAN_PATH"
 
 # Run Claude with JSON output for token tracking
 LOG_FILE="$OUTPUT_DIR/claude-output.json"
@@ -73,12 +73,31 @@ echo ""
 # Using stream-json to get token usage stats
 # --dangerously-skip-permissions for automated testing (subagents don't inherit parent settings)
 cd "$OUTPUT_DIR/project"
+set +e
 claude -p "$PROMPT" \
   --plugin-dir "$PLUGIN_DIR" \
   --dangerously-skip-permissions \
   --output-format stream-json \
   --verbose \
-  > "$LOG_FILE" 2>&1 || true
+  > "$LOG_FILE" 2>&1
+claude_status=$?
+set -e
+
+if [[ "$claude_status" -ne 0 ]]; then
+  echo ""
+  echo ">>> Claude failed with exit code $claude_status"
+  echo "Log file: $LOG_FILE"
+  tail -200 "$LOG_FILE" || true
+  exit "$claude_status"
+fi
+
+if grep -Eiq "Execution failed|API Error|Internal Server Error|status[[:space:]-]*500|500[[:space:]]+Internal" "$LOG_FILE"; then
+  echo ""
+  echo ">>> Claude reported an execution failure despite exiting 0"
+  echo "Log file: $LOG_FILE"
+  tail -200 "$LOG_FILE" || true
+  exit 1
+fi
 
 # Extract final stats
 echo ""

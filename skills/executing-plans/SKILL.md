@@ -11,7 +11,10 @@ Load plan, review critically, execute all tasks, report when complete.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
 
-**Note:** Tell your human partner that Superpowers works much better with access to subagents. The quality of its work will be significantly higher if run on a platform with subagent support (such as Claude Code or Codex). If subagents are available, use superpowers:subagent-driven-development instead of this skill.
+**Note:** If subagents are available and the plan contains independent tasks
+that can be delegated cleanly, use joshix:subagent-driven-development.
+Otherwise execute the plan directly with this skill. Do not choose subagents
+just because the platform supports them.
 
 ## The Process
 
@@ -19,22 +22,28 @@ Load plan, review critically, execute all tasks, report when complete.
 1. Read plan file
 2. Review critically - identify any questions or concerns about the plan
 3. If concerns: Raise them with your human partner before starting
-4. If no concerns: Create TodoWrite and proceed
+4. If no concerns: Create or update the available task list and proceed
 
 ### Step 2: Execute Tasks
 
 For each task:
 1. Mark as in_progress
-2. Follow each step exactly (plan has bite-sized steps)
+2. Follow each step as written (plan has bite-sized steps). If new facts
+   contradict the plan or make a step stale, stop and raise the mismatch
+   before proceeding.
 3. Run verifications as specified
 4. Mark as completed
 
 ### Step 3: Complete Development
 
 After all tasks complete and verified:
-- Announce: "I'm using the finishing-a-development-branch skill to complete this work."
-- **REQUIRED SUB-SKILL:** Use superpowers:finishing-a-development-branch
-- Follow that skill to verify tests, present options, execute choice
+- Announce: "I'm using the verification-before-completion skill to verify this work before reporting completion."
+- **REQUIRED SUB-SKILL:** Use joshix:verification-before-completion
+- Follow that skill to run fresh verification and report evidence before claiming completion
+- If the work used `.agents/specs/` or `.agents/plans/`, make sure durable
+  decisions are reflected in repo documentation where appropriate. Do not treat
+  the agent plan/spec as permanent documentation. Follow any explicit closeout
+  task for removing or archiving completed `.agents/` artifacts.
 
 ## When to Stop and Ask for Help
 
@@ -42,6 +51,7 @@ After all tasks complete and verified:
 - Hit a blocker (missing dependency, test fails, instruction unclear)
 - Plan has critical gaps preventing starting
 - You don't understand an instruction
+- New evidence contradicts the plan or makes a planned step stale
 - Verification fails repeatedly
 
 **Ask for clarification rather than guessing.**
@@ -56,15 +66,16 @@ After all tasks complete and verified:
 
 ## Remember
 - Review plan critically first
-- Follow plan steps exactly
+- Follow plan steps as written, but stop on contradictions or stale steps
 - Don't skip verifications
 - Reference skills when plan says to
+- Keep `.agents/` artifacts temporary or semi-temporary; durable decisions
+  belong in repo documentation
 - Stop when blocked, don't guess
-- Never start implementation on main/master branch without explicit user consent
+- Work in the current checkout and branch unless the user explicitly requested a branch or worktree
 
 ## Integration
 
 **Required workflow skills:**
-- **superpowers:using-git-worktrees** - Ensures isolated workspace (creates one or verifies existing)
-- **superpowers:writing-plans** - Creates the plan this skill executes
-- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+- **joshix:writing-plans** - Creates the plan this skill executes
+- **joshix:verification-before-completion** - Verify work before reporting completion

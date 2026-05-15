@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Test with haiku model and user's CLAUDE.md
-# This tests whether a cheaper/faster model fails more easily
+# This tests whether explicit skill requests still work under this model variant
 
 set -e
 
@@ -8,11 +8,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 TIMESTAMP=$(date +%s)
-OUTPUT_DIR="/tmp/superpowers-tests/${TIMESTAMP}/explicit-skill-requests/haiku"
+OUTPUT_DIR="/tmp/joshix-tests/${TIMESTAMP}/explicit-skill-requests/haiku"
 mkdir -p "$OUTPUT_DIR"
 
 PROJECT_DIR="$OUTPUT_DIR/project"
-mkdir -p "$PROJECT_DIR/docs/superpowers/plans"
+mkdir -p "$PROJECT_DIR/.agents/plans"
 mkdir -p "$PROJECT_DIR/.claude"
 
 echo "=== Haiku Model Test with User CLAUDE.md ==="
@@ -31,7 +31,7 @@ else
 fi
 
 # Create a dummy plan file
-cat > "$PROJECT_DIR/docs/superpowers/plans/auth-system.md" << 'EOF'
+cat > "$PROJECT_DIR/.agents/plans/auth-system.md" << 'EOF'
 # Auth System Implementation Plan
 
 ## Task 1: Add User Model

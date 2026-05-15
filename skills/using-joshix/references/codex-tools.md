@@ -29,10 +29,13 @@ waiting as `wait`. Current Codex uses `wait_agent` for spawned agents. The
 `wait` name now belongs to code-mode `exec/wait`, which resumes a yielded exec
 cell by `cell_id`; it is not the spawned-agent result tool.
 
-## Environment Detection
+## Git Workflow
 
-Skills that create worktrees or finish branches should detect their
-environment with read-only git commands before proceeding:
+Default to the current checkout and current branch. Do not stage, commit,
+create or switch branches, create worktrees, merge, push, or open pull requests
+unless the user explicitly asks for that git operation.
+
+When a skill needs to summarize git state, use read-only commands:
 
 ```bash
 GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
@@ -40,20 +43,11 @@ GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
 BRANCH=$(git branch --show-current)
 ```
 
-- `GIT_DIR != GIT_COMMON` → already in a linked worktree (skip creation)
-- `BRANCH` empty → detached HEAD (cannot branch/push/PR from sandbox)
+- `GIT_DIR != GIT_COMMON` -> already in a linked worktree; use it as-is
+- `BRANCH` empty -> detached HEAD; do not create a branch unless asked
 
-See `using-git-worktrees` Step 0 and `finishing-a-development-branch`
-Step 1 for how each skill uses these signals.
+The agent can still run tests and draft commit messages or PR descriptions when
+requested.
 
-## Codex App Finishing
-
-When the sandbox blocks branch/push operations (detached HEAD in an
-externally managed worktree), the agent commits all work and informs
-the user to use the App's native controls:
-
-- **"Create branch"** — names the branch, then commit/push/PR via App UI
-- **"Hand off to local"** — transfers work to the user's local checkout
-
-The agent can still run tests, stage files, and output suggested branch
-names, commit messages, and PR descriptions for the user to copy.
+When staging or committing, include only files intentionally changed for the task
+unless the user asks otherwise.

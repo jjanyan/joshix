@@ -1,40 +1,49 @@
 ---
 name: test-driven-development
-description: Use when implementing any feature or bugfix, before writing implementation code
+description: Use when implementing core behavior changes, bug fixes, or testable logic before writing implementation code; if expected behavior is unclear, stop to clarify first
 ---
 
 # Test-Driven Development (TDD)
 
 ## Overview
 
-Write the test first. Watch it fail. Write minimal code to pass.
+For core behavior and bug fixes: write the test first, watch it fail, write minimal code to pass.
 
 **Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
 
-**Violating the letter of the rules is violating the spirit of the rules.**
+When this skill applies, violating the letter of the rules is violating the spirit of the rules.
 
 ## When to Use
 
-**Always:**
-- New features
+**Use TDD for:**
+- Core behavior changes
 - Bug fixes
-- Refactoring
-- Behavior changes
+- Business logic, parsers, state machines, data transforms, APIs, and other testable logic
+- Refactoring where tests are needed to preserve behavior
+- Any change where expected behavior can be clearly expressed in an automated test
 
-**Exceptions (ask your human partner):**
-- Throwaway prototypes
-- Generated code
-- Configuration files
+**Stop and clarify first:**
+- Expected behavior cannot be expressed clearly
+- Acceptance criteria are ambiguous
+- You cannot tell what a correct test should assert
 
-Thinking "skip TDD just this once"? Stop. That's rationalization.
+**Use repo-appropriate verification instead for:**
+- Documentation-only changes
+- Configuration, metadata, manifests, or packaging changes
+- Generated assets or generated code
+- Exploratory spikes
+- Mechanical refactors with no behavior change and adequate existing coverage
+- Changes where a new test would be artificial rather than useful
+
+Thinking "skip TDD just this once" for core behavior or a bug fix? Stop. That's rationalization.
 
 ## The Iron Law
 
 ```
-NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
+NO CORE BEHAVIOR CODE WITHOUT A FAILING TEST FIRST
 ```
 
-Write code before the test? Delete it. Start over.
+When TDD applies, writing code before the test means you need to restart from the test.
 
 **No exceptions:**
 - Don't keep it as "reference"
@@ -42,7 +51,7 @@ Write code before the test? Delete it. Start over.
 - Don't look at it
 - Delete means delete
 
-Implement fresh from tests. Period.
+Implement fresh from tests.
 
 ## Red-Green-Refactor
 
@@ -235,13 +244,13 @@ The "waste" is keeping code you can't trust. Working code without real tests is 
 
 **"TDD is dogmatic, being pragmatic means adapting"**
 
-TDD IS pragmatic:
-- Finds bugs before commit (faster than debugging after)
+For core behavior and bug fixes, TDD is pragmatic:
+- Finds bugs before they ship
 - Prevents regressions (tests catch breaks immediately)
 - Documents behavior (tests show how to use code)
 - Enables refactoring (change freely, tests catch breaks)
 
-"Pragmatic" shortcuts = debugging in production = slower.
+"Pragmatic" shortcuts on core behavior = debugging later = slower.
 
 **"Tests after achieve the same goals - it's spirit not ritual"**
 
@@ -264,10 +273,12 @@ Tests-first force edge case discovery before implementing. Tests-after verify yo
 | "Deleting X hours is wasteful" | Sunk cost fallacy. Keeping unverified code is technical debt. |
 | "Keep as reference, write tests first" | You'll adapt it. That's testing after. Delete means delete. |
 | "Need to explore first" | Fine. Throw away exploration, start with TDD. |
+| "Expected behavior is unclear" | Stop. Clarify behavior before implementing. |
 | "Test hard = design unclear" | Listen to test. Hard to test = hard to use. |
 | "TDD will slow me down" | TDD faster than debugging. Pragmatic = test-first. |
 | "Manual test faster" | Manual doesn't prove edge cases. You'll re-test every change. |
 | "Existing code has no tests" | You're improving it. Add tests for existing code. |
+| "This is docs/config/metadata" | TDD may not apply. Use repo-appropriate verification. |
 
 ## Red Flags - STOP and Start Over
 
@@ -286,6 +297,9 @@ Tests-first force edge case discovery before implementing. Tests-after verify yo
 - "This is different because..."
 
 **All of these mean: Delete code. Start over with TDD.**
+
+For tasks where TDD does not apply, use `joshix:verification-before-completion`
+and run the repo-appropriate checks before claiming completion.
 
 ## Example: Bug Fix
 
@@ -326,9 +340,9 @@ Extract validation for multiple fields if needed.
 
 ## Verification Checklist
 
-Before marking work complete:
+Before marking TDD-governed work complete:
 
-- [ ] Every new function/method has a test
+- [ ] Every new core behavior has a test
 - [ ] Watched each test fail before implementing
 - [ ] Each test failed for expected reason (feature missing, not typo)
 - [ ] Wrote minimal code to pass each test
@@ -337,12 +351,13 @@ Before marking work complete:
 - [ ] Tests use real code (mocks only if unavoidable)
 - [ ] Edge cases and errors covered
 
-Can't check all boxes? You skipped TDD. Start over.
+Can't check all boxes for TDD-governed work? You skipped TDD. Start over.
 
 ## When Stuck
 
 | Problem | Solution |
 |---------|----------|
+| Expected behavior unclear | Stop and clarify before implementing. |
 | Don't know how to test | Write wished-for API. Write assertion first. Ask your human partner. |
 | Test too complicated | Design too complicated. Simplify interface. |
 | Must mock everything | Code too coupled. Use dependency injection. |
@@ -364,8 +379,8 @@ When adding mocks or test utilities, read @testing-anti-patterns.md to avoid com
 ## Final Rule
 
 ```
-Production code → test exists and failed first
-Otherwise → not TDD
+Core behavior or bug fix → test exists and failed first
+Docs/config/metadata/mechanical change → repo-appropriate verification
 ```
 
-No exceptions without your human partner's permission.
+No exceptions for core behavior or bug fixes without your human partner's permission.

@@ -1,40 +1,44 @@
 ---
 name: verification-before-completion
-description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always
+description: Use when about to claim work is complete, fixed, passing, or ready for requested git/release actions - requires fresh verification evidence before making success claims; evidence before assertions always
 ---
 
 # Verification Before Completion
 
 ## Overview
 
-Claiming work is complete without verification is dishonesty, not efficiency.
+Claiming work is complete without verification is an unsupported claim, not an
+engineering result.
 
 **Core principle:** Evidence before claims, always.
 
-**Violating the letter of this rule is violating the spirit of this rule.**
+This applies to the meaning of the claim, not the exact wording.
 
-## The Iron Law
+## Completion Gate
 
 ```
 NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 ```
 
-If you haven't run the verification command in this message, you cannot claim it passes.
+If you have not gathered verification evidence in this session, you cannot
+claim the work passes, is fixed, or is complete.
 
 ## The Gate Function
 
 ```
-BEFORE claiming any status or expressing satisfaction:
+BEFORE claiming completion, correctness, readiness, or success:
 
-1. IDENTIFY: What command proves this claim?
-2. RUN: Execute the FULL command (fresh, complete)
-3. READ: Full output, check exit code, count failures
-4. VERIFY: Does output confirm the claim?
+1. IDENTIFY: What evidence proves this claim?
+2. GATHER: Run the command, inspect the diff, reproduce the behavior, render the
+   output, review the checklist, or otherwise collect fresh evidence
+3. READ: Check the actual output, exit code, screenshots, rendered artifact,
+   diff, or checklist result
+4. VERIFY: Does the evidence confirm the claim?
    - If NO: State actual status with evidence
    - If YES: State claim WITH evidence
 5. ONLY THEN: Make the claim
 
-Skip any step = lying, not verifying
+Skip any step = unsupported claim
 ```
 
 ## Common Failures
@@ -48,17 +52,22 @@ Skip any step = lying, not verifying
 | Regression test works | Red-green cycle verified | Test passes once |
 | Agent completed | VCS diff shows changes | Agent reports "success" |
 | Requirements met | Line-by-line checklist | Tests passing |
+| UI renders correctly | Screenshot/rendered output inspected | Dev server started |
+| Durable docs updated | Relevant repo docs/product docs changed or not needed | Plan/spec exists in `.agents/` |
+| Agent artifacts cleaned up | Explicit closeout/cleanup task completed | Incidental deletion during unrelated work |
 
 ## Red Flags - STOP
 
 - Using "should", "probably", "seems to"
-- Expressing satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
-- About to commit/push/PR without verification
+- Expressing completion/correctness before verification ("Done", "fixed",
+  "passes", "ready", etc.)
+- About to finalize work or perform requested git/release actions without
+  verification
 - Trusting agent success reports
 - Relying on partial verification
 - Thinking "just this once"
 - Tired and wanting work over
-- **ANY wording implying success without having run verification**
+- **ANY wording implying success beyond the evidence you have gathered**
 
 ## Rationalization Prevention
 
@@ -66,12 +75,12 @@ Skip any step = lying, not verifying
 |--------|---------|
 | "Should work now" | RUN the verification |
 | "I'm confident" | Confidence ≠ evidence |
-| "Just this once" | No exceptions |
+| "Just this once" | Report it as unverified instead |
 | "Linter passed" | Linter ≠ compiler |
 | "Agent said success" | Verify independently |
 | "I'm tired" | Exhaustion ≠ excuse |
 | "Partial check is enough" | Partial proves nothing |
-| "Different words so rule doesn't apply" | Spirit over letter |
+| "Different words so rule doesn't apply" | Meaning over phrasing |
 
 ## Key Patterns
 
@@ -93,10 +102,24 @@ Skip any step = lying, not verifying
 ❌ "Linter passed" (linter doesn't check compilation)
 ```
 
+**UI / rendered output:**
+```
+✅ [Open page/render artifact] [Inspect screenshot/output] "The page renders without overlap at desktop and mobile widths"
+❌ "Server started, so UI works"
+```
+
 **Requirements:**
 ```
 ✅ Re-read plan → Create checklist → Verify each → Report gaps or completion
 ❌ "Tests pass, phase complete"
+```
+
+**Agent artifacts:**
+```
+✅ `.agents/` spec/plan used → Durable docs updated or explicitly not needed
+❌ Treat `.agents/plans/...` as permanent project documentation
+✅ Explicit cleanup task → Completed `.agents/` artifact removed or archived
+❌ Delete unrelated `.agents/context/` files while doing feature work
 ```
 
 **Agent delegation:**
@@ -107,22 +130,23 @@ Skip any step = lying, not verifying
 
 ## Why This Matters
 
-From 24 failure memories:
-- your human partner said "I don't believe you" - trust broken
-- Undefined functions shipped - would crash
-- Missing requirements shipped - incomplete features
-- Time wasted on false completion → redirect → rework
-- Violates: "Honesty is a core value. If you lie, you'll be replaced."
+Unsupported completion claims create real engineering cost:
+- Broken trust in status reports
+- Undefined functions or incomplete integrations shipped
+- Missing requirements hidden behind passing tests
+- Time wasted on rework after premature closeout
+- Durable docs left stale while `.agents/` planning artifacts drift
 
 ## When To Apply
 
-**ALWAYS before:**
+Apply before:
 - ANY variation of success/completion claims
-- ANY expression of satisfaction
-- ANY positive statement about work state
-- Committing, PR creation, task completion
+- ANY claim of correctness, readiness, or passing state
+- Finalizing the task
+- Requested git/release actions
 - Moving to next task
 - Delegating to agents
+- Treating `.agents/` planning artifacts as durable documentation
 
 **Rule applies to:**
 - Exact phrases
@@ -134,6 +158,6 @@ From 24 failure memories:
 
 **No shortcuts for verification.**
 
-Run the command. Read the output. THEN claim the result.
+Gather the evidence. Read it. THEN claim the result.
 
-This is non-negotiable.
+Keep the claim no stronger than the evidence.

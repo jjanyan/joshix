@@ -11,12 +11,12 @@ echo " Integration Test: subagent-driven-development"
 echo "========================================"
 echo ""
 echo "This test executes a real plan using the skill and verifies:"
-echo "  1. Plan is read once (not per task)"
-echo "  2. Full task text provided to subagents"
-echo "  3. Subagents perform self-review"
-echo "  4. Spec compliance review before code quality"
-echo "  5. Review loops when issues found"
-echo "  6. Spec reviewer reads code independently"
+echo "  1. The skill is invoked"
+echo "  2. Subagents are dispatched"
+echo "  3. Task tracking is used"
+echo "  4. A working implementation is produced"
+echo "  5. Work remains in the current checkout without extra commits"
+echo "  6. No obvious extra features are added"
 echo ""
 echo "WARNING: This test may take 10-30 minutes to complete."
 echo ""
@@ -26,7 +26,7 @@ TEST_PROJECT=$(create_test_project)
 echo "Test project: $TEST_PROJECT"
 
 # Trap to cleanup
-trap "cleanup_test_project $TEST_PROJECT" EXIT
+trap 'cleanup_test_project "$TEST_PROJECT"' EXIT
 
 # Set up minimal Node.js project
 cd "$TEST_PROJECT"
@@ -42,10 +42,10 @@ cat > package.json <<'EOF'
 }
 EOF
 
-mkdir -p src test docs/superpowers/plans
+mkdir -p src test .agents/plans
 
 # Create a simple implementation plan
-cat > docs/superpowers/plans/implementation-plan.md <<'EOF'
+cat > .agents/plans/implementation-plan.md <<'EOF'
 # Test Implementation Plan
 
 This is a minimal plan to test the subagent-driven-development workflow.
@@ -120,8 +120,8 @@ echo ""
 OUTPUT_FILE="$TEST_PROJECT/claude-output.txt"
 
 # Create prompt file
-cat > "$TEST_PROJECT/prompt.txt" <<'EOF'
-I want you to execute the implementation plan at docs/superpowers/plans/implementation-plan.md using the subagent-driven-development skill.
+cat > "$TEST_PROJECT/prompt.txt" <<EOF
+I want you to execute the implementation plan at .agents/plans/implementation-plan.md using the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill.
 
 IMPORTANT: Follow the skill exactly. I will be verifying that you:
 1. Read the plan once at the beginning
@@ -129,13 +129,14 @@ IMPORTANT: Follow the skill exactly. I will be verifying that you:
 3. Ensure subagents do self-review before reporting
 4. Run spec compliance review before code quality review
 5. Use review loops when issues are found
+6. Do not stage or commit; leave implementation as working tree changes
 
 Begin now. Execute the plan.
 EOF
 
 # Note: We use a longer timeout since this is integration testing
 # Use --allowed-tools to enable tool usage in headless mode
-PROMPT="Execute the implementation plan at docs/superpowers/plans/implementation-plan.md using the subagent-driven-development skill.
+PROMPT="Execute the implementation plan at .agents/plans/implementation-plan.md using the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill.
 
 IMPORTANT: Follow the skill exactly. I will be verifying that you:
 1. Read the plan once at the beginning
@@ -143,22 +144,22 @@ IMPORTANT: Follow the skill exactly. I will be verifying that you:
 3. Ensure subagents do self-review before reporting
 4. Run spec compliance review before code quality review
 5. Use review loops when issues are found
+6. Do not stage or commit; leave implementation as working tree changes
 
 Begin now. Execute the plan."
-
-PLUGIN_DIR=$(cd "$SCRIPT_DIR/../.." && pwd)
 
 # Run claude from inside the test project so its session JSONL lands in a
 # project-specific directory under ~/.claude/projects/, isolated from any
 # other concurrent claude sessions.
-echo "Running Claude (plugin-dir: $PLUGIN_DIR, cwd: $TEST_PROJECT)..."
+echo "Running Claude (plugin-dir: $CLAUDE_PLUGIN_DIR, cwd: $TEST_PROJECT)..."
 echo "================================================================================"
-cd "$TEST_PROJECT" && timeout 1800 claude -p "$PROMPT" --plugin-dir "$PLUGIN_DIR" --allowed-tools=all --permission-mode bypassPermissions 2>&1 | tee "$OUTPUT_FILE" || {
+cd "$TEST_PROJECT"
+if ! run_claude_stream "$PROMPT" 1800 "$OUTPUT_FILE" --allowed-tools=all --permission-mode bypassPermissions; then
     echo ""
     echo "================================================================================"
-    echo "EXECUTION FAILED (exit code: $?)"
+    echo "EXECUTION FAILED"
     exit 1
-}
+fi
 echo "================================================================================"
 
 echo ""
@@ -194,7 +195,7 @@ echo ""
 
 # Test 1: Skill was invoked
 echo "Test 1: Skill tool invoked..."
-if grep -q '"name":"Skill".*"skill":"superpowers:subagent-driven-development"' "$SESSION_FILE"; then
+if grep -q "\"skill\":\"${CLAUDE_PLUGIN_NAME}:subagent-driven-development\"" "$SESSION_FILE"; then
     echo "  [PASS] subagent-driven-development skill was invoked"
 else
     echo "  [FAIL] Skill was not invoked"
@@ -213,7 +214,7 @@ else
 fi
 echo ""
 
-# Test 3: TodoWrite was used for tracking
+# Test 3: Claude Code task tracking was used
 echo "Test 3: Task tracking..."
 todo_count=$(grep -c '"name":"TodoWrite"' "$SESSION_FILE" || echo "0")
 if [ "$todo_count" -ge 1 ]; then
@@ -224,8 +225,8 @@ else
 fi
 echo ""
 
-# Test 6: Implementation actually works
-echo "Test 6: Implementation verification..."
+# Test 4: Implementation actually works
+echo "Test 4: Implementation verification..."
 if [ -f "$TEST_PROJECT/src/math.js" ]; then
     echo "  [PASS] src/math.js created"
 
@@ -264,19 +265,19 @@ else
 fi
 echo ""
 
-# Test 7: Git commits show proper workflow
-echo "Test 7: Git commit history..."
+# Test 5: Git history remains unchanged unless the user explicitly asks for commits
+echo "Test 5: Git history unchanged..."
 commit_count=$(git -C "$TEST_PROJECT" log --oneline | wc -l)
-if [ "$commit_count" -gt 2 ]; then  # Initial + at least 2 task commits
-    echo "  [PASS] Multiple commits created ($commit_count total)"
+if [ "$commit_count" -eq 1 ]; then
+    echo "  [PASS] No extra commits created"
 else
-    echo "  [FAIL] Too few commits ($commit_count, expected >2)"
+    echo "  [FAIL] Unexpected commits created ($commit_count total, expected 1)"
     FAILED=$((FAILED + 1))
 fi
 echo ""
 
-# Test 8: Check for extra features (spec compliance should catch)
-echo "Test 8: No extra features added (spec compliance)..."
+# Test 6: Check for extra features (spec compliance should catch)
+echo "Test 6: No extra features added..."
 if grep -q "export function divide\|export function power\|export function subtract" "$TEST_PROJECT/src/math.js" 2>/dev/null; then
     echo "  [WARN] Extra features found (spec review should have caught this)"
     # Not failing on this as it tests reviewer effectiveness
@@ -304,12 +305,11 @@ if [ $FAILED -eq 0 ]; then
     echo "All verification tests passed!"
     echo ""
     echo "The subagent-driven-development skill correctly:"
-    echo "  ✓ Reads plan once at start"
-    echo "  ✓ Provides full task text to subagents"
-    echo "  ✓ Enforces self-review"
-    echo "  ✓ Runs spec compliance before code quality"
-    echo "  ✓ Spec reviewer verifies independently"
+    echo "  ✓ Invokes the skill"
+    echo "  ✓ Dispatches subagents"
+    echo "  ✓ Uses task tracking"
     echo "  ✓ Produces working implementation"
+    echo "  ✓ Leaves git history unchanged"
     exit 0
 else
     echo "STATUS: FAILED"

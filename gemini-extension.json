@@ -1,6 +1,6 @@
 {
-  "name": "superpowers",
-  "description": "Core skills library: TDD, debugging, collaboration patterns, and proven techniques",
-  "version": "5.1.0",
+  "name": "joshix",
+  "description": "Planning, TDD, debugging, code review, and verification workflows for coding agents",
+  "version": "1.0.0",
   "contextFileName": "GEMINI.md"
 }

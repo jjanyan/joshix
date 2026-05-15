@@ -21,15 +21,15 @@ TEST_PROJECT=$(create_test_project)
 echo "Test project: $TEST_PROJECT"
 
 # Trap to cleanup
-trap "cleanup_test_project $TEST_PROJECT" EXIT
+trap 'cleanup_test_project "$TEST_PROJECT"' EXIT
 
 cd "$TEST_PROJECT"
 
 # Create directory structure
-mkdir -p docs/superpowers/specs
+mkdir -p .agents/specs
 
 # Create a spec document WITH INTENTIONAL ERRORS for the reviewer to catch
-cat > docs/superpowers/specs/test-feature-design.md <<'EOF'
+cat > .agents/specs/test-feature-design.md <<'EOF'
 # Test Feature Design
 
 ## Overview
@@ -80,7 +80,7 @@ PROMPT="You are testing the spec document reviewer.
 
 Read the spec-document-reviewer-prompt.md template in skills/brainstorming/ to understand the review format.
 
-Then review the spec at $TEST_PROJECT/docs/superpowers/specs/test-feature-design.md using the criteria from that template.
+Then review the spec at $TEST_PROJECT/.agents/specs/test-feature-design.md using the criteria from that template.
 
 Look for:
 - TODOs, placeholders, 'TBD', incomplete sections
@@ -90,12 +90,13 @@ Look for:
 Output your review in the format specified in the template."
 
 echo "================================================================================"
-cd "$SCRIPT_DIR/../.." && timeout 120 claude -p "$PROMPT" --permission-mode bypassPermissions 2>&1 | tee "$OUTPUT_FILE" || {
+cd "$CLAUDE_REPO_ROOT"
+if ! run_claude_stream "$PROMPT" 120 "$OUTPUT_FILE" --permission-mode bypassPermissions; then
     echo ""
     echo "================================================================================"
-    echo "EXECUTION FAILED (exit code: $?)"
+    echo "EXECUTION FAILED"
     exit 1
-}
+fi
 echo "================================================================================"
 
 echo ""
