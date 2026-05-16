@@ -11,6 +11,7 @@ SKILLS=(
     "systematic-debugging"
     "test-driven-development"
     "writing-plans"
+    "reviewing-plans"
     "dispatching-parallel-agents"
     "executing-plans"
     "requesting-code-review"

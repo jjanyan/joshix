@@ -1,6 +1,6 @@
 ---
 name: executing-plans
-description: Use when you have a written implementation plan to execute in a separate session with review checkpoints
+description: Use when the user explicitly asks to execute, implement, apply, start, carry out, or get done a written implementation plan in a separate session with review checkpoints
 ---
 
 # Executing Plans
@@ -8,6 +8,14 @@ description: Use when you have a written implementation plan to execute in a sep
 ## Overview
 
 Load plan, review critically, execute all tasks, report when complete.
+
+<EXTREMELY-IMPORTANT>
+Do not use this skill merely because the user provides or references a plan. A
+plan document is not approval to execute. If the user provides a plan without an
+explicit execution instruction, STOP and use `joshix:reviewing-plans` instead.
+Do not interpret the general coding-agent default to make changes as execution
+approval for a pasted plan.
+</EXTREMELY-IMPORTANT>
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
 

@@ -19,6 +19,7 @@ Expected skill names use the `joshix:` namespace, for example:
 - `joshix:code-review`
 - `joshix:commit-message`
 - `joshix:commit-staged`
+- `joshix:reviewing-plans`
 - `joshix:receiving-plan-review`
 - `joshix:verification-before-completion`
 
@@ -37,13 +38,14 @@ Gemini loads `GEMINI.md`, which points at the local `using-joshix` bootstrap and
 ## Workflow
 
 1. **brainstorming** refines rough ideas before implementation.
-2. **writing-plans** turns approved requirements into executable plans under `.agents/plans/`, including explicit plan-review disclosure.
-3. **subagent-driven-development** or **executing-plans** executes approved plans.
-4. **test-driven-development** applies RED-GREEN-REFACTOR for core behavior changes and bug fixes.
-5. **code-review**, **requesting-code-review**, **receiving-code-review**, and **receiving-plan-review** handle review workflows.
-6. **commit-message** drafts commit messages from staged changes without mutating git state.
-7. **commit-staged** commits only when all local changes are already staged.
-8. **verification-before-completion** requires fresh evidence before claiming work is done.
+2. **writing-plans** turns approved requirements into executable plans under `.agents/plans/`.
+3. **reviewing-plans** reviews pasted or referenced plans by default; execution requires an explicit instruction.
+4. **subagent-driven-development** or **executing-plans** executes approved plans.
+5. **test-driven-development** applies RED-GREEN-REFACTOR for core behavior changes and bug fixes.
+6. **code-review**, **requesting-code-review**, **receiving-code-review**, and **receiving-plan-review** handle review workflows.
+7. **commit-message** drafts commit messages from staged changes without mutating git state.
+8. **commit-staged** commits only when all local changes are already staged.
+9. **verification-before-completion** requires fresh evidence before claiming work is done.
 
 ## Agent Artifacts
 

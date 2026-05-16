@@ -131,6 +131,17 @@ thing.
 
 When unsure whether a question is honest or rhetorical, answer it and wait.
 
+## Plan Documents Default To Review
+
+If the user provides, pastes, links, or references an implementation plan
+without an explicit execution instruction, treat it as a plan review request.
+Invoke `joshix:reviewing-plans` and do not edit files, implement tasks, stage,
+commit, branch, or start execution.
+
+Execution requires explicit language such as "execute this plan", "implement
+this", "start on it", "apply this plan", "carry this out", or "get this done".
+A bare plan, "here is the plan", or "final plan" is not approval to execute.
+
 ## Agent Workspace Artifacts
 
 The `.agents/` directory is for agent coordination artifacts, not canonical

@@ -70,6 +70,7 @@ tests=(
     "test-commit-staged-skill.sh"
     "test-receiving-code-review-review-review.sh"
     "test-receiving-plan-review-review-review.sh"
+    "test-reviewing-plans-default.sh"
     "test-joshix-guidance-regressions.sh"
     "test-using-joshix-no-implicit-git.sh"
 )

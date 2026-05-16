@@ -15,6 +15,9 @@ is not being shaped as an upstream PR.
 - After implementation, durable decisions belong in repo docs, code comments,
   or other permanent project files.
 - If the user asks an honest question, answer it before making changes.
+- If the user pastes or references an implementation plan without explicitly
+  asking for execution, review the plan by default. Do not implement unless
+  explicitly asked.
 - If the user pastes or references an agent code review, evaluate the review
   item by item before editing. Do not apply fixes unless explicitly asked.
 - If the user pastes or references an agent plan review, evaluate the review
@@ -29,6 +32,7 @@ Important workflow skills include:
 
 - `joshix:brainstorming`
 - `joshix:writing-plans`
+- `joshix:reviewing-plans`
 - `joshix:subagent-driven-development`
 - `joshix:executing-plans`
 - `joshix:systematic-debugging`

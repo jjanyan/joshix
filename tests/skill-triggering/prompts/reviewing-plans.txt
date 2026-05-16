@@ -1,0 +1,28 @@
+# Notification Queue Implementation Plan
+
+**Goal:** Add queued notification delivery.
+
+---
+
+### Task 1: Queue model
+
+**Files:**
+- Create: `src/notificationQueue.js`
+- Test: `tests/notificationQueue.test.js`
+
+- [ ] **Step 1: Implement the queue**
+
+Create `enqueueNotification(message)` and store messages in memory.
+
+- [ ] **Step 2: Add test coverage**
+
+Verify two enqueued messages are delivered in order.
+
+### Task 2: Delivery worker
+
+**Files:**
+- Modify: `src/notificationQueue.js`
+
+- [ ] **Step 1: Call delivery service**
+
+Call `sendNotification(message)` for each queued item.

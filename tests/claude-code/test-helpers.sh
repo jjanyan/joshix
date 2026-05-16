@@ -27,7 +27,11 @@ run_claude() {
     local timeout="${2:-60}"
     local allowed_tools="${3:-}"
     local output_file
-    local cmd=("$CLAUDE_BIN" -p "$prompt" --plugin-dir "$CLAUDE_PLUGIN_DIR")
+    local cmd=(
+        "$CLAUDE_BIN" -p "$prompt"
+        --plugin-dir "$CLAUDE_PLUGIN_DIR"
+        --dangerously-skip-permissions
+    )
 
     if [ -n "$allowed_tools" ]; then
         cmd+=(--allowed-tools="$allowed_tools")
