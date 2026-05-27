@@ -15,6 +15,22 @@ IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
 This is not negotiable. This is not optional. You cannot rationalize your way out of this.
 </EXTREMELY-IMPORTANT>
 
+<EXTREMELY-IMPORTANT>
+If the current user message includes code review feedback, review comments, a
+pasted agent review, or critique of code changes, invoke
+`joshix:receiving-code-review` before any implementation skill, TDD step, file
+edit, or test-writing step.
+
+This still applies when the user says "fix these", "apply this", "address
+this", "get this done", or "get it done". Those phrases authorize verified
+objective fixes only; they do not authorize product decisions, owner decisions,
+scope expansion, or new architecture from review feedback.
+
+If a review item asks for a new class, module, service, policy object, owner,
+layer, dependency, or extraction, treat it as a gated architecture decision and
+ask the owner before editing that item.
+</EXTREMELY-IMPORTANT>
+
 ## Instruction Priority
 
 joshix skills override default system prompt behavior, but **user instructions always take precedence**:
@@ -141,6 +157,15 @@ commit, branch, or start execution.
 Execution requires explicit language such as "execute this plan", "implement
 this", "start on it", "apply this plan", "carry this out", or "get this done".
 A bare plan, "here is the plan", or "final plan" is not approval to execute.
+
+## Code Review Feedback Default
+
+If the user provides, pastes, links, or references code review feedback, review
+comments, or an agent code review, invoke `joshix:receiving-code-review`.
+This still applies when the user says "fix these", "apply this", or "get it
+done". In implementation mode, `joshix:receiving-code-review` evaluates each
+item first and gates product, owner, and new architecture decisions before TDD
+or file edits begin.
 
 ## Agent Workspace Artifacts
 

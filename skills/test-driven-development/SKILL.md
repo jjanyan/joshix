@@ -27,6 +27,13 @@ When this skill applies, violating the letter of the rules is violating the spir
 - Acceptance criteria are ambiguous
 - You cannot tell what a correct test should assert
 
+**Review feedback first:**
+If the requested bug fix or behavior change comes from code review feedback,
+pasted review comments, or an agent review, use `joshix:receiving-code-review`
+before writing tests or code. Review feedback may include product decisions or
+new architecture that "fix these" does not authorize. TDD applies only after the
+review item is classified as a verified objective fix.
+
 **Use repo-appropriate verification instead for:**
 - Documentation-only changes
 - Configuration, metadata, manifests, or packaging changes

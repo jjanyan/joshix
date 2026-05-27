@@ -1,6 +1,6 @@
 ---
 name: receiving-code-review
-description: Use when receiving code review feedback, pasted agent reviews, review comments, critique of code changes, or questions like "what do you think of this review?" Unless the user explicitly asks to fix/apply changes, first say "I'm reviewing the review..." before analysis, then evaluate item by item without editing.
+description: Use when code review feedback, review comments, pasted agent reviews, or critique of code changes are provided, including requests to evaluate, fix, apply, address, respond to, or get it done.
 ---
 
 # Code Review Reception
@@ -10,6 +10,14 @@ If the user provides a pasted review, agent review, review comments, or
 review-like critique and does not explicitly ask you to implement changes, your
 first non-empty sentence MUST say you are reviewing the review. Do this before
 code research, findings, summaries, or recommendations.
+
+Use this exact sentence:
+
+```text
+I'm reviewing the review as feedback to evaluate, not as approval to edit files.
+```
+
+Do not replace it with a general skill/workflow announcement.
 </EXTREMELY-IMPORTANT>
 
 ## Overview
@@ -18,6 +26,14 @@ Code review feedback is input to evaluate, not an order to execute.
 
 **Core principle:** Default to review-review mode. Verify before implementing.
 Ask before assuming. Technical correctness over social compliance.
+
+<EXTREMELY-IMPORTANT>
+The Owner Decision Gate is mandatory before file edits in implementation mode.
+When review feedback asks for product behavior, user-facing meaning, new
+architecture, new modules/classes/services, or ownership-boundary changes, stop
+and ask the owner before editing that item. "Fix these", "apply this", and "get
+it done" do not override this gate.
+</EXTREMELY-IMPORTANT>
 
 ## Default: Review-Review Mode
 
@@ -71,8 +87,57 @@ WHEN receiving review feedback:
 3. UNDERSTAND: Identify each concrete claim or requested change
 4. RESEARCH: Check against codebase reality
 5. EVALUATE: Technically sound for this codebase?
-6. RESPOND: Item-by-item assessment with evidence
-7. WAIT: Do not implement unless explicitly told to act
+6. GATE: Classify objective fixes separately from owner decisions
+7. RESPOND: Item-by-item assessment with evidence
+8. WAIT: Do not implement unless explicitly told to act
+```
+
+## Owner Decision Gate
+
+Before recommending or implementing a review item, classify the decision type.
+
+- **Objective fixes:** clear bugs, broken tests, regressions, typos, missing
+  focused tests, violated existing contracts, or violations of already-established
+  repo patterns. These may be recommended or implemented when the user asks,
+  after verification.
+- **Product/owner decisions:** intended user-facing behavior, UX semantics,
+  business rules, access policy, defaults, data retention, user promises,
+  acceptance criteria, or copy that changes product meaning. Ask the owner before
+  editing when the answer is not already specified.
+- **Architecture decisions:** new abstractions, ownership boundaries, persistence
+  models, API contracts, dependencies, cross-cutting services, migration
+  strategies, or patterns not already established in the repo. Ask the owner
+  before editing when the decision is new or ambiguous.
+- **Reviewer-requested architecture:** a review item that asks for a new class,
+  module, service, layer, policy object, shared owner, central registry, or
+  extraction is an architecture decision unless the user/spec already approved
+  that structure or the repo already has the same local pattern.
+- **Unclear:** if an item could fit more than one category, treat it as gated
+  and ask.
+
+The reviewer's recommendation is not owner approval. "Fix these", "apply this",
+or "get it done" authorizes verified objective fixes; it does not authorize
+inventing product behavior or introducing new architecture.
+
+When the gate triggers:
+1. Explain why the item needs owner input.
+2. Ask one concrete question with a recommendation and the tradeoff.
+3. Do not edit the gated item until the owner answers.
+4. Continue independent objective fixes only if they do not depend on the gated
+   decision.
+
+Do not create a new class, module, service, policy object, directory, dependency,
+or cross-cutting abstraction solely because a reviewer requested it. Ask first.
+If you make independent objective fixes while leaving a gated item unedited, the
+final response must include the concrete owner question. Do not only say that
+approval is needed.
+
+Question shape:
+
+```text
+The reviewer suggests [change]. That decides [product/architecture question].
+I recommend [option] because [reason/tradeoff]. Should I proceed with that, or
+do you want a different direction?
 ```
 
 ## If Asked To Implement
@@ -81,11 +146,13 @@ When the user explicitly asks to apply review feedback:
 
 ```
 1. Evaluate the feedback first
-2. Clarify any unclear or conflicting items before editing
-3. Implement verified fixes one item at a time
-4. Test each meaningful fix
-5. Verify no regressions
-6. Report what changed and what remains
+2. Run the Owner Decision Gate for each item before editing files
+3. Clarify gated, unclear, or conflicting items before editing them
+4. Implement verified objective fixes one item at a time
+5. Test each meaningful fix
+6. Verify no regressions
+7. Report what changed, what was gated, and ask the owner question for each
+   gated item that remains
 ```
 
 Do not blindly apply the entire review. If an item is wrong, stale, speculative,
@@ -187,6 +254,7 @@ I'm reviewing the review as feedback to evaluate, not as approval to edit files.
 
 1. [Reviewer item]
    Assessment: Valid | Invalid | Needs investigation | Needs clarification | Already handled | Optional/taste
+   Decision type: Objective fix | Product/owner decision | Architecture decision | Unclear
    Evidence: [code/test/doc references or what is missing]
    Recommendation: [fix, reject, defer, clarify, or investigate]
 
@@ -209,6 +277,8 @@ behavior.
 | Assuming reviewer is right | Check code, tests, docs, and requirements |
 | Avoiding pushback | Technical correctness over social comfort |
 | Treating taste as requirement | Separate objective risk from preference |
+| Treating review as product approval | Use the Owner Decision Gate before editing |
+| Adding new architecture from review feedback | Ask the owner before introducing new patterns |
 | Can't verify, proceed anyway | State limitation and ask for direction |
 
 ## Bottom Line
@@ -216,4 +286,4 @@ behavior.
 Review feedback is evidence to reason about.
 
 Evaluate it. Explain what is valid. Push back on what is wrong. Make changes
-only when the user explicitly asks.
+only when the user explicitly asks and the Owner Decision Gate allows it.

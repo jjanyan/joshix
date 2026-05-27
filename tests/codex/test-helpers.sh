@@ -57,6 +57,7 @@ run_codex() {
     local output_dir="$3"
     local sandbox="${4:-read-only}"
     local timeout_seconds="${5:-$CODEX_TEST_TIMEOUT}"
+    local rules_mode="${6:-ignore-rules}"
 
     mkdir -p "$output_dir"
 
@@ -67,12 +68,23 @@ run_codex() {
         "$CODEX_BIN" exec
         --ephemeral
         --ignore-user-config
-        --ignore-rules
         --sandbox "$sandbox"
         --cd "$project_dir"
         --json
         --output-last-message "$final_file"
     )
+
+    case "$rules_mode" in
+        ignore-rules)
+            cmd+=(--ignore-rules)
+            ;;
+        use-rules)
+            ;;
+        *)
+            echo "Unknown run_codex rules mode: $rules_mode" >&2
+            return 1
+            ;;
+    esac
 
     if [ -n "${CODEX_TEST_MODEL:-}" ]; then
         cmd+=(--model "$CODEX_TEST_MODEL")

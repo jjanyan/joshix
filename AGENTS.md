@@ -20,6 +20,10 @@ is not being shaped as an upstream PR.
   explicitly asked.
 - If the user pastes or references an agent code review, evaluate the review
   item by item before editing. Do not apply fixes unless explicitly asked.
+- If the user asks to apply, fix, address, or "get done" code review feedback,
+  use `joshix:receiving-code-review` before TDD or edits. Apply verified
+  objective fixes, but stop and ask the owner before product, owner, scope, or
+  new architecture decisions raised by the review.
 - If the user pastes or references an agent plan review, evaluate the review
   item by item before editing the plan. Do not apply fixes unless explicitly
   asked.

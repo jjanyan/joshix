@@ -69,6 +69,8 @@ tests=(
     "test-commit-message-skill.sh"
     "test-commit-staged-skill.sh"
     "test-receiving-code-review-review-review.sh"
+    "test-receiving-code-review-owner-decision-gate.sh"
+    "test-receiving-code-review-owner-decision-gate-behavior.sh"
     "test-receiving-plan-review-review-review.sh"
     "test-reviewing-plans-default.sh"
     "test-joshix-guidance-regressions.sh"
