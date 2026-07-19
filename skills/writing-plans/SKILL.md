@@ -69,10 +69,19 @@ This structure informs the task decomposition. Each task should produce self-con
 ---
 ```
 
+## Dependency Metadata
+
+Every task declares `**Depends on:** None` or explicit prerequisite task
+numbers. Task order is presentational and carries no dependency meaning.
+Overlapping files or shared mutable resources are safety constraints that may
+force serialization; they do not create an inferred directed dependency.
+
 ## Task Structure
 
 ````markdown
 ### Task N: [Component Name]
+
+**Depends on:** None
 
 **Files:**
 - Create: `exact/path/to/file.py`
@@ -135,6 +144,11 @@ After writing the complete plan, look at the spec with fresh eyes and check the 
 **4. Durable docs:** If the work changes durable product behavior,
 architecture, operations, or developer workflow, does the plan include a task to
 update the appropriate repo documentation? If not, add one.
+
+**5. Dependencies:** Does every task state `Depends on: None` or explicit task
+numbers? Are semantic prerequisites explicit rather than implied by order? Are
+overlapping files or mutable resources called out even when no dependency
+exists?
 
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 

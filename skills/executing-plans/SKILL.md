@@ -1,6 +1,6 @@
 ---
 name: executing-plans
-description: Use when the user explicitly asks to execute, implement, apply, start, carry out, or get done a written implementation plan in a separate session with review checkpoints
+description: Use when the user explicitly asks to execute, implement, apply, start, carry out, or get done a written implementation plan
 ---
 
 # Executing Plans
@@ -19,10 +19,11 @@ approval for a pasted plan.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
 
-**Note:** If subagents are available and the plan contains independent tasks
-that can be delegated cleanly, use joshix:subagent-driven-development.
-Otherwise execute the plan directly with this skill. Do not choose subagents
-just because the platform supports them.
+**Routing:** Execute small or tightly coupled plans inline with this skill. When
+two or more tasks are independently implementable with disjoint scopes, route
+the plan to `joshix:subagent-driven-development`; that skill invokes the
+canonical parallel-dispatch policy. Do not copy scheduling, capacity, fallback,
+or reporting rules here.
 
 ## The Process
 

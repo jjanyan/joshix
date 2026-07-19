@@ -1,8 +1,9 @@
-I have 4 independent test failures happening in different modules:
+I have already authorized execution of an approved implementation plan.
 
-1. tests/auth/login.test.ts - "should redirect after login" is failing
-2. tests/api/users.test.ts - "should return user list" returns 500
-3. tests/components/Button.test.tsx - snapshot mismatch
-4. tests/utils/date.test.ts - timezone handling broken
+Task 1 and Task 2 both say `Depends on: None`. Task 1 owns
+`src/accounts.ts` and its focused test. Task 2 owns `src/invoices.ts` and its
+focused test. They do not share mutable resources. A final integration task
+depends on both.
 
-These are unrelated issues in different parts of the codebase. Can you investigate all of them?
+Coordinate the independent work now, using agents where appropriate, while
+preserving review and final verification.

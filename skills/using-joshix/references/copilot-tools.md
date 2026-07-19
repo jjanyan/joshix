@@ -19,6 +19,21 @@ Skills use Claude Code tool names. When you encounter these in a skill, use your
 | `WebSearch` | No equivalent — use `web_fetch` with a search engine URL |
 | `EnterPlanMode` / `ExitPlanMode` | No equivalent — stay in the main session |
 
+## Parallel execution capabilities
+
+- Dispatch/capacity: start independent workers with multiple `task` calls. If
+  Copilot does not report a capacity limit, let the canonical policy begin with
+  at most two workers.
+- Observation: use `read_agent` and `list_agents` to observe individual
+  returns, which supports completion-aware coordination.
+- Continuation: when the host cannot continue the same worker, dispatch a fully
+  briefed replacement with the lane scope, change context, findings, and
+  verification evidence.
+- Questions: workers return `NEEDS_CONTEXT`; the lead owns any user question.
+- Reasoning: use the current Copilot model and default reasoning behavior when
+  no per-worker control is exposed; do not claim a specific effort was
+  enforced.
+
 ## Async shell sessions
 
 Copilot CLI supports persistent async shell sessions, which have no direct Claude Code equivalent:

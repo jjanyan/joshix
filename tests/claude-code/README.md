@@ -1,172 +1,149 @@
 # Claude Code Skills Tests
 
-Automated tests for joshix skills using Claude Code CLI.
+Automated behavior and orchestration tests for joshix skills using the Claude
+Code CLI.
 
-## Overview
+## Test layers
 
-This test suite verifies that skills are loaded correctly and Claude follows
-them as expected. Tests invoke Claude Code in headless mode (`claude -p`) and
-verify behavior.
+The repository uses complementary test layers:
+
+1. `tests/static/` contains deterministic, model-free contract checks for
+   required skill wording and platform mappings.
+2. `tests/codex/`, the focused tests in this directory, and
+   `tests/skill-triggering/` are probabilistic model-backed checks. They verify
+   that Codex, Claude Code, and activation prompts follow the intended routing
+   and workflow guidance.
+3. Two Claude Code orchestration tests exercise representative execution
+   topologies end to end:
+   - `test-subagent-driven-development-integration.sh` runs two disjoint
+     implementation lanes followed by their dependent integration task.
+   - `test-executing-plans-coupled-integration.sh` runs a small plan whose tasks
+     share files and must stay inline rather than dispatching implementation
+     workers.
+
+Model-invoking tests are intentional and cost-bearing. Run focused tests first,
+then broader suites when the change justifies the time and model usage.
 
 ## Requirements
 
-- Claude Code CLI installed and in PATH (`claude --version` should work)
-- Local joshix plugin available via this checkout. The helper passes
-  `--plugin-dir` to every Claude invocation by default.
+- Claude Code CLI installed and in `PATH` (`claude --version` should work)
+- This checkout available as the local plugin; the helpers pass `--plugin-dir`
+  to Claude invocations
+- Python 3 and Node.js for transcript and fixture verification
 
-## Running Tests
+## Running tests
 
-### Run all fast tests (recommended):
-```bash
-./run-skill-tests.sh
-```
-
-### Run integration tests (slow, 10-30 minutes):
-```bash
-./run-skill-tests.sh --integration
-```
-
-### Run specific test:
-```bash
-./run-skill-tests.sh --test test-subagent-driven-development.sh
-```
-
-### Run with verbose output:
-```bash
-./run-skill-tests.sh --verbose
-```
-
-### Set custom timeout:
-```bash
-./run-skill-tests.sh --timeout 1800  # 30 minutes for integration tests
-```
-
-## Test Structure
-
-### test-helpers.sh
-Common functions for skills testing:
-- `run_claude "prompt" [timeout]` - Run Claude with prompt
-- `assert_contains output pattern name` - Verify pattern exists
-- `assert_not_contains output pattern name` - Verify pattern absent
-- `assert_count output pattern count name` - Verify exact count
-- `assert_order output pattern_a pattern_b name` - Verify order
-- `create_test_project` - Create temp test directory
-- `create_test_plan project_dir` - Create sample plan file
-
-### Test Files
-
-Each test file:
-1. Sources `test-helpers.sh`
-2. Runs Claude Code with specific prompts
-3. Verifies expected behavior using assertions
-4. Returns 0 on success, non-zero on failure
-
-## Example Test
+Run the fast focused suite:
 
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$SCRIPT_DIR/test-helpers.sh"
-
-echo "=== Test: My Skill ==="
-
-# Ask Claude about the skill
-output=$(run_claude "What does the my-skill skill do?" 30)
-
-# Verify response
-assert_contains "$output" "expected behavior" "Skill describes behavior"
-
-echo "=== All tests passed ==="
+tests/claude-code/run-skill-tests.sh
 ```
 
-## Current Tests
+Run a specific focused test:
 
-### Fast Tests (run by default)
-
-#### test-subagent-driven-development.sh
-Tests skill content and requirements (~2 minutes):
-- Skill loading and accessibility
-- Workflow ordering (spec compliance before code quality)
-- Self-review requirements documented
-- Plan reading efficiency documented
-- Spec compliance reviewer skepticism documented
-- Review loops documented
-- Task context provision documented
-- No worktree prerequisite
-- Current checkout/branch default
-
-### Integration Tests (use --integration flag)
-
-#### test-subagent-driven-development-integration.sh
-Full workflow execution test (~10-30 minutes):
-- Creates real test project with Node.js setup
-- Creates implementation plan with 2 tasks
-- Executes plan using subagent-driven-development
-- Verifies actual behaviors:
-  - Skill is invoked
-  - Subagents are dispatched
-  - Task tracking is used
-  - Working implementation is produced
-  - Tests pass
-  - Work remains in the current checkout without extra commits
-
-**What it tests:**
-- The workflow actually works end-to-end
-- Final code is functional and tested
-- Git history is not changed unless explicitly requested
-
-#### test-requesting-code-review.sh
-Behavioral test for the code reviewer subagent (~5 minutes):
-- Builds a tiny project with a baseline commit
-- Plants working tree changes with two real bugs (SQL injection, plaintext password handling)
-- Dispatches the code reviewer via the requesting-code-review skill
-- Verifies the reviewer flags the planted bugs at Critical/Important severity and refuses to approve
-
-**What it tests:**
-- The skill actually dispatches a working code reviewer subagent
-- The reviewer template produces reviewers that catch obvious security bugs
-- The reviewer is not sycophantic — it does not approve a diff with planted Critical issues for proceeding without fixes
-
-## Adding New Tests
-
-1. Create new test file: `test-<skill-name>.sh`
-2. Source test-helpers.sh
-3. Write tests using `run_claude` and assertions
-4. Add to test list in `run-skill-tests.sh`
-5. Make executable: `chmod +x test-<skill-name>.sh`
-
-## Timeout Considerations
-
-- Default timeout: 5 minutes per test
-- Claude Code may take time to respond
-- Adjust with `--timeout` if needed
-- Tests should be focused to avoid long runs
-
-## Debugging Failed Tests
-
-With `--verbose`, you'll see full Claude output:
 ```bash
-./run-skill-tests.sh --verbose --test test-subagent-driven-development.sh
+tests/claude-code/run-skill-tests.sh \
+  --test test-subagent-driven-development.sh
 ```
 
-Without verbose, only failures show output.
+Run the independent-lane orchestration case:
 
-## CI/CD Integration
-
-To run in CI:
 ```bash
-# Run with explicit timeout for CI environments
-./run-skill-tests.sh --timeout 900
-
-# Exit code 0 = success, non-zero = failure
+tests/claude-code/run-skill-tests.sh \
+  --integration \
+  --test test-subagent-driven-development-integration.sh \
+  --timeout 1800
 ```
 
-## Notes
+Run the coupled-inline orchestration case:
 
-- Tests verify skill *instructions*, not full execution
-- Full workflow tests would be very slow
-- Focus on verifying key skill requirements
-- Tests should be deterministic
-- Avoid testing implementation details
+```bash
+tests/claude-code/run-skill-tests.sh \
+  --integration \
+  --test test-executing-plans-coupled-integration.sh \
+  --timeout 1800
+```
+
+Use `--verbose` to stream full test output. Without it, the runner prints full
+output only for failures.
+
+## What the orchestration cases prove
+
+### Independent two-lane plan
+
+The fixture gives Tasks 1 and 2 disjoint files and makes Task 3 depend on both.
+It verifies:
+
+- both implementation workers start before either returns;
+- each lane records a successful `SPEC OUTCOME: PASS` before quality review;
+- each quality review returns successfully with
+  `QUALITY OUTCOME: APPROVED` before Task 3 starts;
+- Task 3 completes its own spec and quality gates before an approved final
+  whole-change review starts;
+- all six fixture files exist and the public module exports both operations;
+- the final Node test suite passes;
+- the final response records `OVERLAP OBSERVED: TASKS 1 AND 2` and includes
+  Mermaid source; and
+- execution creates no extra commit.
+
+`assert-parallel-transcript.py` derives overlap, completed worker results,
+successful lane and whole-change review outcomes, and dependency-gate order
+from Claude session tool-use and tool-result events. A count of dispatched
+tasks is not treated as concurrency evidence.
+
+The harness reports task-tracking tool use when present but does not fail when
+it is absent. Headless Claude Code may expose `TaskCreate` and `TaskUpdate` only
+as deferred tools, while the Agent events above directly prove the required
+coordination behavior.
+
+### Coupled inline plan
+
+The fixture has two tasks that both modify `src/counter.js` and
+`test/counter.test.js`. It verifies:
+
+- no Agent or Task call is dispatched;
+- both operations are implemented and tests pass;
+- the final response contains only
+  `EXECUTION MODE: INLINE; REASON: SHARED FILE OWNERSHIP`;
+- no parallel topology or Mermaid overhead is emitted; and
+- execution creates no extra commit.
+
+## Test utilities
+
+- `test-helpers.sh` supplies Claude invocation, timeout, assertion, and
+  temporary-project helpers.
+- `assert-parallel-transcript.py` validates implementation overlap, lane and
+  whole-change review order, and the absence of any Agent/Task dispatch in
+  coupled mode.
+- `analyze-token-usage.py` reports session and subagent token usage for
+  cost visibility.
+
+Claude transcripts are stored under `~/.claude/projects/`, with the working
+directory encoded into the project directory name. The orchestration fixtures
+run Claude inside unique temporary projects so their transcript lookup does not
+race unrelated sessions.
+
+Run the durable model-free transcript fixtures directly:
+
+```bash
+python3 tests/claude-code/assert-parallel-transcript.py --self-test
+```
+
+The fixtures cover synchronous completion, async launch followed by completion,
+async completion via delivered or undelivered `<task-notification>` events,
+incomplete async launches, dependency-gate order, exact review-outcome markers,
+and coupled execution with zero delegated calls.
+
+## Adding tests
+
+1. Prefer a deterministic assertion in `tests/static/` when wording or file
+   structure is enough.
+2. Use a focused model-backed test only when behavior must be observed.
+3. Add full orchestration coverage only for a representative topology that
+   cannot be proven by the lower layers.
+4. Register Claude tests in `run-skill-tests.sh`.
+5. Make intentional model usage and expected runtime visible in the test.
+
+The larger fixtures under `tests/subagent-driven-dev/go-fractals` and
+`tests/subagent-driven-dev/svelte-todo` remain manual benchmarks. They are not
+contract tests and are intentionally unchanged.

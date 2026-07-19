@@ -65,6 +65,8 @@ export CODEX_TEST_TIMEOUT="$TIMEOUT"
 
 tests=(
     "test-skill-discovery-smoke.sh"
+    "test-dispatching-parallel-agents-guidance.sh"
+    "test-parallel-planning-routing.sh"
     "test-code-review-skill.sh"
     "test-commit-message-skill.sh"
     "test-commit-staged-skill.sh"

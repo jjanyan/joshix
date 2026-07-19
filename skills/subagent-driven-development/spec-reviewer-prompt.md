@@ -6,7 +6,7 @@ Use this template when dispatching a spec compliance reviewer subagent.
 
 ```
 Task tool (general-purpose):
-  description: "Review spec compliance for Task N"
+  description: "Spec review Task N: [task name]"
   prompt: |
     You are reviewing whether an implementation matches its specification.
 
@@ -17,6 +17,17 @@ Task tool (general-purpose):
     ## What Implementer Claims They Built
 
     [From implementer's report]
+
+    ## Lane Scope
+
+    {DECLARED_LANE_FILES_AND_RESOURCES}
+
+    ## Lane-Scoped Change Context
+
+    {LANE_SCOPED_CHANGE_CONTEXT_INCLUDING_UNTRACKED_FILES}
+
+    Inspect only this lane. Unrelated in-flight work may be visible in the checkout.
+    Do not inspect the aggregate in-flight working-tree diff.
 
     ## CRITICAL: Do Not Trust the Report
 
@@ -29,7 +40,7 @@ Task tool (general-purpose):
     - Accept their interpretation of requirements
 
     **DO:**
-    - Read the actual code they wrote
+    - Read the actual lane-scoped code they wrote
     - Compare actual implementation to requirements line by line
     - Check for missing pieces they claimed to implement
     - Look for extra features they didn't mention
@@ -53,7 +64,7 @@ Task tool (general-purpose):
     - Did they solve the wrong problem?
     - Did they implement the right feature but wrong way?
 
-    **Verify by reading code, not by trusting report.**
+    **Verify by reading lane-scoped code and change context, not by trusting report.**
 
     Report:
     - ✅ Spec compliant (if everything matches after code inspection)

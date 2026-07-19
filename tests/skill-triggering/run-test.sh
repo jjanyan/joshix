@@ -7,6 +7,21 @@
 
 set -e
 
+CLAUDE_BIN="${CLAUDE_BIN:-claude}"
+
+run_with_timeout() {
+    local seconds="$1"
+    shift
+
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$seconds" "$@"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        gtimeout "$seconds" "$@"
+    else
+        "$@"
+    fi
+}
+
 SKILL_NAME="$1"
 PROMPT_FILE="$2"
 MAX_TURNS="${3:-3}"
@@ -45,12 +60,18 @@ cd "$OUTPUT_DIR"
 
 echo "Plugin dir: $PLUGIN_DIR"
 echo "Running claude -p with naive prompt..."
-timeout 300 claude -p "$PROMPT" \
-    --plugin-dir "$PLUGIN_DIR" \
-    --dangerously-skip-permissions \
-    --max-turns "$MAX_TURNS" \
-    --output-format stream-json \
-    > "$LOG_FILE" 2>&1 || true
+CLAUDE_EXIT=0
+if run_with_timeout 300 "$CLAUDE_BIN" -p "$PROMPT" \
+        --plugin-dir "$PLUGIN_DIR" \
+        --dangerously-skip-permissions \
+        --max-turns "$MAX_TURNS" \
+        --verbose \
+        --output-format stream-json \
+        > "$LOG_FILE" 2>&1; then
+    :
+else
+    CLAUDE_EXIT=$?
+fi
 
 echo ""
 echo "=== Results ==="
@@ -65,6 +86,14 @@ if grep -q '"name":"Skill"' "$LOG_FILE" && grep -qE "$SKILL_PATTERN" "$LOG_FILE"
 else
     echo "❌ FAIL: Skill '$SKILL_NAME' was NOT triggered"
     TRIGGERED=false
+fi
+
+if [ "$CLAUDE_EXIT" -ne 0 ]; then
+    if [ "$TRIGGERED" = "true" ]; then
+        echo "⚠️ Claude exited with code $CLAUDE_EXIT after activation evidence was captured"
+    else
+        echo "Claude invocation failed with exit code $CLAUDE_EXIT"
+    fi
 fi
 
 # Show what skills WERE triggered
@@ -83,6 +112,8 @@ echo "Timestamp: $TIMESTAMP"
 
 if [ "$TRIGGERED" = "true" ]; then
     exit 0
+elif [ "$CLAUDE_EXIT" -ne 0 ]; then
+    exit "$CLAUDE_EXIT"
 else
     exit 1
 fi

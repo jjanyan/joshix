@@ -8,14 +8,21 @@ Use this template when dispatching a code quality reviewer subagent.
 
 ```
 Task tool (general-purpose):
+  description: "Quality review Task N: [task name]"
   Use template at requesting-code-review/code-reviewer.md
 
-  DESCRIPTION: [task summary, from implementer's report]
   PLAN_OR_REQUIREMENTS: Task N from [plan-file]
-  CHANGED_FILES: [files changed by the task]
-  DIFF_CONTEXT: [relevant git diff or summary of changes]
-  VERIFICATION: [commands/tests run and results from implementer's report]
+  DECLARED_LANE_SCOPE: {DECLARED_LANE_FILES_AND_RESOURCES}
+  LANE_CHANGED_FILES: {ACTUAL_LANE_CHANGED_FILES_INCLUDING_UNTRACKED}
+  LANE_SCOPED_CHANGE_CONTEXT: {LANE_ONLY_DIFF_OR_EQUIVALENT_SUMMARY}
+  VERIFICATION: {FOCUSED_AND_DEFERRED_VERIFICATION_RESULTS}
 ```
+
+Inspect and review only the supplied declared lane scope, changed files, and
+lane-scoped change context. Untracked lane files are in scope only when they
+are explicitly included in the supplied lane fields. Unrelated in-flight work
+may be visible in the checkout. Do not inspect or review the aggregate
+in-flight working-tree diff.
 
 **In addition to standard code quality concerns, the reviewer should check:**
 - Does each file have one clear responsibility with a well-defined interface?

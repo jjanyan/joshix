@@ -47,7 +47,8 @@ run_with_timeout() {
 # Parse command line arguments
 VERBOSE=false
 SPECIFIC_TEST=""
-TIMEOUT=300  # Default 5 minute timeout per test
+TIMEOUT=300  # Focused default; integration default is applied after parsing
+TIMEOUT_EXPLICIT=false
 RUN_INTEGRATION=false
 
 while [[ $# -gt 0 ]]; do
@@ -62,6 +63,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --timeout)
             TIMEOUT="$2"
+            TIMEOUT_EXPLICIT=true
             shift 2
             ;;
         --integration|-i)
@@ -74,7 +76,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --verbose, -v        Show verbose output"
             echo "  --test, -t NAME      Run only the specified test"
-            echo "  --timeout SECONDS    Set timeout per test (default: 300)"
+            echo "  --timeout SECONDS    Set timeout per test (default: 300; 1800 with --integration)"
             echo "  --integration, -i    Run integration tests (slow, 10-30 min)"
             echo "  --help, -h           Show this help"
             echo ""
@@ -82,7 +84,8 @@ while [[ $# -gt 0 ]]; do
             echo "  test-subagent-driven-development.sh  Test skill loading and requirements"
             echo ""
             echo "Integration Tests (use --integration):"
-            echo "  test-subagent-driven-development-integration.sh  Full workflow execution"
+            echo "  test-subagent-driven-development-integration.sh  Independent-lane workflow execution"
+            echo "  test-executing-plans-coupled-integration.sh  Coupled plan stays inline"
             echo "  test-document-review-system.sh  Spec document review behavior"
             echo "  test-requesting-code-review.sh  Code review behavior"
             exit 0
@@ -95,6 +98,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if [ "$RUN_INTEGRATION" = true ] && [ "$TIMEOUT_EXPLICIT" = false ]; then
+    TIMEOUT=1800
+fi
+
 # List of skill tests to run (fast unit tests)
 tests=(
     "test-subagent-driven-development.sh"
@@ -103,6 +110,7 @@ tests=(
 # Integration tests (slow, full execution)
 integration_tests=(
     "test-subagent-driven-development-integration.sh"
+    "test-executing-plans-coupled-integration.sh"
     "test-document-review-system.sh"
     "test-requesting-code-review.sh"
 )

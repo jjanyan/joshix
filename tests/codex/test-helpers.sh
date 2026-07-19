@@ -92,6 +92,7 @@ run_codex() {
 
     cmd+=(-)
 
+    local exit_code
     if printf '%s' "$prompt" | run_with_timeout "$timeout_seconds" "${cmd[@]}" >"$json_file" 2>"$stderr_file"; then
         if [ -f "$final_file" ]; then
             return 0
@@ -105,9 +106,10 @@ run_codex() {
             sed 's/^/  stderr: /' "$stderr_file" >&2
         fi
         return 1
+    else
+        exit_code=$?
     fi
 
-    local exit_code=$?
     echo "Codex execution failed with exit code $exit_code" >&2
     echo "stderr: $stderr_file" >&2
     echo "events: $json_file" >&2

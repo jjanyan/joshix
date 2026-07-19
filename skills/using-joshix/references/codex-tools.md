@@ -7,11 +7,23 @@ Skills use Claude Code tool names. When you encounter these in a skill, use your
 | `Task` tool (dispatch subagent) | `spawn_agent` (see [Subagent dispatch requires multi-agent support](#subagent-dispatch-requires-multi-agent-support)) |
 | Multiple `Task` calls (parallel) | Multiple `spawn_agent` calls |
 | Task returns result | `wait_agent` |
-| Task completes automatically | `close_agent` to free slot |
+| Continue the same worker | `followup_task` |
 | `TodoWrite` (task tracking) | `update_plan` |
 | `Skill` tool (invoke a skill) | Skills load natively — just follow the instructions |
 | `Read`, `Write`, `Edit` (files) | Use your native file tools |
 | `Bash` (run commands) | Use your native shell tools |
+
+## Parallel execution capabilities
+
+- Dispatch/capacity: start independent workers with multiple `spawn_agent`
+  calls and respect platform-reported capacity. When capacity is unknown, the
+  canonical policy starts with two workers.
+- Observation: `wait_agent` supports completion-aware coordination.
+- Continuation: use `followup_task` for an existing idle worker; otherwise brief
+  a replacement.
+- Questions: workers return `NEEDS_CONTEXT`; the lead resolves user questions.
+- Reasoning: delegated workers inherit the current/default model and reasoning
+  effort unless explicit user, repo, or platform guidance overrides them.
 
 ## Subagent dispatch requires multi-agent support
 
@@ -22,7 +34,8 @@ Add to your Codex config (`~/.codex/config.toml`):
 multi_agent = true
 ```
 
-This enables `spawn_agent`, `wait_agent`, and `close_agent` for skills like `dispatching-parallel-agents` and `subagent-driven-development`.
+This enables `spawn_agent` and `wait_agent` for skills like
+`dispatching-parallel-agents` and `subagent-driven-development`.
 
 Legacy note: Codex builds before `rust-v0.115.0` exposed spawned-agent
 waiting as `wait`. Current Codex uses `wait_agent` for spawned agents. The

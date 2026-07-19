@@ -6,6 +6,65 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/test-helpers.sh"
 
+TASK3_START_LABEL_PATTERN='^[[:space:][:punct:]]*TASK[[:space:]]+3[[:space:]]+START[[:space:]]*:'
+TASK3_START_DECISION_PATTERN="${TASK3_START_LABEL_PATTERN}[[:space:][:punct:]]*AFTER[[:space:]]+SPEC[[:space:]]+AND[[:space:]]+QUALITY[[:space:]]+REVIEWS[[:space:][:punct:]]+FOR[[:space:][:punct:]]*TASKS[[:space:]]+1[[:space:]]+AND[[:space:]]+2[[:space:][:punct:]]*$"
+
+task3_start_decision_matches() {
+    local candidate="$1"
+    local decision_count
+    decision_count=$(printf '%s\n' "$candidate" | grep -Eic "$TASK3_START_LABEL_PATTERN" || true)
+
+    [ "$decision_count" -eq 1 ] &&
+        printf '%s\n' "$candidate" | grep -Eiq "$TASK3_START_DECISION_PATTERN"
+}
+
+verify_task3_start_oracle() {
+    local correct='TASK 3 START: AFTER SPEC AND QUALITY REVIEWS FOR TASKS 1 AND 2'
+    local spec_only='TASK 3 START: AFTER SPEC REVIEW FOR TASKS 1 AND 2'
+    local implementation_only='TASK 3 START: AFTER IMPLEMENTATION FOR TASKS 1 AND 2'
+    local one_prerequisite='TASK 3 START: AFTER SPEC AND QUALITY REVIEWS FOR TASK 1 ONLY'
+    local formatted_correct='- **task 3 start:** **after spec and quality reviews** for **tasks 1 and 2**.'
+    local conflicting_decisions="${correct}"$'\n'"${implementation_only}"
+
+    if ! task3_start_decision_matches "$correct"; then
+        echo "  [FAIL] Task 3 start oracle rejected the correct decision"
+        return 1
+    fi
+
+    if task3_start_decision_matches "$spec_only"; then
+        echo "  [FAIL] Task 3 start oracle accepted spec-only completion"
+        return 1
+    fi
+
+    if task3_start_decision_matches "$implementation_only"; then
+        echo "  [FAIL] Task 3 start oracle accepted implementation-only completion"
+        return 1
+    fi
+
+    if task3_start_decision_matches "$one_prerequisite"; then
+        echo "  [FAIL] Task 3 start oracle accepted one prerequisite"
+        return 1
+    fi
+
+    if ! task3_start_decision_matches "$formatted_correct"; then
+        echo "  [FAIL] Task 3 start oracle rejected harmless case, spacing, or punctuation"
+        return 1
+    fi
+
+    if task3_start_decision_matches "$conflicting_decisions"; then
+        echo "  [FAIL] Task 3 start oracle accepted multiple decision lines"
+        return 1
+    fi
+
+    echo "  [PASS] Task 3 start oracle samples"
+}
+
+verify_task3_start_oracle
+
+if [ "${1:-}" = "--oracle-only" ]; then
+    exit 0
+fi
+
 echo "=== Test: subagent-driven-development skill ==="
 echo ""
 
@@ -168,6 +227,41 @@ output=$(run_claude "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development s
 if assert_contains "$output" "current.*checkout\|current.*branch\|unless.*user.*request\|explicitly.*request" "Uses current branch by default"; then
     : # pass
 else
+    exit 1
+fi
+
+echo ""
+
+# Test 10: Verify independent ready lanes and lane-scoped review gates
+echo "Test 10: Independent ready lanes..."
+
+output=$(run_claude "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. An approved plan has Task 1 and Task 2 with Depends on: None, disjoint files, no shared mutable resources, and safe focused tests. Task 3 depends on Tasks 1 and 2. How does the controller execute and review these tasks? End your answer with exactly one decision line using this format, selecting one option from each angle-bracket group based on the skill: TASK 3 START: <AFTER IMPLEMENTATION | AFTER SPEC REVIEW | AFTER SPEC AND QUALITY REVIEWS> FOR <TASK 1 ONLY | TASK 2 ONLY | TASKS 1 AND 2>. Do not reproduce the angle brackets or option lists in the decision line." 60)
+
+if assert_contains "$output" "dispatching-parallel-agents\|[Pp]arallel.*ready\|ready.*[Pp]arallel" "Invokes parallel dispatch for ready lanes"; then
+    :
+else
+    exit 1
+fi
+
+if assert_contains "$output" "[Ss]pec.*before.*quality\|[Ss]pec.*then.*quality\|[Qq]uality.*after.*spec" "Preserves spec-before-quality order within each lane"; then
+    :
+else
+    exit 1
+fi
+
+if assert_contains "$output" "[Uu]nrelated.*continue\|[Oo]ther.*lane.*continue\|[Ii]ndependent.*continue" "Allows unrelated lanes to continue"; then
+    :
+else
+    exit 1
+fi
+
+if task3_start_decision_matches "$output"; then
+    echo "  [PASS] Starts Task 3 only after both prerequisite lane gates pass spec and quality review"
+else
+    echo "  [FAIL] Starts Task 3 only after both prerequisite lane gates pass spec and quality review"
+    echo "  Expected one normalized decision line selecting AFTER SPEC AND QUALITY REVIEWS for TASKS 1 AND 2"
+    echo "  In output:"
+    printf '%s\n' "$output" | sed 's/^/    /'
     exit 1
 fi
 

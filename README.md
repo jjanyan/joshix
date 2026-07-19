@@ -47,6 +47,12 @@ Gemini loads `GEMINI.md`, which points at the local `using-joshix` bootstrap and
 8. **commit-staged** commits only when all local changes are already staged.
 9. **verification-before-completion** requires fresh evidence before claiming work is done.
 
+joshix is parallel-first after execution is authorized when meaningful tasks
+are independent, have disjoint ownership, and can be verified safely. Coupled,
+uncertain, overlapping, and unsafe shared-state work stays inline or serial.
+`dispatching-parallel-agents` owns the reusable policy;
+`subagent-driven-development` invokes it for suitable plans.
+
 ## Agent Artifacts
 
 Use `.agents/` for working artifacts:
@@ -62,6 +68,11 @@ After work is complete, durable decisions belong in normal repo docs, code comme
 Codex behavior tests live in `tests/codex/`.
 
 Claude Code behavior tests live in `tests/claude-code/`. These tests call Claude prompt mode and may cost money, so run them intentionally.
+
+Model-free workflow contracts live in `tests/static/`. Codex and Claude Code
+guidance tests invoke models and should be run intentionally. Representative
+orchestration tests are intentionally small because they are slower and
+cost-bearing.
 
 ## License
 

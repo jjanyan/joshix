@@ -80,6 +80,13 @@ When skills reference tools you don't have, substitute OpenCode equivalents:
 - \`Skill\` tool → OpenCode's native \`skill\` tool
 - \`Read\`, \`Write\`, \`Edit\`, \`Bash\` → Your native tools
 
+- Multiple independent subagents → parallel @mentions when supported; otherwise serial execution
+- Unknown capacity → start with at most two workers
+- Completion without individual observation → bounded join-all waves
+- Same-worker continuation unavailable → fully briefed replacement worker
+- Interactive questions → return NEEDS_CONTEXT to the lead
+- Reasoning controls unavailable → inherit the OpenCode default without claiming a specific effort
+
 Use OpenCode's native \`skill\` tool to list and load skills.`;
 
     _bootstrapCache = `<EXTREMELY_IMPORTANT>

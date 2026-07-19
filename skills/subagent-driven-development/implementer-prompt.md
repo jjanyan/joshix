@@ -16,6 +16,22 @@ Task tool (general-purpose):
 
     [Scene-setting: where this fits, dependencies, architectural context]
 
+    ## Exclusive Scope
+
+    Allowed files: {DECLARED_FILE_SCOPE}
+    Allowed mutable resources: {DECLARED_RESOURCE_SCOPE_OR_NONE}
+
+    Do not modify files or mutable resources outside this scope. Other authorized
+    lanes may be writing in the same checkout.
+
+    ## Shared-Checkout Verification
+
+    Run only these focused checks while writes overlap:
+    {SAFE_FOCUSED_CHECKS}
+
+    Report every required broad or shared check that cannot run safely as deferred,
+    including its exact command and why it must wait.
+
     ## Before You Begin
 
     If you have questions about:
@@ -105,7 +121,10 @@ Task tool (general-purpose):
     - **Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
     - What you implemented (or what you attempted, if blocked)
     - What you tested and test results
-    - Files changed
+    - Files and mutable resources actually touched
+    - Focused verification commands and results
+    - Deferred verification: exact command, reason, and first safe serialization
+      point, or `None`
     - Self-review findings (if any)
     - Any issues or concerns
 

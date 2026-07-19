@@ -1,303 +1,152 @@
 # Testing joshix Skills
 
-This document describes how to test joshix skills, particularly the integration tests for complex skills like `subagent-driven-development`.
+joshix tests workflow policy at three levels so fast deterministic checks carry
+most of the load and model-backed tests are reserved for behavior that requires
+an agent.
 
-## Overview
+## Test layers
 
-Testing skills that involve subagents, workflows, and complex interactions requires running actual Claude Code sessions in headless mode and verifying their behavior through session transcripts.
+### 1. Model-free contracts
 
-## Test Structure
-
-```
-tests/
-├── claude-code/
-│   ├── test-helpers.sh                    # Shared test utilities
-│   ├── test-subagent-driven-development-integration.sh
-│   ├── analyze-token-usage.py             # Token analysis tool
-│   └── run-skill-tests.sh                 # Test runner (if exists)
-```
-
-## Running Tests
-
-### Integration Tests
-
-Integration tests execute real Claude Code sessions with actual skills:
+`tests/static/` checks required skill contracts and platform mappings without
+invoking a model. Run this layer first:
 
 ```bash
-# Run the subagent-driven-development integration test
-cd tests/claude-code
-./test-subagent-driven-development-integration.sh
+tests/static/run-tests.sh
 ```
 
-**Note:** Integration tests can take 10-30 minutes as they execute real implementation plans with multiple subagents.
+These checks are deterministic and inexpensive. They catch wording drift and
+missing integration surfaces, but they do not prove that a model follows the
+guidance.
 
-### Requirements
-
-- Must run from the **joshix plugin directory** (not from temp directories)
-- Claude Code must be installed and available as `claude` command
-- Local dev marketplace must be enabled: `"joshix@joshix-dev": true` in `~/.claude/settings.json`
-
-## Integration Test: subagent-driven-development
-
-### What It Tests
-
-The integration test verifies the `subagent-driven-development` skill correctly:
-
-1. **Plan Loading**: Reads the plan once at the beginning
-2. **Full Task Text**: Provides complete task descriptions to subagents (doesn't make them read files)
-3. **Self-Review**: Ensures subagents perform self-review before reporting
-4. **Review Order**: Runs spec compliance review before code quality review
-5. **Review Loops**: Uses review loops when issues are found
-6. **Independent Verification**: Spec reviewer reads code independently, doesn't trust implementer reports
-
-### How It Works
-
-1. **Setup**: Creates a temporary Node.js project with a minimal implementation plan
-2. **Execution**: Runs Claude Code in headless mode with the skill
-3. **Verification**: Parses the session transcript (`.jsonl` file) to verify:
-   - Skill tool was invoked
-   - Subagents were dispatched (Task tool)
-   - TodoWrite was used for tracking
-   - Implementation files were created
-   - Tests pass
-   - Git history remains unchanged unless the prompt explicitly asks for commits
-4. **Token Analysis**: Shows token usage breakdown by subagent
-
-### Test Output
-
-```
-========================================
- Integration Test: subagent-driven-development
-========================================
-
-Test project: /tmp/tmp.xyz123
-
-=== Verification Tests ===
-
-Test 1: Skill tool invoked...
-  [PASS] subagent-driven-development skill was invoked
-
-Test 2: Subagents dispatched...
-  [PASS] 7 subagents dispatched
-
-Test 3: Task tracking...
-  [PASS] TodoWrite used 5 time(s)
-
-Test 6: Implementation verification...
-  [PASS] src/math.js created
-  [PASS] add function exists
-  [PASS] multiply function exists
-  [PASS] test/math.test.js created
-  [PASS] Tests pass
-
-Test 5: Git history unchanged...
-  [PASS] No extra commits created
-
-Test 8: No extra features added...
-  [PASS] No extra features added
-
-=========================================
- Token Usage Analysis
-=========================================
-
-Usage Breakdown:
-----------------------------------------------------------------------------------------------------
-Agent           Description                          Msgs      Input     Output      Cache     Cost
-----------------------------------------------------------------------------------------------------
-main            Main session (coordinator)             34         27      3,996  1,213,703 $   4.09
-3380c209        implementing Task 1: Create Add Function     1          2        787     24,989 $   0.09
-34b00fde        implementing Task 2: Create Multiply Function     1          4        644     25,114 $   0.09
-3801a732        reviewing whether an implementation matches...   1          5        703     25,742 $   0.09
-4c142934        doing a final code review...                    1          6        854     25,319 $   0.09
-5f017a42        a code reviewer. Review Task 2...               1          6        504     22,949 $   0.08
-a6b7fbe4        a code reviewer. Review Task 1...               1          6        515     22,534 $   0.08
-f15837c0        reviewing whether an implementation matches...   1          6        416     22,485 $   0.07
-----------------------------------------------------------------------------------------------------
-
-TOTALS:
-  Total messages:         41
-  Input tokens:           62
-  Output tokens:          8,419
-  Cache creation tokens:  132,742
-  Cache read tokens:      1,382,835
-
-  Total input (incl cache): 1,515,639
-  Total tokens:             1,524,058
-
-  Estimated cost: $4.67
-  (at $3/$15 per M tokens for input/output)
-
-========================================
- Test Summary
-========================================
-
-STATUS: PASSED
-```
-
-## Token Analysis Tool
-
-### Usage
-
-Analyze token usage from any Claude Code session:
+The static runner also aggregates the model-free transcript and decision
+oracles used before paying for live model execution. Run an individual oracle
+directly when narrowing a failure:
 
 ```bash
-python3 tests/claude-code/analyze-token-usage.py ~/.claude/projects/<project-dir>/<session-id>.jsonl
+python3 tests/claude-code/assert-parallel-transcript.py --self-test
+bash tests/claude-code/test-executing-plans-coupled-integration.sh --oracle-only
+bash tests/claude-code/test-subagent-driven-development-integration.sh --oracle-only
+DISPATCHER_GUIDANCE_ORACLE_ONLY=1 bash tests/codex/test-dispatching-parallel-agents-guidance.sh
+bash tests/claude-code/test-subagent-driven-development.sh --oracle-only
 ```
 
-### Finding Session Files
+### 2. Probabilistic behavior checks
 
-Session transcripts are stored in `~/.claude/projects/` with the working directory path encoded:
+The focused suites invoke models to observe routing and workflow choices:
+
+- `tests/codex/` checks Codex behavior;
+- `tests/claude-code/` checks Claude Code behavior; and
+- `tests/skill-triggering/` checks skill activation prompts.
+
+Because outputs can vary, these tests assert important behaviors rather than
+exact prose. They are intentional and cost-bearing: run the smallest relevant
+test first, then expand only when the local changes justify the time and model
+usage.
+
+### 3. Representative orchestration checks
+
+Two Claude Code integration tests cover the execution topologies that matter:
+
+- `test-subagent-driven-development-integration.sh` executes a plan with two
+  independent, disjoint implementation lanes and one dependent integration
+  task.
+- `test-executing-plans-coupled-integration.sh` executes two tasks that share
+  the same source and test files, so implementation must remain inline.
+
+Run them intentionally:
 
 ```bash
-# Example for /Users/yourname/Documents/GitHub/joshix/joshix
-SESSION_DIR="$HOME/.claude/projects/-Users-yourname-Documents-GitHub-joshix-joshix"
+tests/claude-code/run-skill-tests.sh \
+  --integration \
+  --test test-subagent-driven-development-integration.sh \
+  --timeout 1800
 
-# Find recent sessions
-ls -lt "$SESSION_DIR"/*.jsonl | head -5
+tests/claude-code/run-skill-tests.sh \
+  --integration \
+  --test test-executing-plans-coupled-integration.sh \
+  --timeout 1800
 ```
 
-### What It Shows
+Each can take 10–30 minutes and consumes model tokens.
 
-- **Main session usage**: Token usage by the coordinator (you or main Claude instance)
-- **Per-subagent breakdown**: Each Task invocation with:
-  - Agent ID
-  - Description (extracted from prompt)
-  - Message count
-  - Input/output tokens
-  - Cache usage
-  - Estimated cost
-- **Totals**: Overall token usage and cost estimate
+## Concurrency evidence
 
-### Understanding the Output
+The independent-lane test parses the Claude session JSONL with
+`tests/claude-code/assert-parallel-transcript.py`. It proves overlap only when
+both implementer tool-use events occur before the first matching successful
+tool-result event. It also verifies, per lane, explicit successful PASS and
+APPROVED review outcomes, holds the dependent integration task until both
+starting lanes pass, and requires an approved final whole-change review after
+the integration lane passes its own review gates.
 
-- **High cache reads**: Good - means prompt caching is working
-- **High input tokens on main**: Expected - coordinator has full context
-- **Similar costs per subagent**: Expected - each gets similar task complexity
-- **Cost per task**: Typical range is $0.05-$0.15 per subagent depending on task
+This tool-event ordering is the concurrency evidence. Merely counting Task or
+Agent calls does not prove that work overlapped.
 
-## Troubleshooting
+In coupled mode, the same analyzer rejects every Agent or Task dispatch. The
+test also checks that the response explains the inline decision and does not
+claim parallel topology.
 
-### Skills Not Loading
-
-**Problem**: Skill not found when running headless tests
-
-**Solutions**:
-1. Ensure you're running FROM the joshix directory: `cd /path/to/joshix && tests/...`
-2. Check `~/.claude/settings.json` has `"joshix@joshix-dev": true` in `enabledPlugins`
-3. Verify skill exists in `skills/` directory
-
-### Permission Errors
-
-**Problem**: Claude blocked from writing files or accessing directories
-
-**Solutions**:
-1. Use `--permission-mode bypassPermissions` flag
-2. Use `--add-dir /path/to/temp/dir` to grant access to test directories
-3. Check file permissions on test directories
-
-### Test Timeouts
-
-**Problem**: Test takes too long and times out
-
-**Solutions**:
-1. Increase timeout: `timeout 1800 claude ...` (30 minutes)
-2. Check for infinite loops in skill logic
-3. Review subagent task complexity
-
-### Session File Not Found
-
-**Problem**: Can't find session transcript after test run
-
-**Solutions**:
-1. Check the correct project directory in `~/.claude/projects/`
-2. Use `find ~/.claude/projects -name "*.jsonl" -mmin -60` to find recent sessions
-3. Verify test actually ran (check for errors in test output)
-
-## Writing New Integration Tests
-
-### Template
+Run its durable model-free transcript fixtures with:
 
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$SCRIPT_DIR/test-helpers.sh"
-
-# Create test project
-TEST_PROJECT=$(create_test_project)
-trap "cleanup_test_project $TEST_PROJECT" EXIT
-
-# Set up test files...
-cd "$TEST_PROJECT"
-
-# Run Claude with skill
-PROMPT="Your test prompt here"
-cd "$SCRIPT_DIR/../.." && timeout 1800 claude -p "$PROMPT" \
-  --allowed-tools=all \
-  --add-dir "$TEST_PROJECT" \
-  --permission-mode bypassPermissions \
-  2>&1 | tee output.txt
-
-# Find and analyze session
-WORKING_DIR_ESCAPED=$(echo "$SCRIPT_DIR/../.." | sed 's/\\//-/g' | sed 's/^-//')
-SESSION_DIR="$HOME/.claude/projects/$WORKING_DIR_ESCAPED"
-SESSION_FILE=$(find "$SESSION_DIR" -name "*.jsonl" -type f -mmin -60 | sort -r | head -1)
-
-# Verify behavior by parsing session transcript
-if grep -q '"name":"Skill".*"skill":"your-skill-name"' "$SESSION_FILE"; then
-    echo "[PASS] Skill was invoked"
-fi
-
-# Show token analysis
-python3 "$SCRIPT_DIR/analyze-token-usage.py" "$SESSION_FILE"
+python3 tests/claude-code/assert-parallel-transcript.py --self-test
 ```
 
-### Best Practices
+The analyzer treats a missing top-level `toolUseResult.status` as a synchronous
+completion, `completed` as completed, and every other status (including
+`async_launched`) as incomplete until a later completion arrives for the same
+tool-use ID. On harnesses with async agents (Claude Code >= 2.1), that
+completion is a `<task-notification>` block carrying the tool-use ID, a
+`completed` status, and the agent's final result text. The analyzer accepts it
+from a delivered user message or from the `queue-operation` enqueue event, so
+completion is still proven when the coordinator consumes the result through the
+task output file and the queued notification is removed before delivery.
 
-1. **Always cleanup**: Use trap to cleanup temp directories
-2. **Parse transcripts**: Don't grep user-facing output - parse the `.jsonl` session file
-3. **Grant permissions**: Use `--permission-mode bypassPermissions` and `--add-dir`
-4. **Run from plugin dir**: Skills only load when running from the joshix directory
-5. **Show token usage**: Always include token analysis for cost visibility
-6. **Test real behavior**: Verify actual files created, tests passing, and git history unchanged unless commits were explicitly requested
+Task-tracking tool use is reported when observed but is not a pass condition.
+Claude Code may expose `TaskCreate` and `TaskUpdate` only as deferred tools in
+headless sessions; the transcript's dispatch, completion, and review events are
+the reliable orchestration evidence.
 
-## Session Transcript Format
+## What the orchestration fixtures verify
 
-Session transcripts are JSONL (JSON Lines) files where each line is a JSON object representing a message or tool result.
+The independent fixture checks:
 
-### Key Fields
+- disjoint files for its two starting lanes;
+- observed implementation overlap;
+- successful PASS-before-APPROVED review order within each lane;
+- dependency-aware integration;
+- an approved final whole-change review after the integration lane closes;
+- a passing final Node test suite;
+- an exact affirmative overlap decision and Mermaid topology; and
+- unchanged git history.
 
-```json
-{
-  "type": "assistant",
-  "message": {
-    "content": [...],
-    "usage": {
-      "input_tokens": 27,
-      "output_tokens": 3996,
-      "cache_read_input_tokens": 1213703
-    }
-  }
-}
-```
+The coupled fixture checks:
 
-### Tool Results
+- shared file ownership produces an exact inline execution decision;
+- both requested operations and tests are completed;
+- no Agent/Task call or parallel-topology report appears; and
+- unchanged git history.
 
-```json
-{
-  "type": "user",
-  "toolUseResult": {
-    "agentId": "3380c209",
-    "usage": {
-      "input_tokens": 2,
-      "output_tokens": 787,
-      "cache_read_input_tokens": 24989
-    },
-    "prompt": "You are implementing Task 1...",
-    "content": [{"type": "text", "text": "..."}]
-  }
-}
-```
+## Choosing the right layer
 
-The `agentId` field links to subagent sessions, and the `usage` field contains token usage for that specific subagent invocation.
+- Use a static contract for exact text, file presence, or platform mapping.
+- Use a focused model-backed test for a single routing or behavioral decision.
+- Use an orchestration test only when event ordering or full workflow
+  integration is the subject under test.
+
+The larger examples in `tests/subagent-driven-dev/go-fractals` and
+`tests/subagent-driven-dev/svelte-todo` remain manual benchmarks for richer
+workloads. They are not contract tests and should not be added to the routine
+automated suites.
+
+## Troubleshooting Claude tests
+
+Claude orchestration sessions are stored under `~/.claude/projects/`, with the
+working directory encoded in the directory name. The integration tests create
+unique temporary projects and run Claude from those projects, which keeps
+session lookup isolated from concurrent runs.
+
+Use `--verbose` to stream output, and raise the per-test timeout with
+`--timeout 1800` for orchestration cases. `analyze-token-usage.py` can inspect a
+session JSONL when token and cost details are needed.

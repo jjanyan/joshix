@@ -22,6 +22,7 @@ Task tool (general-purpose):
     | Completeness | TODOs, placeholders, incomplete tasks, missing steps |
     | Spec Alignment | Plan covers spec requirements, no major scope creep |
     | Task Decomposition | Tasks have clear boundaries, steps are actionable |
+    | Dependencies and scope safety | Every task has `Depends on`; semantic prerequisites are explicit; order alone is not treated as dependency information; overlapping scopes or unsafe mutable resources are identified as serialization constraints, not inferred dependency edges |
     | Buildability | Could an engineer follow this plan without getting stuck? |
 
     ## Calibration

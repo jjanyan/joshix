@@ -34,9 +34,20 @@ When a skill says to dispatch a named agent type, use `@generalist` with the ful
 
 Skills provide prompt templates with placeholders like `{WHAT_WAS_IMPLEMENTED}` or `[FULL TEXT of task]`. Fill all placeholders and pass the complete prompt as the message to `@generalist`. The prompt template itself contains the agent's role, review criteria, and expected output format — `@generalist` will follow it.
 
-### Parallel dispatch
+### Parallel execution capabilities
 
-Gemini CLI supports parallel subagent dispatch. When a skill asks you to dispatch multiple independent subagent tasks in parallel, request all of those `@generalist` or named subagent tasks together in the same prompt. Keep dependent tasks sequential, but do not serialize independent subagent tasks just to preserve a simpler history.
+- Dispatch/capacity: request independent `@generalist` or named-agent tasks
+  together. If Gemini does not report a capacity limit, let the canonical
+  policy begin with at most two workers.
+- Observation: treat a multi-agent prompt conservatively as a join-all wave
+  unless the host exposes individual completion events.
+- Continuation: when same-worker continuation is unavailable, dispatch a fully
+  briefed replacement with the lane scope, change context, findings, and
+  verification evidence.
+- Questions: workers return `NEEDS_CONTEXT`; the lead owns user questions
+  through `ask_user`.
+- Reasoning: inherit model and reasoning controls when exposed; otherwise use
+  the Gemini default without claiming a specific effort.
 
 ## Additional Gemini CLI tools
 
