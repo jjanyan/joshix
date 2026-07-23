@@ -180,9 +180,9 @@ whole-change review, and fresh completion verification.
   ownership
 - Review the aggregate in-flight working-tree diff instead of one lane
 - Ignore questions, concerns, scope drift, or deferred verification
-- Treat `.agents/specs/` or `.agents/plans/` as permanent documentation after
+- Treat `.joshix/specs/` or `.joshix/plans/` as permanent documentation after
   implementation
-- Clean up unrelated `.agents/` artifacts as incidental churn
+- Clean up unrelated `.joshix/` artifacts as incidental churn
 
 ## Integration
 

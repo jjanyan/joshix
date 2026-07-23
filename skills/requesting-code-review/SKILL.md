@@ -69,7 +69,7 @@ You: Let me request code review before proceeding.
 
 [Dispatch code reviewer subagent]
   DESCRIPTION: Added verifyIndex() and repairIndex() with 4 issue types
-  PLAN_OR_REQUIREMENTS: Task 2 from .agents/plans/deployment-plan.md
+  PLAN_OR_REQUIREMENTS: Task 2 from .joshix/plans/deployment-plan.md
   CHANGED_FILES: src/index.ts, tests/index.test.ts
   DIFF_CONTEXT: Current working tree diff for the changed files
   VERIFICATION: npm test tests/index.test.ts - passing

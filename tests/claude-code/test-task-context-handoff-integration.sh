@@ -16,7 +16,8 @@ TEST_PROJECT="$(cd "$TEST_PROJECT" && pwd -P)"
 trap 'cleanup_test_project "$TEST_PROJECT"' EXIT
 init_git_project "$TEST_PROJECT"
 install_repo_skills_symlink "$TEST_PROJECT"
-mkdir -p "$TEST_PROJECT/.agents/tasks"
+[ ! -e "$TEST_PROJECT/.joshix" ] \
+  || fail 'test project unexpectedly contains .joshix before Codex runs'
 
 CODEX_ONE="$TEST_PROJECT/codex-one"
 CODEX_TWO="$TEST_PROJECT/codex-two"
@@ -35,11 +36,10 @@ run_codex \
   "$CODEX_ONE" \
   "workspace-write" \
   "$CODEX_TEST_TIMEOUT" \
-  "ignore-rules" \
-  "$TEST_PROJECT/.agents/tasks"
+  "ignore-rules"
 
 shopt -s nullglob
-TASK_DIRS=("$TEST_PROJECT"/.agents/tasks/20??-??-??-CJ-66*)
+TASK_DIRS=("$TEST_PROJECT"/.joshix/tasks/20??-??-??-CJ-66*)
 [ "${#TASK_DIRS[@]}" -eq 1 ] \
   || fail 'first Codex run did not create exactly one CJ-66 task'
 TASK_DIR="${TASK_DIRS[0]}"
@@ -98,8 +98,7 @@ run_codex \
   "$CODEX_TWO" \
   "workspace-write" \
   "$CODEX_TEST_TIMEOUT" \
-  "ignore-rules" \
-  "$TEST_PROJECT/.agents/tasks"
+  "ignore-rules"
 
 CODEX_VISIBLE="$(jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .item.text' "$CODEX_TWO/events.jsonl")"
 CODEX_NOTICE_COUNT="$( (printf '%s\n' "$CODEX_VISIBLE" | rg -o 'Using shared task:' || true) \
@@ -138,7 +137,7 @@ SUMMARY_ID="$(rg '^history_through:' "$TASK_DIR/current.md" | awk '{print $2}')"
   || fail "summary is at $SUMMARY_ID but history is at $MAX_ID"
 [ "$(wc -w < "$TASK_DIR/current.md" | tr -d '[:space:]')" -le 1000 ] \
   || fail 'current summary exceeds 1,000 words'
-[ -z "$(git -C "$TEST_PROJECT" status --porcelain -- .agents/tasks)" ] \
+[ -z "$(git -C "$TEST_PROJECT" status --porcelain -- .joshix/tasks)" ] \
   || fail 'task context leaked into Git status'
 
 echo 'STATUS: PASSED'

@@ -17,7 +17,7 @@ trap 'cleanup_test_project "$TEST_PROJECT"' EXIT
 init_git_project "$TEST_PROJECT"
 install_repo_skills_symlink "$TEST_PROJECT"
 
-mkdir -p "$TEST_PROJECT/src" "$TEST_PROJECT/.agents/plans"
+mkdir -p "$TEST_PROJECT/src" "$TEST_PROJECT/.joshix/plans"
 cat > "$TEST_PROJECT/src/notifications.js" <<'EOF'
 export function formatNotification(message) {
   return message.trim();
@@ -73,7 +73,7 @@ run_codex "$TEST_PROJECT" "$PROMPT" "$OUTPUT_DIR" "workspace-write"
 
 FINAL_FILE="$OUTPUT_DIR/final.md"
 FINAL_OUTPUT="$(cat "$FINAL_FILE")"
-STATUS_AFTER="$(git -C "$TEST_PROJECT" status --porcelain -- src tests docs .agents/plans)"
+STATUS_AFTER="$(git -C "$TEST_PROJECT" status --porcelain -- src tests docs .joshix/plans)"
 FINAL_ONE_LINE="$(printf '%s\n' "$FINAL_OUTPUT" | tr '\n' ' ')"
 
 echo ""

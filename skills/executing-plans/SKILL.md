@@ -55,10 +55,10 @@ After all tasks complete and verified:
 - Announce: "I'm using the verification-before-completion skill to verify this work before reporting completion."
 - **REQUIRED SUB-SKILL:** Use joshix:verification-before-completion
 - Follow that skill to run fresh verification and report evidence before claiming completion
-- If the work used `.agents/specs/` or `.agents/plans/`, make sure durable
+- If the work used `.joshix/specs/` or `.joshix/plans/`, make sure durable
   decisions are reflected in repo documentation where appropriate. Do not treat
   the agent plan/spec as permanent documentation. Follow any explicit closeout
-  task for removing or archiving completed `.agents/` artifacts.
+  task for removing or archiving completed `.joshix/` artifacts.
 
 ## When to Stop and Ask for Help
 
@@ -84,7 +84,7 @@ After all tasks complete and verified:
 - Follow plan steps as written, but stop on contradictions or stale steps
 - Don't skip verifications
 - Reference skills when plan says to
-- Keep `.agents/` artifacts temporary or semi-temporary; durable decisions
+- Keep `.joshix/` artifacts temporary or semi-temporary; durable decisions
   belong in repo documentation
 - Stop when blocked, don't guess
 - Work in the current checkout and branch unless the user explicitly requested a branch or worktree

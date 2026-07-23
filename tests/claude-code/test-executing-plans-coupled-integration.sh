@@ -127,7 +127,7 @@ OUTPUT_FILE="$TEST_PROJECT/claude-output.txt"
 trap 'cleanup_test_project "$TEST_PROJECT"' EXIT
 
 cd "$TEST_PROJECT"
-mkdir -p src test .agents/plans
+mkdir -p src test .joshix/plans
 
 cat > package.json <<'EOF'
 {
@@ -156,7 +156,7 @@ test('identity returns its input', () => {
 });
 EOF
 
-cat > .agents/plans/implementation-plan.md <<'EOF'
+cat > .joshix/plans/implementation-plan.md <<'EOF'
 # Coupled Counter Plan
 
 ### Task 1: Add increment
@@ -192,7 +192,7 @@ git config user.name "Test User"
 git add .
 git commit -m "Initial commit" --quiet
 
-PROMPT="Execute the already approved plan at .agents/plans/implementation-plan.md. Work in the current checkout and branch. Do not stage or commit. The plan is small; choose the repository's appropriate execution route.
+PROMPT="Execute the already approved plan at .joshix/plans/implementation-plan.md. Work in the current checkout and branch. Do not stage or commit. The plan is small; choose the repository's appropriate execution route.
 
 Your final response must contain exactly one line and no other prose. Use this
 neutral decision format, choosing one value from each bracket based on the

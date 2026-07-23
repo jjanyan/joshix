@@ -17,8 +17,8 @@ trap 'cleanup_test_project "$TEST_PROJECT"' EXIT
 init_git_project "$TEST_PROJECT"
 install_repo_skills_symlink "$TEST_PROJECT"
 
-mkdir -p "$TEST_PROJECT/.agents/specs" "$TEST_PROJECT/.agents/plans"
-cat > "$TEST_PROJECT/.agents/specs/import-widget-design.md" <<'EOF'
+mkdir -p "$TEST_PROJECT/.joshix/specs" "$TEST_PROJECT/.joshix/plans"
+cat > "$TEST_PROJECT/.joshix/specs/import-widget-design.md" <<'EOF'
 # Import Widget Design
 
 ## Goal
@@ -32,7 +32,7 @@ Add an import widget that validates CSV rows before saving them.
 - Show a count of accepted and rejected rows.
 EOF
 
-cat > "$TEST_PROJECT/.agents/plans/import-widget.md" <<'EOF'
+cat > "$TEST_PROJECT/.joshix/plans/import-widget.md" <<'EOF'
 # Import Widget Implementation Plan
 
 **Goal:** Add CSV row validation for the import widget.
@@ -86,7 +86,7 @@ Call `recordAuditTrail("import.validation", result)` after validation.
 Render `accepted.length` and `rejected.length` in the import summary.
 EOF
 
-git -C "$TEST_PROJECT" add .agents/specs/import-widget-design.md .agents/plans/import-widget.md
+git -C "$TEST_PROJECT" add .joshix/specs/import-widget-design.md .joshix/plans/import-widget.md
 git -C "$TEST_PROJECT" commit --quiet -m "Add import widget plan"
 
 read -r -d '' PROMPT <<'EOF' || true
@@ -130,7 +130,7 @@ assert_contains "$FINAL_OUTPUT" "valid|invalid|needs investigation|needs clarifi
 assert_contains "$FINAL_ONE_LINE" "Task 1.*(invalid|incorrect|not valid|wrong|false positive|already handled|does add.*test|Step 1)" "Rejects false test-first finding with plan evidence" || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_ONE_LINE" "recordAuditTrail.*(valid|needs investigation|undefined|never created|never defined|missing)" "Accepts or investigates missing recordAuditTrail issue" || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_ONE_LINE" "gerund|optional|taste|non-blocking|style" "Treats heading rename as optional/taste" || FAILED=$((FAILED + 1))
-assert_git_path_clean "$TEST_PROJECT" ".agents/plans" "Does not edit plan files" || FAILED=$((FAILED + 1))
+assert_git_path_clean "$TEST_PROJECT" ".joshix/plans" "Does not edit plan files" || FAILED=$((FAILED + 1))
 
 if [ "$FAILED" -eq 0 ]; then
     echo ""

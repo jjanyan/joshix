@@ -125,9 +125,9 @@ function resolveTask(folder, cwd = process.cwd()) {
   if (!isAbsolute(folder)) {
     if (!root) fail('Outside Git, provide an explicit absolute task path.');
     const task = resolve(root, folder);
-    const taskRoot = join(root, '.agents/tasks');
+    const taskRoot = join(root, '.joshix/tasks');
     if (!isDirectChild(taskRoot, task)) {
-      fail('Relative task paths must name a folder under .agents/tasks/.');
+      fail('Relative task paths must name a folder under .joshix/tasks/.');
     }
     return { task, root };
   }
@@ -135,9 +135,9 @@ function resolveTask(folder, cwd = process.cwd()) {
   const task = canonicalizeNewPath(folder);
   const targetRoot = gitRoot(nearestExistingDirectory(dirname(task)));
   if (targetRoot) {
-    const taskRoot = join(targetRoot, '.agents/tasks');
+    const taskRoot = join(targetRoot, '.joshix/tasks');
     if (!isDirectChild(taskRoot, task)) {
-      fail('Git-backed task paths must name a folder under .agents/tasks/.');
+      fail('Git-backed task paths must name a folder under .joshix/tasks/.');
     }
     return { task, root: targetRoot };
   }
@@ -150,13 +150,13 @@ function resolveTask(folder, cwd = process.cwd()) {
 }
 
 function ensurePrivacy(root) {
-  const tracked = git(root, ['ls-files', '--', '.agents/tasks']);
+  const tracked = git(root, ['ls-files', '--', '.joshix/tasks']);
   if (tracked) {
     fail(`Refusing to initialize while task context contains tracked paths:\n${tracked}`);
   }
 
-  const taskRoot = join(root, '.agents/tasks');
-  refuseSymbolicLink(join(root, '.agents'));
+  const taskRoot = join(root, '.joshix/tasks');
+  refuseSymbolicLink(join(root, '.joshix'));
   refuseSymbolicLink(taskRoot);
   mkdirSync(taskRoot, { recursive: true });
   const ignorePath = join(taskRoot, '.gitignore');
@@ -169,8 +169,8 @@ function ensurePrivacy(root) {
   if (existing !== expected) writeFileSync(ignorePath, expected);
 
   for (const candidate of [
-    '.agents/tasks/.gitignore',
-    '.agents/tasks/.privacy-check/history.sqlite',
+    '.joshix/tasks/.gitignore',
+    '.joshix/tasks/.privacy-check/history.sqlite',
   ]) {
     if (git(root, ['check-ignore', '--no-index', candidate], true) === null) {
       fail(`Privacy verification failed for ${candidate}.`);

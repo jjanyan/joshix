@@ -17,10 +17,10 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Testing context:** Require TDD for core behavior changes, bug fixes, and testable logic. If expected behavior cannot be expressed clearly, include a clarification step before implementation. For docs, config, metadata, generated assets, exploratory spikes, and mechanical refactors where tests would be artificial, use repo-appropriate verification instead.
 
-**Save plans to:** `.agents/plans/YYYY-MM-DD-<feature-name>.md`
+**Save plans to:** `.joshix/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)
 
-Plans in `.agents/plans/` are execution artifacts, not permanent
+Plans in `.joshix/plans/` are execution artifacts, not permanent
 documentation. Include closeout work that updates durable repo documentation
 when implementation changes product behavior, architecture, operational
 workflow, or developer workflow. Do not treat the plan itself as the final
@@ -201,7 +201,7 @@ Plan review completed and accounted for. Issues found: [count]. [Accepted/reject
 
 After saving the plan, offer execution choice:
 
-**"Plan complete and saved to `.agents/plans/<filename>.md`. [Plan review disclosure]. Recommended execution: <subagent-driven or inline>, because <brief reason>.**
+**"Plan complete and saved to `.joshix/plans/<filename>.md`. [Plan review disclosure]. Recommended execution: <subagent-driven or inline>, because <brief reason>.**
 
 **Subagent-driven** is a good fit when tasks touch disjoint files or can be reviewed independently.
 

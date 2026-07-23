@@ -180,24 +180,24 @@ or file edits begin.
 
 ## Agent Workspace Artifacts
 
-The `.agents/` directory is for agent coordination artifacts, not canonical
+The `.joshix/` directory is for agent coordination artifacts, not canonical
 project documentation.
 
-- `.agents/context/` is temporary local scratch context. It is ignored by git.
-  Before creating a context file, scan existing files in `.agents/context/`.
+- `.joshix/context/` is temporary local scratch context. It is ignored by git.
+  Before creating a context file, scan existing files in `.joshix/context/`.
   Start each context file with an ISO timestamp. Treat context files as
   scratchpads, not authoritative docs.
-- `.agents/specs/` holds reviewed design specs while work is being planned or
+- `.joshix/specs/` holds reviewed design specs while work is being planned or
   executed.
-- `.agents/plans/` holds executable implementation plans while work is being
+- `.joshix/plans/` holds executable implementation plans while work is being
   executed.
 
 Specs and plans are working artifacts. After implementation, durable decisions
 belong in repo documentation, product docs, code comments, or other permanent
-project files. Do not let `.agents/specs/` or `.agents/plans/` become stale
+project files. Do not let `.joshix/specs/` or `.joshix/plans/` become stale
 long-term documentation.
 
-Clean up `.agents/context/` files older than 7 days only during explicit cleanup
+Clean up `.joshix/context/` files older than 7 days only during explicit cleanup
 work, not as incidental churn in unrelated changes.
 
 ## Git Workflow

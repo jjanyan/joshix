@@ -53,7 +53,7 @@ Skip any step = unsupported claim
 | Agent completed | VCS diff shows changes | Agent reports "success" |
 | Requirements met | Line-by-line checklist | Tests passing |
 | UI renders correctly | Screenshot/rendered output inspected | Dev server started |
-| Durable docs updated | Relevant repo docs/product docs changed or not needed | Plan/spec exists in `.agents/` |
+| Durable docs updated | Relevant repo docs/product docs changed or not needed | Plan/spec exists in `.joshix/` |
 | Agent artifacts cleaned up | Explicit closeout/cleanup task completed | Incidental deletion during unrelated work |
 
 ## Red Flags - STOP
@@ -116,10 +116,10 @@ Skip any step = unsupported claim
 
 **Agent artifacts:**
 ```
-✅ `.agents/` spec/plan used → Durable docs updated or explicitly not needed
-❌ Treat `.agents/plans/...` as permanent project documentation
-✅ Explicit cleanup task → Completed `.agents/` artifact removed or archived
-❌ Delete unrelated `.agents/context/` files while doing feature work
+✅ `.joshix/` spec/plan used → Durable docs updated or explicitly not needed
+❌ Treat `.joshix/plans/...` as permanent project documentation
+✅ Explicit cleanup task → Completed `.joshix/` artifact removed or archived
+❌ Delete unrelated `.joshix/context/` files while doing feature work
 ```
 
 **Agent delegation:**
@@ -135,7 +135,7 @@ Unsupported completion claims create real engineering cost:
 - Undefined functions or incomplete integrations shipped
 - Missing requirements hidden behind passing tests
 - Time wasted on rework after premature closeout
-- Durable docs left stale while `.agents/` planning artifacts drift
+- Durable docs left stale while `.joshix/` planning artifacts drift
 
 ## When To Apply
 
@@ -146,7 +146,7 @@ Apply before:
 - Requested git/release actions
 - Moving to next task
 - Delegating to agents
-- Treating `.agents/` planning artifacts as durable documentation
+- Treating `.joshix/` planning artifacts as durable documentation
 
 **Rule applies to:**
 - Exact phrases

@@ -24,9 +24,9 @@ The helper requires Node 22.13.0 or newer. Use the host-provided absolute path t
 
 Run initialization by itself and confirm that it succeeds before appending:
 
-`node --disable-warning=ExperimentalWarning <absolute-skill-directory>/scripts/task-context.mjs init .agents/tasks/<folder>`
+`node --disable-warning=ExperimentalWarning <absolute-skill-directory>/scripts/task-context.mjs init .joshix/tasks/<folder>`
 
-Always pass the repository-relative `.agents/tasks/<folder>` path, not a bare
+Always pass the repository-relative `.joshix/tasks/<folder>` path, not a bare
 folder name. Do not batch `init` with later commands, because a failed first
 command must not be hidden by a successful command at the end of the batch.
 Use `--help` for the complete command syntax. Do not inspect the helper source
@@ -36,17 +36,11 @@ Never derive the helper from cwd, a plugin environment variable,
 `CLAUDE_PLUGIN_ROOT`, `CODEX_HOME`, or an assumed cache layout. The helper
 itself resolves relative task paths with `git rev-parse --show-toplevel`.
 
-Codex sandboxes may protect `.agents/` even when the rest of the repository is
-writable. If an in-scope task-context operation fails with a sandbox denial,
-retry only that narrow helper or file operation with elevated filesystem
-permission. Do not broaden the command or request unrelated access. Claude
-uses its normal repository write mechanism.
-
 ## Establish the task
 
 Use: exact path → exact folder name → unique ticket match → established conversation → create.
 
-- Resolve names under `<git-root>/.agents/tasks/` and match tickets against
+- Resolve names under `<git-root>/.joshix/tasks/` and match tickets against
   folder names only. Never scan message history to choose a task.
 - Ask when a ticket or name has multiple matches. Never switch an established
   task silently.
@@ -56,12 +50,12 @@ Use: exact path → exact folder name → unique ticket match → established co
 
 On creation, append and show exactly once:
 
-`Shared task created: .agents/tasks/<folder>/`
+`Shared task created: .joshix/tasks/<folder>/`
 
 When a user-supplied path, name, or ticket attaches a new chat, append and show
 exactly once:
 
-`Using shared task: .agents/tasks/<folder>/`
+`Using shared task: .joshix/tasks/<folder>/`
 
 Emit the applicable notice as the exact standalone plain-text line shown above,
 without bullets, bold, code formatting, or other decoration. Notice state is

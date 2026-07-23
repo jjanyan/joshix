@@ -12,7 +12,7 @@ OUTPUT_DIR="/tmp/joshix-tests/${TIMESTAMP}/explicit-skill-requests/extended-mult
 mkdir -p "$OUTPUT_DIR"
 
 PROJECT_DIR="$OUTPUT_DIR/project"
-mkdir -p "$PROJECT_DIR/.agents/plans"
+mkdir -p "$PROJECT_DIR/.joshix/plans"
 
 echo "=== Extended Multi-Turn Test ==="
 echo "Output dir: $OUTPUT_DIR"

@@ -39,7 +39,7 @@ Gemini loads `GEMINI.md`, which points at the local `using-joshix` bootstrap and
 ## Workflow
 
 1. **brainstorming** refines rough ideas before implementation.
-2. **writing-plans** turns approved requirements into executable plans under `.agents/plans/`.
+2. **writing-plans** turns approved requirements into executable plans under `.joshix/plans/`.
 3. **reviewing-plans** reviews pasted or referenced plans by default; execution requires an explicit instruction.
 4. **subagent-driven-development** or **executing-plans** executes approved plans.
 5. **test-driven-development** applies RED-GREEN-REFACTOR for core behavior changes and bug fixes.
@@ -62,22 +62,22 @@ uncertain, overlapping, and unsafe shared-state work stays inline or serial.
 `subagent-driven-development` invokes it for suitable plans.
 
 Every top-level Git-backed Codex or Claude task creates or connects to a private
-`.agents/tasks/<task>/` workspace before substantive work, including one-turn
+`.joshix/tasks/<task>/` workspace before substantive work, including one-turn
 questions. The workspace gives both agents the same compact current state,
 visible-message history, and accessible files. Subagents never touch this
 shared context; their top-level coordinator owns it.
 
 ## Agent Artifacts
 
-Use `.agents/` for working artifacts:
+Use `.joshix/` for working artifacts:
 
-- `.agents/context/` is ignored scratch context.
-- `.agents/tasks/` is ignored per-task Codex/Claude handoff state. Each task
+- `.joshix/context/` is ignored scratch context.
+- `.joshix/tasks/` is ignored per-task Codex/Claude handoff state. Each task
   contains a compact `current.md`, append-only `history.sqlite`, and shared
   `files/`; a nested `.gitignore` self-ignores the area before conversation data
   is written. It is local coordination state, not durable documentation.
-- `.agents/specs/` holds temporary reviewed specs while work is active.
-- `.agents/plans/` holds temporary implementation plans while work is active.
+- `.joshix/specs/` holds temporary reviewed specs while work is active.
+- `.joshix/plans/` holds temporary implementation plans while work is active.
 
 After work is complete, durable decisions belong in normal repo docs, code comments, or other permanent project files.
 

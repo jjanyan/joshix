@@ -1,1 +1,1 @@
-I have a plan document at .agents/plans/2024-01-15-auth-system.md that needs to be executed. Please implement it.
+I have a plan document at .joshix/plans/2024-01-15-auth-system.md that needs to be executed. Please implement it.

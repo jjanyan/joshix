@@ -38,8 +38,8 @@ echo ""
 echo "Verifying joshix guidance..."
 FAILED=0
 
-assert_contains "$FINAL_OUTPUT" "\\.agents/specs" "Uses .agents/specs for specs" || FAILED=$((FAILED + 1))
-assert_contains "$FINAL_OUTPUT" "\\.agents/plans" "Uses .agents/plans for plans" || FAILED=$((FAILED + 1))
+assert_contains "$FINAL_OUTPUT" "\\.joshix/specs" "Uses .joshix/specs for specs" || FAILED=$((FAILED + 1))
+assert_contains "$FINAL_OUTPUT" "\\.joshix/plans" "Uses .joshix/plans for plans" || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_OUTPUT" "joshix:subagent-driven-development" "Uses joshix SDD skill name" || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_OUTPUT" "joshix:executing-plans" "Uses joshix executing-plans skill name" || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_OUTPUT" "current.*checkout|current.*branch|work in.*current" "Defaults to current checkout/branch" || FAILED=$((FAILED + 1))

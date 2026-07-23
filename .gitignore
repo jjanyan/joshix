@@ -1,6 +1,7 @@
 .worktrees/
 .private-journal/
 .claude/
+.joshix/
 .agents/context/
 .agents/tasks/
 .DS_Store

@@ -111,6 +111,7 @@ test('help lists the complete command surface without requiring a task folder', 
   }
   assert.match(result.stdout, /literal substring, ASCII case-insensitive/);
   assert.equal(existsSync(join(cwd, '.agents')), false);
+  assert.equal(existsSync(join(cwd, '.joshix')), false);
 });
 
 test('init resolves relative paths from the Git root and protects them before use', () => {
@@ -118,20 +119,20 @@ test('init resolves relative paths from the Git root and protects them before us
   const nested = join(root, 'src/deep');
   mkdirSync(nested, { recursive: true });
 
-  const result = run(nested, 'init', '.agents/tasks/2026-07-22-CJ-66');
+  const result = run(nested, 'init', '.joshix/tasks/2026-07-22-CJ-66');
   assertSuccess(result);
 
-  const task = join(root, '.agents/tasks/2026-07-22-CJ-66');
-  assert.equal(readFileSync(join(root, '.agents/tasks/.gitignore'), 'utf8'), '*\n');
+  const task = join(root, '.joshix/tasks/2026-07-22-CJ-66');
+  assert.equal(readFileSync(join(root, '.joshix/tasks/.gitignore'), 'utf8'), '*\n');
   assert.equal(
-    git(root, 'check-ignore', '--no-index', '.agents/tasks/.gitignore'),
-    '.agents/tasks/.gitignore',
+    git(root, 'check-ignore', '--no-index', '.joshix/tasks/.gitignore'),
+    '.joshix/tasks/.gitignore',
   );
   assert.equal(
-    git(root, 'check-ignore', '--no-index', '.agents/tasks/2026-07-22-CJ-66/history.sqlite'),
-    '.agents/tasks/2026-07-22-CJ-66/history.sqlite',
+    git(root, 'check-ignore', '--no-index', '.joshix/tasks/2026-07-22-CJ-66/history.sqlite'),
+    '.joshix/tasks/2026-07-22-CJ-66/history.sqlite',
   );
-  assert.equal(git(root, 'status', '--porcelain', '--', '.agents/tasks'), '');
+  assert.equal(git(root, 'status', '--porcelain', '--', '.joshix/tasks'), '');
   assert.equal(
     readFileSync(join(task, 'current.md'), 'utf8').includes('history_through: 0'),
     true,
@@ -150,22 +151,22 @@ test('init resolves relative paths from the Git root and protects them before us
 
 test('init preserves an existing ignore file and appends a final wildcard', () => {
   const root = initRepo();
-  mkdirSync(join(root, '.agents/tasks'), { recursive: true });
-  writeFileSync(join(root, '.agents/tasks/.gitignore'), '# local note\nkeep-me\n');
+  mkdirSync(join(root, '.joshix/tasks'), { recursive: true });
+  writeFileSync(join(root, '.joshix/tasks/.gitignore'), '# local note\nkeep-me\n');
 
-  assertSuccess(run(root, 'init', '.agents/tasks/2026-07-22-local'));
+  assertSuccess(run(root, 'init', '.joshix/tasks/2026-07-22-local'));
 
   assert.equal(
-    readFileSync(join(root, '.agents/tasks/.gitignore'), 'utf8'),
+    readFileSync(join(root, '.joshix/tasks/.gitignore'), 'utf8'),
     '# local note\nkeep-me\n*\n',
   );
 });
 
 test('append does not rewrite an already-correct privacy ignore file', () => {
   const root = initRepo();
-  const folder = '.agents/tasks/2026-07-22-no-ignore-rewrite';
+  const folder = '.joshix/tasks/2026-07-22-no-ignore-rewrite';
   assertSuccess(run(root, 'init', folder));
-  const ignorePath = join(root, '.agents/tasks/.gitignore');
+  const ignorePath = join(root, '.joshix/tasks/.gitignore');
   chmodSync(ignorePath, 0o444);
 
   const id = appendMessage(root, folder, 'User', 'preserve the ignore file');
@@ -176,18 +177,18 @@ test('append does not rewrite an already-correct privacy ignore file', () => {
 
 test('init refuses tracked task artifacts without changing the index', () => {
   const root = initRepo();
-  mkdirSync(join(root, '.agents/tasks/existing'), { recursive: true });
-  writeFileSync(join(root, '.agents/tasks/existing/leak.txt'), 'tracked');
-  git(root, 'add', '-f', '.agents/tasks/existing/leak.txt');
+  mkdirSync(join(root, '.joshix/tasks/existing'), { recursive: true });
+  writeFileSync(join(root, '.joshix/tasks/existing/leak.txt'), 'tracked');
+  git(root, 'add', '-f', '.joshix/tasks/existing/leak.txt');
   const before = git(root, 'diff', '--cached', '--name-only');
 
-  const result = run(root, 'init', '.agents/tasks/2026-07-22-blocked');
+  const result = run(root, 'init', '.joshix/tasks/2026-07-22-blocked');
 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /tracked path/i);
   assert.equal(git(root, 'diff', '--cached', '--name-only'), before);
   assert.equal(
-    existsSync(join(root, '.agents/tasks/2026-07-22-blocked/history.sqlite')),
+    existsSync(join(root, '.joshix/tasks/2026-07-22-blocked/history.sqlite')),
     false,
   );
 });
@@ -203,7 +204,7 @@ test('init writes no conversation data when git ignore verification fails', () =
   );
   chmodSync(fakeGit, 0o755);
 
-  const folder = '.agents/tasks/2026-07-22-ignore-failure';
+  const folder = '.joshix/tasks/2026-07-22-ignore-failure';
   const result = runWithPath(root, fakeBin, 'init', folder);
 
   assert.notEqual(result.status, 0);
@@ -214,7 +215,7 @@ test('init writes no conversation data when git ignore verification fails', () =
 
 test('relative init outside Git fails but an absolute path is an explicit opt-in', () => {
   const cwd = tempDir();
-  const relative = run(cwd, 'init', '.agents/tasks/2026-07-22-no-git');
+  const relative = run(cwd, 'init', '.joshix/tasks/2026-07-22-no-git');
   assert.notEqual(relative.status, 0);
   assert.match(relative.stderr, /absolute task path/i);
 
@@ -225,6 +226,16 @@ test('relative init outside Git fails but an absolute path is an explicit opt-in
     readFileSync(join(task, 'current.md'), 'utf8').includes('# shared task'),
     true,
   );
+});
+
+test('Git-backed task paths reject the legacy .agents task root', () => {
+  const root = initRepo();
+  const legacyTask = join('.agents', 'tasks', '2026-07-23-legacy');
+  const result = run(root, 'init', legacyTask);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /under \.joshix\/tasks\//);
+  assert.equal(existsSync(join(root, legacyTask)), false);
 });
 
 test('Git-backed absolute paths cannot escape to a non-Git directory', () => {
@@ -244,22 +255,22 @@ test('Git-backed absolute paths cannot escape to a non-Git directory', () => {
 test('an absolute task path may target another Git repository task root', () => {
   const sourceRoot = initRepo();
   const targetRoot = initRepo();
-  const targetTask = join(targetRoot, '.agents/tasks/2026-07-22-other-repo');
+  const targetTask = join(targetRoot, '.joshix/tasks/2026-07-22-other-repo');
 
   const result = run(sourceRoot, 'init', targetTask);
 
   assertSuccess(result);
   assert.equal(existsSync(join(targetTask, 'history.sqlite')), true);
-  assert.equal(existsSync(join(sourceRoot, '.agents/tasks')), false);
+  assert.equal(existsSync(join(sourceRoot, '.joshix/tasks')), false);
 });
 
 test('init refuses symlinked task paths before writing through them', () => {
   const root = initRepo();
   const outside = tempDir();
-  mkdirSync(join(root, '.agents'), { recursive: true });
-  symlinkSync(outside, join(root, '.agents/tasks'), 'dir');
+  mkdirSync(join(root, '.joshix'), { recursive: true });
+  symlinkSync(outside, join(root, '.joshix/tasks'), 'dir');
 
-  const result = run(root, 'init', '.agents/tasks/2026-07-22-symlink');
+  const result = run(root, 'init', '.joshix/tasks/2026-07-22-symlink');
 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /symbolic link/i);
@@ -269,7 +280,7 @@ test('init refuses symlinked task paths before writing through them', () => {
 
 test('repeated init preserves the exact folder, messages, files, and summary', () => {
   const root = initRepo();
-  const folder = '.agents/tasks/2026-07-22-CJ-66';
+  const folder = '.joshix/tasks/2026-07-22-CJ-66';
   assertSuccess(run(root, 'init', folder));
   const task = join(root, folder);
   writeFileSync(join(task, 'files/evidence.txt'), 'evidence');
@@ -292,9 +303,9 @@ test('repeated init preserves the exact folder, messages, files, and summary', (
 
 test('repeated init preserves an invalid existing database for diagnosis', () => {
   const root = initRepo();
-  const task = join(root, '.agents/tasks/2026-07-22-invalid');
-  mkdirSync(join(root, '.agents/tasks'), { recursive: true });
-  writeFileSync(join(root, '.agents/tasks/.gitignore'), '*\n');
+  const task = join(root, '.joshix/tasks/2026-07-22-invalid');
+  mkdirSync(join(root, '.joshix/tasks'), { recursive: true });
+  writeFileSync(join(root, '.joshix/tasks/.gitignore'), '*\n');
   mkdirSync(task, { recursive: true });
   const invalid = Buffer.from('not a sqlite database');
   writeFileSync(join(task, 'history.sqlite'), invalid);
@@ -310,9 +321,9 @@ test('repeated init preserves an invalid existing database for diagnosis', () =>
 
 test('repeated init rejects a same-named index on the wrong column', () => {
   const root = initRepo();
-  const task = join(root, '.agents/tasks/2026-07-22-wrong-index');
+  const task = join(root, '.joshix/tasks/2026-07-22-wrong-index');
   mkdirSync(task, { recursive: true });
-  writeFileSync(join(root, '.agents/tasks/.gitignore'), '*\n');
+  writeFileSync(join(root, '.joshix/tasks/.gitignore'), '*\n');
   const databasePath = join(task, 'history.sqlite');
   const db = new DatabaseSync(databasePath);
   db.exec(`
@@ -337,7 +348,7 @@ test('repeated init rejects a same-named index on the wrong column', () => {
 
 test('append preserves arbitrary Markdown and assigns ordered IDs and UTC timestamps', () => {
   const root = initRepo();
-  const folder = '.agents/tasks/2026-07-22-history';
+  const folder = '.joshix/tasks/2026-07-22-history';
   assertSuccess(run(root, 'init', folder));
   const content = 'Quotes: \'single\' and "double"\n\n```js\nconst snowman = "☃️";\n```\n';
 
@@ -357,7 +368,7 @@ test('append preserves arbitrary Markdown and assigns ordered IDs and UTC timest
 
 test('append rechecks privacy and refuses task data tracked after initialization', () => {
   const root = initRepo();
-  const folder = '.agents/tasks/2026-07-22-recheck';
+  const folder = '.joshix/tasks/2026-07-22-recheck';
   assertSuccess(run(root, 'init', folder));
   appendMessage(root, folder, 'User', 'first');
   git(root, 'add', '-f', `${folder}/history.sqlite`);
@@ -383,7 +394,7 @@ test('append rechecks privacy and refuses task data tracked after initialization
 
 test('retrieval defaults to bounded previews and full content is explicit', () => {
   const root = initRepo();
-  const folder = '.agents/tasks/2026-07-22-retrieval';
+  const folder = '.joshix/tasks/2026-07-22-retrieval';
   assertSuccess(run(root, 'init', folder));
   appendMessage(root, folder, 'User', 'A'.repeat(300));
   appendMessage(root, folder, 'Codex', 'middle');
@@ -410,7 +421,7 @@ test('retrieval defaults to bounded previews and full content is explicit', () =
 
 test('since-time normalizes offsets and search is literal and ASCII case-insensitive', async () => {
   const root = initRepo();
-  const folder = '.agents/tasks/2026-07-22-time-search';
+  const folder = '.joshix/tasks/2026-07-22-time-search';
   assertSuccess(run(root, 'init', folder));
   appendMessage(root, folder, 'User', 'literal 100% value');
   await new Promise((resolvePromise) => setTimeout(resolvePromise, 10));
@@ -447,7 +458,7 @@ test('since-time normalizes offsets and search is literal and ASCII case-insensi
 
 test('export preserves ordering and bodies, and check is read-only', () => {
   const root = initRepo();
-  const folder = '.agents/tasks/2026-07-22-export';
+  const folder = '.joshix/tasks/2026-07-22-export';
   assertSuccess(run(root, 'init', folder));
   appendMessage(root, folder, 'User', 'first\nline');
   appendMessage(root, folder, 'Codex', 'second');

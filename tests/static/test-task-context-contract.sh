@@ -4,6 +4,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BOOTSTRAP="$ROOT/skills/using-joshix/SKILL.md"
 TASK_CONTEXT="$ROOT/skills/task-context/SKILL.md"
+VERIFICATION="$ROOT/skills/verification-before-completion/SKILL.md"
+EXECUTING_PLANS="$ROOT/skills/executing-plans/SKILL.md"
+SUBAGENT_DEVELOPMENT="$ROOT/skills/subagent-driven-development/SKILL.md"
 STATIC_RUNNER="$ROOT/tests/static/run-tests.sh"
 TESTING_DOC="$ROOT/docs/testing.md"
 HANDOFF_TEST="$ROOT/tests/claude-code/test-task-context-handoff-integration.sh"
@@ -18,6 +21,16 @@ require_fixed() {
   fi
 }
 
+reject_fixed() {
+  local file="$1" text="$2" label="$3"
+  local normalized
+  normalized="$(tr '\n\r\t' '   ' < "$file" | tr -s ' ')"
+  if [[ "$normalized" == *"$text"* ]]; then
+    printf 'FAIL: %s\nUnexpected: %s\n' "$label" "$text"
+    exit 1
+  fi
+}
+
 require_fixed "$BOOTSTRAP" '`joshix:task-context`' 'bootstrap invokes task context'
 require_fixed "$BOOTSTRAP" 'every top-level Codex or Claude conversation' 'bootstrap is always-on for supported top-level agents'
 require_fixed "$TASK_CONTEXT" '<SUBAGENT-STOP>' 'subagents are exempt'
@@ -26,10 +39,14 @@ require_fixed "$TASK_CONTEXT" 'explicit absolute task-folder path' 'non-Git opt-
 require_fixed "$TASK_CONTEXT" 'git rev-parse --show-toplevel' 'Git root is canonical'
 require_fixed "$TASK_CONTEXT" 'host-provided absolute path to this `SKILL.md`' 'helper path comes from selected skill'
 require_fixed "$TASK_CONTEXT" 'node --disable-warning=ExperimentalWarning' 'supported invocation is exact'
-require_fixed "$TASK_CONTEXT" 'init .agents/tasks/<folder>' 'initialization uses the complete repository-relative path'
+require_fixed "$TASK_CONTEXT" 'init .joshix/tasks/<folder>' 'initialization uses the complete repository-relative path'
 require_fixed "$TASK_CONTEXT" 'Do not batch `init` with later commands' 'initialization failure cannot be hidden by batching'
 require_fixed "$TASK_CONTEXT" 'Use `--help` for the complete command syntax.' 'agents use the bounded interface instead of reading source'
-require_fixed "$TASK_CONTEXT" 'retry only that narrow helper or file operation with elevated filesystem permission' 'Codex protected-directory retry stays narrow'
+reject_fixed "$TASK_CONTEXT" 'elevated filesystem permission' 'task context never enters a permission-escalation loop'
+reject_fixed "$TASK_CONTEXT" 'Codex sandboxes may protect `.agents/`' 'task context does not treat the shared workspace as protected'
+reject_fixed "$VERIFICATION" '.agents/' 'verification guidance uses the writable joshix artifact root'
+reject_fixed "$EXECUTING_PLANS" '.agents/' 'inline execution guidance uses the writable joshix artifact root'
+reject_fixed "$SUBAGENT_DEVELOPMENT" '.agents/' 'subagent execution guidance uses the writable joshix artifact root'
 require_fixed "$TASK_CONTEXT" 'Node 22.13.0 or newer' 'minimum runtime is explicit'
 require_fixed "$TASK_CONTEXT" 'Shared task created:' 'creation notice is exact'
 require_fixed "$TASK_CONTEXT" 'Using shared task:' 'usage notice is exact'
@@ -56,8 +73,9 @@ require_fixed "$TASK_CONTEXT" 'Do not query Linear' 'external status stays out o
 require_fixed "$TASK_CONTEXT" 'Do not depend on deploy state' 'deploy state stays out of scope'
 require_fixed "$TASK_CONTEXT" 'Never derive the helper from cwd, a plugin environment variable, `CLAUDE_PLUGIN_ROOT`, `CODEX_HOME`, or an assumed cache layout.' 'host layout is explicitly rejected'
 require_fixed "$TASK_CONTEXT" 'Never mutate the Git index or `.git/info/exclude`.' 'Git metadata mutation is explicitly rejected'
-require_fixed "$ROOT/.gitignore" '.agents/tasks/' 'root ignore protects task context'
-require_fixed "$ROOT/.agents/README.md" 'Per-task Codex/Claude handoff state belongs in `.agents/tasks/<task>/`' 'agent artifact docs describe task context'
+require_fixed "$ROOT/.gitignore" '.joshix/' 'root ignore protects joshix artifacts'
+require_fixed "$ROOT/.gitignore" '.agents/context/' 'legacy root ignore protects unmigrated scratch context'
+require_fixed "$ROOT/.gitignore" '.agents/tasks/' 'legacy root ignore protects unmigrated task context'
 require_fixed "$ROOT/README.md" 'ignored per-task Codex/Claude handoff state' 'README describes task context'
 require_fixed "$ROOT/AGENTS.md" 'ignored per-task shared context for top-level Codex/Claude conversations' 'Codex guidance describes task context'
 require_fixed "$ROOT/CLAUDE.md" 'ignored per-task shared context for top-level Codex/Claude conversations' 'Claude guidance describes task context'

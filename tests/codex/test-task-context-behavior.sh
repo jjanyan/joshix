@@ -16,7 +16,8 @@ trap 'cleanup_test_project "$TEST_PROJECT"' EXIT
 
 init_git_project "$TEST_PROJECT"
 install_repo_skills_symlink "$TEST_PROJECT"
-mkdir -p "$TEST_PROJECT/.agents/tasks"
+[ ! -e "$TEST_PROJECT/.joshix" ] \
+  || fail 'test project unexpectedly contains .joshix before Codex runs'
 
 read -r -d '' PROMPT <<'EOF' || true
 This is a new top-level conversation in a Git-backed repository. Follow all
@@ -30,11 +31,10 @@ run_codex \
   "$OUTPUT_DIR" \
   "workspace-write" \
   "$CODEX_TEST_TIMEOUT" \
-  "ignore-rules" \
-  "$TEST_PROJECT/.agents/tasks"
+  "ignore-rules"
 
 shopt -s nullglob
-TASK_DIRS=("$TEST_PROJECT"/.agents/tasks/20??-??-??-*)
+TASK_DIRS=("$TEST_PROJECT"/.joshix/tasks/20??-??-??-*)
 [ "${#TASK_DIRS[@]}" -eq 1 ] || fail 'expected exactly one shared task folder'
 TASK_DIR="${TASK_DIRS[0]}"
 
@@ -47,7 +47,7 @@ assert_contains "$(cat "$OUTPUT_DIR/final.md")" '4' 'one-turn question is answer
 [ -d "$TASK_DIR/files" ] || fail 'files directory exists'
 [ "$(wc -w < "$TASK_DIR/current.md" | tr -d '[:space:]')" -le 1000 ] \
   || fail 'current summary exceeds 1,000 words'
-assert_git_path_clean "$TEST_PROJECT" '.agents/tasks' 'task context is invisible to Git status'
+assert_git_path_clean "$TEST_PROJECT" '.joshix/tasks' 'task context is invisible to Git status'
 
 HELPER="$CODEX_REPO_ROOT/skills/task-context/scripts/task-context.mjs"
 ROWS="$(node --disable-warning=ExperimentalWarning "$HELPER" export "$TASK_DIR" --format markdown)"

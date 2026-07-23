@@ -136,9 +136,9 @@ cat > package.json <<'EOF'
 }
 EOF
 
-mkdir -p src test .agents/plans
+mkdir -p src test .joshix/plans
 
-cat > .agents/plans/implementation-plan.md <<'EOF'
+cat > .joshix/plans/implementation-plan.md <<'EOF'
 # Parallel Fixture Implementation Plan
 
 ### Task 1: Add operation
@@ -246,7 +246,7 @@ echo ""
 
 OUTPUT_FILE="$TEST_PROJECT/claude-output.txt"
 
-PROMPT="Execute the implementation plan at .agents/plans/implementation-plan.md using the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill.
+PROMPT="Execute the implementation plan at .joshix/plans/implementation-plan.md using the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill.
 
 IMPORTANT: Follow the skill exactly. I will be verifying that you:
 1. Read the plan once at the beginning

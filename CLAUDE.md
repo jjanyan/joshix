@@ -8,12 +8,12 @@ is not being shaped as an upstream PR.
 - Work in the current checkout and current branch by default.
 - Do not create worktrees, switch branches, stage, commit, push, or open PRs
   unless the user explicitly asks for that git operation.
-- Use `.agents/` for agent working artifacts:
-  - `.agents/context/` is ignored scratch context.
-  - `.agents/tasks/` is ignored per-task shared context for top-level
+- Use `.joshix/` for agent working artifacts:
+  - `.joshix/context/` is ignored scratch context.
+  - `.joshix/tasks/` is ignored per-task shared context for top-level
     Codex/Claude conversations; subagents do not read or write it, and it is not
     durable documentation.
-  - `.agents/specs/` and `.agents/plans/` are temporary working artifacts, not
+  - `.joshix/specs/` and `.joshix/plans/` are temporary working artifacts, not
     durable product docs.
 - After implementation, durable decisions belong in repo docs, code comments,
   or other permanent project files.

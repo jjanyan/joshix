@@ -2,7 +2,7 @@
   "name": "joshix",
   "displayName": "joshix",
   "description": "Planning, TDD, debugging, code review, and verification workflows for coding agents",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": {
     "name": "Josh",
     "url": "https://github.com/jjanyan"
