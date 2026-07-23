@@ -100,12 +100,11 @@ sums material node durations, savings is their difference, reduction is savings
 divided by serial-equivalent time, and throughput is serial-equivalent time
 divided by wall time.
 
-Use a Mermaid dependency graph when there are at least two concurrent lanes and
-three meaningful work items; otherwise use compact text.
-Always emit the Mermaid fence at that threshold. A meaningful work item is a
-separately tracked implementation, shared-foundation, or integration node;
-routine reviews do not count merely to cross the threshold. Reuse the topology
-at completion.
+Use `../using-joshix/references/progress-dag.md` for the user-facing dependency
+graph, including its general three-node trigger, stable topology, state classes,
+and update cadence. Parallel scheduling reports still name expected and actual
+critical paths, concurrency, waits, retries, and re-serialization as described
+above; do not restate DAG policy here.
 
 ## Failure Handling
 

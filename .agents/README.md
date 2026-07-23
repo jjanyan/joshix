@@ -16,6 +16,21 @@ Rules:
 - Delete context files older than 7 days during explicit cleanup, not as
   incidental churn in unrelated changes.
 
+## Shared Task Context
+
+Per-task Codex/Claude handoff state belongs in `.agents/tasks/<task>/`:
+
+- `current.md` is the compact current snapshot.
+- `history.sqlite` is append-only visible conversation history accessed through
+  `joshix:task-context`.
+- `files/` holds accessible shared attachments.
+- `.agents/tasks/.gitignore` self-ignores the entire task area before
+  conversation data is created.
+
+Task context is local coordination state. Do not stage it, treat it as durable
+documentation, clean it up incidentally, or couple it to ticket or deploy
+status.
+
 ## Specs And Plans
 
 `.agents/specs/` and `.agents/plans/` hold semi-temporary working artifacts.
@@ -32,5 +47,7 @@ Rules:
 - Put formal design drafts in `specs/`.
 - Put task-by-task implementation instructions in `plans/`.
 - Put lightweight notes and scratch handoffs in `context/`.
+- Put top-level Codex/Claude per-task shared state in `tasks/`; subagents never
+  read or write it.
 - Prefer repo-relative links when referencing files from agent artifacts.
 - Do not stage, commit, push, or open pull requests unless the user explicitly asks.

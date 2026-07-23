@@ -19,6 +19,14 @@ These checks are deterministic and inexpensive. They catch wording drift and
 missing integration surfaces, but they do not prove that a model follows the
 guidance.
 
+The static runner also executes the deterministic shared-task helper suite. Run
+that suite directly while narrowing helper failures:
+
+```bash
+node --disable-warning=ExperimentalWarning --test \
+  tests/task-context/task-context.test.mjs
+```
+
 The static runner also aggregates the model-free transcript and decision
 oracles used before paying for live model execution. Run an individual oracle
 directly when narrowing a failure:

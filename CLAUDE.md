@@ -10,6 +10,9 @@ is not being shaped as an upstream PR.
   unless the user explicitly asks for that git operation.
 - Use `.agents/` for agent working artifacts:
   - `.agents/context/` is ignored scratch context.
+  - `.agents/tasks/` is ignored per-task shared context for top-level
+    Codex/Claude conversations; subagents do not read or write it, and it is not
+    durable documentation.
   - `.agents/specs/` and `.agents/plans/` are temporary working artifacts, not
     durable product docs.
 - After implementation, durable decisions belong in repo docs, code comments,
@@ -31,6 +34,7 @@ Use the `joshix:` namespace. The bootstrap skill is `joshix:using-joshix`.
 Important workflow skills include:
 
 - `joshix:brainstorming`
+- `joshix:task-context`
 - `joshix:writing-plans`
 - `joshix:reviewing-plans`
 - `joshix:subagent-driven-development`

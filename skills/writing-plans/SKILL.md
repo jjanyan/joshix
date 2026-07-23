@@ -51,6 +51,12 @@ This structure informs the task decomposition. Each task should produce self-con
 - "Implement the focused change" - step
 - "Run the tests and make sure they pass" - step
 
+## Progress DAG
+
+When this top-level workflow has at least three tracked nodes, follow the
+canonical trigger, rendering, state, topology, and update rules in
+`../using-joshix/references/progress-dag.md`.
+
 ## Plan Document Header
 
 **Every plan MUST start with this header:**

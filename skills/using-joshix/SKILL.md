@@ -7,6 +7,15 @@ description: Use when starting any conversation - establishes how to find and us
 If you were dispatched as a subagent to execute a specific task, skip this skill.
 </SUBAGENT-STOP>
 
+<TOP-LEVEL-TASK-CONTEXT>
+For every top-level Codex or Claude conversation, invoke `joshix:task-context`
+after the initial skill check and before substantive work, including for a
+one-turn question. The task-context skill owns Git detection, routing, notices,
+recording, and failure behavior. If the host requires commentary before the
+initial tool call, preserve that exact commentary for task-context to append
+after initialization.
+</TOP-LEVEL-TASK-CONTEXT>
+
 <EXTREMELY-IMPORTANT>
 If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill.
 
@@ -70,6 +79,7 @@ digraph skill_flow {
     "Might any skill apply?" [shape=diamond];
     "Invoke Skill tool" [shape=box];
     "Announce: 'Using [skill] to [purpose]'" [shape=box];
+    "Invoke joshix:task-context\nfor supported top-level conversations" [shape=box];
     "Has checklist?" [shape=diamond];
     "Create task-list item per checklist item" [shape=box];
     "Follow skill exactly" [shape=box];
@@ -84,7 +94,8 @@ digraph skill_flow {
     "Might any skill apply?" -> "Invoke Skill tool" [label="yes, even 1%"];
     "Might any skill apply?" -> "Respond (including clarifications)" [label="definitely not"];
     "Invoke Skill tool" -> "Announce: 'Using [skill] to [purpose]'";
-    "Announce: 'Using [skill] to [purpose]'" -> "Has checklist?";
+    "Announce: 'Using [skill] to [purpose]'" -> "Invoke joshix:task-context\nfor supported top-level conversations";
+    "Invoke joshix:task-context\nfor supported top-level conversations" -> "Has checklist?";
     "Has checklist?" -> "Create task-list item per checklist item" [label="yes"];
     "Has checklist?" -> "Follow skill exactly" [label="no"];
     "Create task-list item per checklist item" -> "Follow skill exactly";

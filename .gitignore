@@ -2,6 +2,7 @@
 .private-journal/
 .claude/
 .agents/context/
+.agents/tasks/
 .DS_Store
 node_modules/
 inspo

@@ -58,6 +58,7 @@ run_codex() {
     local sandbox="${4:-read-only}"
     local timeout_seconds="${5:-$CODEX_TEST_TIMEOUT}"
     local rules_mode="${6:-ignore-rules}"
+    local writable_dir="${7:-}"
 
     mkdir -p "$output_dir"
 
@@ -73,6 +74,10 @@ run_codex() {
         --json
         --output-last-message "$final_file"
     )
+
+    if [ -n "$writable_dir" ]; then
+        cmd+=(--add-dir "$writable_dir")
+    fi
 
     case "$rules_mode" in
         ignore-rules)

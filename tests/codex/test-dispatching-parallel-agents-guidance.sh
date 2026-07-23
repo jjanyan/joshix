@@ -40,7 +40,7 @@ MODEL: <delegated model and reasoning choice>
 START REPORT: <required start-report content>
 COMPLETION REPORT: <required completion-report content>
 TIMING: <OMIT NUMBERS or REPORT NUMBERS>
-MERMAID THRESHOLD: <complete lane and meaningful-work-item threshold>
+MERMAID THRESHOLD: <complete tracked-node threshold>
 MERMAID AT THRESHOLD: <EMIT FENCE or NO FENCE>
 GIT: <NONE or REQUIRED>
 
@@ -98,8 +98,7 @@ oracle_accepts() {
   line_matches "$(output_line "$output" 8)" 'topology variance' || return 1
   line_matches "$(output_line "$output" 9)" "$TIMING_PATTERN" || return 1
   line_matches "$(output_line "$output" 10)" '^MERMAID THRESHOLD[[:space:]]*:' || return 1
-  line_matches "$(output_line "$output" 10)" '(two|2)[[:space:]]+(parallel|concurrent)[[:space:]]+lanes' || return 1
-  line_matches "$(output_line "$output" 10)" '(three|3)[[:space:]]+meaningful work items' || return 1
+  line_matches "$(output_line "$output" 10)" '(at least[[:space:]]+)?(three|3)[[:space:]]+tracked([[:space:]]+plan)?[[:space:]]+nodes' || return 1
   line_matches "$(output_line "$output" 11)" "$MERMAID_AT_THRESHOLD_PATTERN" || return 1
   line_matches "$(output_line "$output" 12)" "$GIT_PATTERN" || return 1
   if line_matches "$output" "$DOWNGRADE_PATTERN"; then return 1; fi
@@ -116,7 +115,7 @@ MODEL: current/default model and reasoning effort
 START REPORT: expected critical path, parallel lanes, expected peak concurrency, serial phases and reasons
 COMPLETION REPORT: actual critical path, serial waits, retries, re-serialization, topology variance, and what actually overlapped
 TIMING: OMIT NUMBERS
-MERMAID THRESHOLD: three meaningful work items and two parallel lanes
+MERMAID THRESHOLD: at least three tracked plan nodes
 MERMAID AT THRESHOLD: EMIT FENCE
 GIT: NONE
 EOF
@@ -191,8 +190,7 @@ assert_contains "$COMPLETION_REPORT_LINE" "re-serialization" "Completion report 
 assert_contains "$COMPLETION_REPORT_LINE" "topology variance" "Completion report identifies topology variance" || FAILED=$((FAILED + 1))
 assert_contains "$TIMING_LINE" "$TIMING_PATTERN" "Unsupported timing omits numbers" || FAILED=$((FAILED + 1))
 assert_contains "$MERMAID_THRESHOLD_LINE" "^MERMAID THRESHOLD[[:space:]]*:" "Uses the Mermaid-threshold label" || FAILED=$((FAILED + 1))
-assert_contains "$MERMAID_THRESHOLD_LINE" "(two|2)[[:space:]]+(parallel|concurrent)[[:space:]]+lanes" "Mermaid threshold requires two parallel lanes" || FAILED=$((FAILED + 1))
-assert_contains "$MERMAID_THRESHOLD_LINE" "(three|3)[[:space:]]+meaningful work items" "Mermaid threshold requires three meaningful work items" || FAILED=$((FAILED + 1))
+assert_contains "$MERMAID_THRESHOLD_LINE" "(at least[[:space:]]+)?(three|3)[[:space:]]+tracked([[:space:]]+plan)?[[:space:]]+nodes" "Mermaid threshold requires three tracked plan nodes" || FAILED=$((FAILED + 1))
 assert_contains "$MERMAID_AT_THRESHOLD_LINE" "$MERMAID_AT_THRESHOLD_PATTERN" "Mermaid fence is emitted at threshold" || FAILED=$((FAILED + 1))
 assert_contains "$GIT_LINE" "$GIT_PATTERN" "Does not recommend git operations" || FAILED=$((FAILED + 1))
 assert_not_contains "$FINAL_OUTPUT" "$DOWNGRADE_PATTERN" "Does not downgrade delegated work" || FAILED=$((FAILED + 1))

@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 DISPATCH="$ROOT_DIR/skills/dispatching-parallel-agents/SKILL.md"
+DAG="$ROOT_DIR/skills/using-joshix/references/progress-dag.md"
 SDD="$ROOT_DIR/skills/subagent-driven-development/SKILL.md"
 WRITING="$ROOT_DIR/skills/writing-plans/SKILL.md"
 PLAN_REVIEWER="$ROOT_DIR/skills/writing-plans/plan-document-reviewer-prompt.md"
@@ -109,8 +110,9 @@ require_fixed "$DISPATCH" "what actually overlapped" "completion report identifi
 require_fixed "$DISPATCH" "actual critical path when identifiable" "completion report identifies the actual critical path"
 require_fixed "$DISPATCH" "serial waits, retries, or re-serialization" "completion report identifies waits and retries"
 require_fixed "$DISPATCH" "meaningful topology variance" "completion report identifies topology variance"
-require_fixed "$DISPATCH" "three meaningful work items" "Mermaid threshold is explicit"
-require_fixed "$DISPATCH" "Always emit the Mermaid fence at that threshold" "Mermaid source is emitted without capability detection"
+require_fixed "$DISPATCH" "using-joshix/references/progress-dag.md" "dispatcher links canonical DAG guidance"
+require_fixed "$DAG" "at least three tracked nodes" "canonical Mermaid threshold is explicit"
+require_fixed "$DAG" "When tracked node state changes" "canonical DAG updates on state changes"
 require_fixed "$DISPATCH" "omit numbers" "unsupported timing is omitted"
 require_fixed "$DISPATCH" 'An older plan without `Depends on:`' "legacy plans are classified conservatively"
 

@@ -2,10 +2,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 tests=(
   "test-claude-runner-timeout-contract.sh"
   "test-parallel-oracles.sh"
   "test-parallel-first-contract.sh"
+  "test-task-context-contract.sh"
+  "test-progress-dag-contract.sh"
 )
 
 passed=0
@@ -20,6 +23,14 @@ for test_name in "${tests[@]}"; do
     failed=$((failed + 1))
   fi
 done
+
+echo "Running: task-context.test.mjs"
+if node --disable-warning=ExperimentalWarning --test \
+  "$ROOT/tests/task-context/task-context.test.mjs"; then
+  passed=$((passed + 1))
+else
+  failed=$((failed + 1))
+fi
 
 printf 'Passed: %d\n' "$passed"
 printf 'Failed: %d\n' "$failed"

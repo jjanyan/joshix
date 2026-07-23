@@ -31,6 +31,12 @@ You MUST create a task for each of these items and complete them in order:
 8. **User reviews written spec** — ask user to review the spec file before proceeding
 9. **Transition to implementation** — invoke writing-plans skill to create implementation plan
 
+## Progress DAG
+
+When this top-level workflow has at least three tracked nodes, follow the
+canonical trigger, rendering, state, topology, and update rules in
+`../using-joshix/references/progress-dag.md`.
+
 ## Process Flow
 
 ```dot

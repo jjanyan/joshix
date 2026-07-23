@@ -43,6 +43,12 @@ For each task:
 3. Run verifications as specified
 4. Mark as completed
 
+## Progress DAG
+
+When this top-level workflow has at least three tracked nodes, follow the
+canonical trigger, rendering, state, topology, and update rules in
+`../using-joshix/references/progress-dag.md`.
+
 ### Step 3: Complete Development
 
 After all tasks complete and verified:

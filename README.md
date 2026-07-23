@@ -13,6 +13,7 @@ The local Codex plugin is defined in `.codex-plugin/plugin.json`. For local deve
 Expected skill names use the `joshix:` namespace, for example:
 
 - `joshix:using-joshix`
+- `joshix:task-context`
 - `joshix:brainstorming`
 - `joshix:writing-plans`
 - `joshix:subagent-driven-development`
@@ -47,17 +48,34 @@ Gemini loads `GEMINI.md`, which points at the local `using-joshix` bootstrap and
 8. **commit-staged** commits only when all local changes are already staged.
 9. **verification-before-completion** requires fresh evidence before claiming work is done.
 
+When an active joshix planning or development workflow has at least three tracked nodes,
+the top-level agent shows a Mermaid progress DAG at the start, on state or
+dependency changes, and at completion. Completed work is green, in-flight work
+is blue, and todo work keeps Mermaid's default styling. The graph is a
+user-facing update only; subagents do not render it and it is not shared task
+state.
+
 joshix is parallel-first after execution is authorized when meaningful tasks
 are independent, have disjoint ownership, and can be verified safely. Coupled,
 uncertain, overlapping, and unsafe shared-state work stays inline or serial.
 `dispatching-parallel-agents` owns the reusable policy;
 `subagent-driven-development` invokes it for suitable plans.
 
+Every top-level Git-backed Codex or Claude task creates or connects to a private
+`.agents/tasks/<task>/` workspace before substantive work, including one-turn
+questions. The workspace gives both agents the same compact current state,
+visible-message history, and accessible files. Subagents never touch this
+shared context; their top-level coordinator owns it.
+
 ## Agent Artifacts
 
 Use `.agents/` for working artifacts:
 
 - `.agents/context/` is ignored scratch context.
+- `.agents/tasks/` is ignored per-task Codex/Claude handoff state. Each task
+  contains a compact `current.md`, append-only `history.sqlite`, and shared
+  `files/`; a nested `.gitignore` self-ignores the area before conversation data
+  is written. It is local coordination state, not durable documentation.
 - `.agents/specs/` holds temporary reviewed specs while work is active.
 - `.agents/plans/` holds temporary implementation plans while work is active.
 

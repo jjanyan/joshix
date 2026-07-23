@@ -11,8 +11,13 @@ and two-stage review for each lane: spec compliance first, then code quality.
 When two or more plan tasks are ready and potentially safe to overlap, invoke
 `joshix:dispatching-parallel-agents` to classify, schedule, and report them.
 Keep one coordinator free to own shared context, questions, integration, and
-fresh verification. Do not duplicate capacity, wave, fallback, timing, or
-Mermaid rules in this skill.
+fresh verification. Do not duplicate capacity, wave, fallback, or timing rules
+in this skill.
+
+The top-level coordinator follows
+`../using-joshix/references/progress-dag.md`. Dispatched workers do not render
+DAGs. Do not duplicate the canonical threshold, state, styling, or update rules
+here.
 
 **Core principle:** Each lane owns a bounded scope and passes implementation,
 verification, spec review, and quality review before its dependents advance.
