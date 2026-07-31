@@ -50,7 +50,7 @@ assert_contains "$(cat "$OUTPUT_DIR/final.md")" '4' 'one-turn question is answer
 assert_git_path_clean "$TEST_PROJECT" '.joshix/tasks' 'task context is invisible to Git status'
 
 HELPER="$CODEX_REPO_ROOT/skills/task-context/scripts/task-context.mjs"
-ROWS="$(node --disable-warning=ExperimentalWarning "$HELPER" export "$TASK_DIR" --format markdown)"
+ROWS="$("$HELPER" export "$TASK_DIR" --format markdown)"
 assert_contains "$ROWS" '## 1 · User ·' 'user is the first speaker'
 assert_contains "$ROWS" 'What is' 'user content is recorded'
 assert_contains "$ROWS" '2 \+ 2' 'question content is recorded'

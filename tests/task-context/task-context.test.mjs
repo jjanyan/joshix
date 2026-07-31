@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
   chmodSync,
+  copyFileSync,
   existsSync,
   mkdtempSync,
   mkdirSync,
   readFileSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
@@ -44,24 +46,42 @@ function initRepo() {
   return cwd;
 }
 
+function runHelper(helperPath, cwd, args, environment = {}) {
+  return spawnSync(helperPath, args, {
+    cwd,
+    encoding: 'utf8',
+    env: { ...process.env, ...environment },
+  });
+}
+
 function run(cwd, ...args) {
-  return spawnSync(
-    process.execPath,
-    ['--disable-warning=ExperimentalWarning', helper, ...args],
-    { cwd, encoding: 'utf8' },
-  );
+  return runHelper(helper, cwd, args);
 }
 
 function runWithPath(cwd, pathEntry, ...args) {
-  return spawnSync(
-    process.execPath,
-    ['--disable-warning=ExperimentalWarning', helper, ...args],
-    {
-      cwd,
-      encoding: 'utf8',
-      env: { ...process.env, PATH: `${pathEntry}:${process.env.PATH}` },
-    },
-  );
+  return runHelper(helper, cwd, args, {
+    PATH: `${pathEntry}:${process.env.PATH}`,
+  });
+}
+
+function versionPreload() {
+  const preload = join(tempDir(), 'version-preload.cjs');
+  writeFileSync(preload, `'use strict';
+const version = process.env.JOSHIX_TEST_NODE_VERSION;
+if (version) {
+  Object.defineProperty(process.versions, 'node', {
+    configurable: true,
+    value: version,
+  });
+}
+if (process.env.JOSHIX_TEST_UNRELATED_WARNING === '1') {
+  setImmediate(() => process.emitWarning(
+    'task-context unrelated warning sentinel',
+    'ExperimentalWarning',
+  ));
+}
+`);
+  return preload;
 }
 
 function assertSuccess(result) {
@@ -88,6 +108,77 @@ function appendMessage(root, folder, speaker, content) {
   assertSuccess(result);
   return Number(result.stdout.trim());
 }
+
+test('the task-context command is executable in the working tree', () => {
+  assert.notEqual(statSync(helper).mode & 0o111, 0);
+});
+
+test('both help flags execute directly from unrelated directories', () => {
+  for (const flag of ['--help', '-h']) {
+    const result = run(tempDir(), flag);
+    assertSuccess(result);
+    assert.match(result.stdout, /Usage: task-context/);
+    assert.equal(result.stderr, '');
+  }
+});
+
+test('direct execution supports helper and argument paths with spaces', () => {
+  const parent = tempDir();
+  const root = join(parent, 'repo with spaces');
+  mkdirSync(root);
+  git(root, 'init', '--quiet');
+  git(root, 'config', 'user.email', 'task-context@example.com');
+  git(root, 'config', 'user.name', 'Task Context Test');
+
+  const copiedHelper = join(parent, 'helper dir with spaces', 'task context.mjs');
+  mkdirSync(dirname(copiedHelper), { recursive: true });
+  copyFileSync(helper, copiedHelper);
+  chmodSync(copiedHelper, 0o755);
+
+  const folder = '.joshix/tasks/task folder with spaces';
+  const initialized = runHelper(copiedHelper, root, ['init', folder]);
+  assertSuccess(initialized);
+  assert.equal(initialized.stderr, '');
+
+  const contentFile = join(parent, 'message files', 'message with spaces.md');
+  mkdirSync(dirname(contentFile), { recursive: true });
+  writeFileSync(contentFile, 'space-safe content');
+  const appended = runHelper(copiedHelper, root, [
+    'append',
+    folder,
+    '--speaker',
+    'User',
+    '--content-file',
+    contentFile,
+  ]);
+  assertSuccess(appended);
+  assert.equal(appended.stderr, '');
+});
+
+for (const version of ['18.0.0', '22.12.0']) {
+  test(`version gate rejects simulated Node ${version} before SQLite loads`, () => {
+    const result = runHelper(helper, repoRoot, ['--help'], {
+      JOSHIX_TEST_NODE_VERSION: version,
+      NODE_OPTIONS: `--require=${versionPreload()}`,
+    });
+    assert.notEqual(result.status, 0);
+    assert.equal(
+      result.stderr,
+      `task-context: Node 22.13.0 or newer is required; found ${version}. Upgrade Node and retry.\n`,
+    );
+    assert.doesNotMatch(result.stderr, /SQLite/);
+  });
+}
+
+test('SQLite warning is hidden while an unrelated warning remains visible', () => {
+  const result = runHelper(helper, repoRoot, ['--help'], {
+    JOSHIX_TEST_UNRELATED_WARNING: '1',
+    NODE_OPTIONS: `--require=${versionPreload()}`,
+  });
+  assertSuccess(result);
+  assert.doesNotMatch(result.stderr, /SQLite is an experimental feature/);
+  assert.match(result.stderr, /task-context unrelated warning sentinel/);
+});
 
 test('help lists the complete command surface without requiring a task folder', () => {
   const cwd = tempDir();
@@ -121,6 +212,7 @@ test('init resolves relative paths from the Git root and protects them before us
 
   const result = run(nested, 'init', '.joshix/tasks/2026-07-22-CJ-66');
   assertSuccess(result);
+  assert.equal(result.stderr, '');
 
   const task = join(root, '.joshix/tasks/2026-07-22-CJ-66');
   assert.equal(readFileSync(join(root, '.joshix/tasks/.gitignore'), 'utf8'), '*\n');

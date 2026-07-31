@@ -119,9 +119,9 @@ printf '%s\n' "$CODEX_COMMANDS" \
   | rg -q "/[^[:space:]\"']*/skills/task-context/scripts/task-context\\.mjs" \
   || fail 'Codex did not resolve an absolute helper path from the installed skill'
 
-CHECK_JSON="$(node --disable-warning=ExperimentalWarning "$HELPER" check "$TASK_DIR")"
+CHECK_JSON="$("$HELPER" check "$TASK_DIR")"
 printf '%s\n' "$CHECK_JSON" | rg -q '"ok": true'
-HISTORY="$(node --disable-warning=ExperimentalWarning "$HELPER" export "$TASK_DIR" --format markdown)"
+HISTORY="$("$HELPER" export "$TASK_DIR" --format markdown)"
 CREATED_ROWS="$( (printf '%s\n' "$HISTORY" | rg -c 'Shared task created:' || true) | tail -1)"
 USAGE_ROWS="$( (printf '%s\n' "$HISTORY" | rg -c 'Using shared task:' || true) | tail -1)"
 [ "${CREATED_ROWS:-0}" -eq 1 ] || fail 'creation notice was not recorded exactly once'
@@ -130,7 +130,7 @@ USER_LINE="$(printf '%s\n' "$HISTORY" | rg -n '## [0-9]+ · User ·' | head -1 |
 CLAUDE_LINE="$(printf '%s\n' "$HISTORY" | rg -n '## [0-9]+ · Claude ·' | head -1 | cut -d: -f1)"
 LAST_CODEX_LINE="$(printf '%s\n' "$HISTORY" | rg -n '## [0-9]+ · Codex ·' | tail -1 | cut -d: -f1)"
 [ "$USER_LINE" -lt "$CLAUDE_LINE" ] && [ "$CLAUDE_LINE" -lt "$LAST_CODEX_LINE" ]
-MAX_ID="$(node --disable-warning=ExperimentalWarning "$HELPER" recent "$TASK_DIR" --limit 1 --full \
+MAX_ID="$("$HELPER" recent "$TASK_DIR" --limit 1 --full \
   | rg -o '"id": [0-9]+' | awk '{print $2}')"
 SUMMARY_ID="$(rg '^history_through:' "$TASK_DIR/current.md" | awk '{print $2}')"
 [ "$SUMMARY_ID" -eq "$MAX_ID" ] \

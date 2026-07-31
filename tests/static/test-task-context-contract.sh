@@ -38,7 +38,8 @@ require_fixed "$TASK_CONTEXT" 'There is no task-size classifier.' 'one-turn work
 require_fixed "$TASK_CONTEXT" 'explicit absolute task-folder path' 'non-Git opt-in is explicit'
 require_fixed "$TASK_CONTEXT" 'git rev-parse --show-toplevel' 'Git root is canonical'
 require_fixed "$TASK_CONTEXT" 'host-provided absolute path to this `SKILL.md`' 'helper path comes from selected skill'
-require_fixed "$TASK_CONTEXT" 'node --disable-warning=ExperimentalWarning' 'supported invocation is exact'
+require_fixed "$TASK_CONTEXT" '<absolute-skill-directory>/scripts/task-context.mjs' 'supported invocation uses the executable helper path'
+reject_fixed "$TASK_CONTEXT" 'node --disable-warning=ExperimentalWarning' 'task-context callers do not own Node warning flags'
 require_fixed "$TASK_CONTEXT" 'init .joshix/tasks/<folder>' 'initialization uses the complete repository-relative path'
 require_fixed "$TASK_CONTEXT" 'Do not batch `init` with later commands' 'initialization failure cannot be hidden by batching'
 require_fixed "$TASK_CONTEXT" 'Use `--help` for the complete command syntax.' 'agents use the bounded interface instead of reading source'
@@ -81,6 +82,8 @@ require_fixed "$ROOT/AGENTS.md" 'ignored per-task shared context for top-level C
 require_fixed "$ROOT/CLAUDE.md" 'ignored per-task shared context for top-level Codex/Claude conversations' 'Claude guidance describes task context'
 require_fixed "$STATIC_RUNNER" 'tests/task-context/task-context.test.mjs' 'static runner includes deterministic helper tests'
 require_fixed "$TESTING_DOC" 'tests/task-context/task-context.test.mjs' 'testing docs describe deterministic helper tests'
+require_fixed "$STATIC_RUNNER" 'node --disable-warning=ExperimentalWarning --test' 'the SQLite-importing test runner keeps its warning flag'
+require_fixed "$TESTING_DOC" 'node --disable-warning=ExperimentalWarning --test' 'testing docs keep the test-runner warning flag'
 require_fixed "$HANDOFF_TEST" 'source "$ROOT/tests/codex/test-helpers.sh" source "$SCRIPT_DIR/test-helpers.sh"' 'handoff test preserves suite-native helper definitions'
 require_fixed "$HANDOFF_TEST" 'select(.type == "text")' 'Claude usage notice is read from the session transcript'
 

@@ -20,11 +20,11 @@ supplied an explicit absolute task-folder path.
 
 The helper requires Node 22.13.0 or newer. Use the host-provided absolute path to this `SKILL.md` as authoritative. Resolve `scripts/task-context.mjs` from its parent directory and invoke it as:
 
-`node --disable-warning=ExperimentalWarning <absolute-skill-directory>/scripts/task-context.mjs`
+`<absolute-skill-directory>/scripts/task-context.mjs`
 
 Run initialization by itself and confirm that it succeeds before appending:
 
-`node --disable-warning=ExperimentalWarning <absolute-skill-directory>/scripts/task-context.mjs init .joshix/tasks/<folder>`
+`<absolute-skill-directory>/scripts/task-context.mjs init .joshix/tasks/<folder>`
 
 Always pass the repository-relative `.joshix/tasks/<folder>` path, not a bare
 folder name. Do not batch `init` with later commands, because a failed first

@@ -18,7 +18,11 @@ import {
   resolve,
   sep,
 } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+
+const MINIMUM_NODE_VERSION = [22, 13, 0];
+const SQLITE_WARNING =
+  'SQLite is an experimental feature and might change at any time';
+let DatabaseSync;
 
 const SCHEMA_VERSION = 1;
 const PREVIEW_LENGTH = 240;
@@ -53,6 +57,55 @@ CREATE TABLE messages (
 CREATE INDEX messages_created_at_idx ON messages(created_at);
 PRAGMA user_version = 1;
 `;
+
+function nodeVersionParts(version) {
+  const match = version.match(/^(\d+)\.(\d+)\.(\d+)/);
+  return match ? match.slice(1).map(Number) : [];
+}
+
+function compareVersions(left, right) {
+  for (let index = 0; index < 3; index += 1) {
+    if (left[index] > right[index]) return 1;
+    if (left[index] < right[index]) return -1;
+  }
+  return 0;
+}
+
+function requireSupportedNode() {
+  const actual = nodeVersionParts(process.versions.node);
+  if (
+    actual.length !== 3
+    || compareVersions(actual, MINIMUM_NODE_VERSION) < 0
+  ) {
+    throw new Error(
+      `Node 22.13.0 or newer is required; found ${process.versions.node}. `
+      + 'Upgrade Node and retry.',
+    );
+  }
+}
+
+async function loadDatabaseSync() {
+  const originalEmitWarning = process.emitWarning;
+  function filteredEmitWarning(warning, typeOrOptions, code, ctor) {
+    const message = warning instanceof Error ? warning.message : String(warning);
+    const type = warning instanceof Error
+      ? warning.name
+      : typeof typeOrOptions === 'string'
+        ? typeOrOptions
+        : typeOrOptions?.type;
+    if (type === 'ExperimentalWarning' && message === SQLITE_WARNING) return;
+    return originalEmitWarning.call(process, warning, typeOrOptions, code, ctor);
+  }
+
+  process.emitWarning = filteredEmitWarning;
+  try {
+    ({ DatabaseSync } = await import('node:sqlite'));
+  } finally {
+    if (process.emitWarning === filteredEmitWarning) {
+      process.emitWarning = originalEmitWarning;
+    }
+  }
+}
 
 function fail(message) {
   throw new Error(message);
@@ -494,6 +547,8 @@ function main(argv) {
 }
 
 try {
+  requireSupportedNode();
+  await loadDatabaseSync();
   main(process.argv.slice(2));
 } catch (error) {
   process.stderr.write(`task-context: ${error.message}\n`);
