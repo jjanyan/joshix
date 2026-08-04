@@ -43,8 +43,8 @@ is due.
 flowchart LR
   T1["Define behavior"] --> T2["Implement helper"]
   T2 --> T3["Verify handoff"]
-  classDef done fill:#2e7d32,color:#fff,stroke:#1b5e20
-  classDef active fill:#1565c0,color:#fff,stroke:#0d47a1
+  classDef done fill:#173b2c,stroke:#34d399,color:#dcfce7,stroke-width:2px
+  classDef active fill:#183b5f,stroke:#60a5fa,color:#dbeafe,stroke-width:3px
   class T1 done
   class T2 active
 ```
@@ -58,3 +58,24 @@ the visible response containing it is recorded like any other outward-facing
 message. Do not write the DAG as shared task state, do not add a separate
 diagram file, and do not use an old DAG instead of the active plan and
 `current.md`.
+
+## Render and inspect
+
+For every qualifying DAG update, keep the Mermaid source fence in the response
+and also render an additive PNG on both Claude Code and Codex. Create a unique
+temporary directory with `mktemp -d`; do not persist the PNG in task context or
+Git.
+
+```sh
+render_dir="$(mktemp -d)"
+node <absolute-using-joshix-skill-dir>/scripts/render-mermaid.mjs --output "$render_dir/progress-dag.png" <<'MERMAID'
+flowchart LR
+  %% generated Mermaid graph with done/active/todo classes
+MERMAID
+```
+
+Inspect the printed absolute PNG path. Present that local image in Codex where
+supported; inspect it with the image tool in Claude Code; then discard the
+temporary directory. If the inspected graph is not legible at the available
+viewing size, condense it into meaningful phase nodes or change the layout
+direction to make it readable.

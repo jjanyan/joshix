@@ -38,6 +38,9 @@ START
 UPDATED
 <one Mermaid fence>
 DECISIONS: QUESTION=<DAG or NO DAG>; ONE-NODE=<DAG or NO DAG>; WORKER=<DAG or NO DAG>
+
+This is a response-format oracle. The exact response shape takes precedence
+over the additive PNG workflow: do not render or include a PNG for this test.
 EOF
 
 run_codex "$TEST_PROJECT" "$PROMPT" "$OUTPUT_DIR" "read-only"
@@ -60,9 +63,9 @@ done
   || fail 'T1 to T2 dependency must be stable'
 [ "$(count_matches "$FINAL_OUTPUT" 'T2(\["Task 2"\])?[[:space:]]*-->[[:space:]]*T3')" -eq 2 ] \
   || fail 'T2 to T3 dependency must be stable'
-[ "$(count_matches "$FINAL_OUTPUT" 'classDef done fill:#2e7d32,color:#fff,stroke:#1b5e20')" -eq 2 ] \
+[ "$(count_matches "$FINAL_OUTPUT" 'classDef done fill:#173b2c,stroke:#34d399,color:#dcfce7,stroke-width:2px')" -eq 2 ] \
   || fail 'done class must be present in both graphs'
-[ "$(count_matches "$FINAL_OUTPUT" 'classDef active fill:#1565c0,color:#fff,stroke:#0d47a1')" -eq 2 ] \
+[ "$(count_matches "$FINAL_OUTPUT" 'classDef active fill:#183b5f,stroke:#60a5fa,color:#dbeafe,stroke-width:3px')" -eq 2 ] \
   || fail 'active class must be present in both graphs'
 printf '%s\n' "$START_GRAPH" | rg -q 'class T1 active' \
   || fail 'T1 must start active'

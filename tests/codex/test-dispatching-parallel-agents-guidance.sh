@@ -41,7 +41,7 @@ START REPORT: <required start-report content>
 COMPLETION REPORT: <required completion-report content>
 TIMING: <OMIT NUMBERS or REPORT NUMBERS>
 MERMAID THRESHOLD: <complete tracked-node threshold>
-MERMAID AT THRESHOLD: <EMIT FENCE or NO FENCE>
+MERMAID AT THRESHOLD: <EMIT FENCE PLUS PNG or NO FENCE>
 GIT: <NONE or REQUIRED>
 
 Do not add explanations, headings, bullets, blank lines, or any other prose.
@@ -53,7 +53,7 @@ EVENT_HOST_PATTERN='^EVENT HOST[[:space:]]*:[[:space:]]*COMPLETION-AWARE[[:space
 WAVE_HOST_PATTERN='^WAVE HOST[[:space:]]*:[[:space:]]*JOIN-ALL[[:space:]]*[.]?[[:space:]]*$'
 NO_CONCURRENCY_PATTERN='^NO CONCURRENCY[[:space:]]*:[[:space:]]*SERIAL[[:space:]]*[.]?[[:space:]]*$'
 TIMING_PATTERN='^TIMING[[:space:]]*:[[:space:]]*OMIT NUMBERS[[:space:]]*[.]?[[:space:]]*$'
-MERMAID_AT_THRESHOLD_PATTERN='^MERMAID AT THRESHOLD[[:space:]]*:[[:space:]]*EMIT FENCE[[:space:]]*[.]?[[:space:]]*$'
+MERMAID_AT_THRESHOLD_PATTERN='^MERMAID AT THRESHOLD[[:space:]]*:[[:space:]]*EMIT[[:space:]]+FENCE[[:space:]]+PLUS[[:space:]]+PNG[[:space:]]*[.]?[[:space:]]*$'
 GIT_PATTERN='^GIT[[:space:]]*:[[:space:]]*NONE[[:space:]]*[.]?[[:space:]]*$'
 DOWNGRADE_PATTERN='least powerful|cheap model|cheaper model|lower-capability model'
 AFFIRMATIVE_GIT_PATTERN='(must|should|need to|required to)[[:space:]]+((create|use)[[:space:]]+(a[[:space:]]+)?(new[[:space:]]+)?(branch|worktree)|(stage|commit))|(branch|worktree)[[:space:]]+is[[:space:]]+required'
@@ -116,7 +116,7 @@ START REPORT: expected critical path, parallel lanes, expected peak concurrency,
 COMPLETION REPORT: actual critical path, serial waits, retries, re-serialization, topology variance, and what actually overlapped
 TIMING: OMIT NUMBERS
 MERMAID THRESHOLD: at least three tracked plan nodes
-MERMAID AT THRESHOLD: EMIT FENCE
+MERMAID AT THRESHOLD: EMIT FENCE PLUS PNG
 GIT: NONE
 EOF
 
@@ -191,7 +191,7 @@ assert_contains "$COMPLETION_REPORT_LINE" "topology variance" "Completion report
 assert_contains "$TIMING_LINE" "$TIMING_PATTERN" "Unsupported timing omits numbers" || FAILED=$((FAILED + 1))
 assert_contains "$MERMAID_THRESHOLD_LINE" "^MERMAID THRESHOLD[[:space:]]*:" "Uses the Mermaid-threshold label" || FAILED=$((FAILED + 1))
 assert_contains "$MERMAID_THRESHOLD_LINE" "(at least[[:space:]]+)?(three|3)[[:space:]]+tracked([[:space:]]+plan)?[[:space:]]+nodes" "Mermaid threshold requires three tracked plan nodes" || FAILED=$((FAILED + 1))
-assert_contains "$MERMAID_AT_THRESHOLD_LINE" "$MERMAID_AT_THRESHOLD_PATTERN" "Mermaid fence is emitted at threshold" || FAILED=$((FAILED + 1))
+assert_contains "$MERMAID_AT_THRESHOLD_LINE" "$MERMAID_AT_THRESHOLD_PATTERN" "Mermaid fence and PNG are emitted at threshold" || FAILED=$((FAILED + 1))
 assert_contains "$GIT_LINE" "$GIT_PATTERN" "Does not recommend git operations" || FAILED=$((FAILED + 1))
 assert_not_contains "$FINAL_OUTPUT" "$DOWNGRADE_PATTERN" "Does not downgrade delegated work" || FAILED=$((FAILED + 1))
 assert_not_contains "$FINAL_OUTPUT" "$AFFIRMATIVE_GIT_PATTERN" "Does not require git operations" || FAILED=$((FAILED + 1))

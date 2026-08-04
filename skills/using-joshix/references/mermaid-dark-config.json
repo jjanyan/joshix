@@ -1,0 +1,21 @@
+{
+  "theme": "base",
+  "layout": "elk",
+  "themeVariables": {
+    "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+    "background": "#171717",
+    "lineColor": "#737373",
+    "primaryColor": "#262626",
+    "primaryTextColor": "#e5e5e5",
+    "primaryBorderColor": "#525252",
+    "edgeLabelBackground": "#171717"
+  },
+  "flowchart": {
+    "htmlLabels": true,
+    "curve": "basis",
+    "nodeSpacing": 42,
+    "rankSpacing": 76,
+    "padding": 18,
+    "useMaxWidth": false
+  }
+}
