@@ -41,7 +41,7 @@ START REPORT: <required start-report content>
 COMPLETION REPORT: <required completion-report content>
 TIMING: <OMIT NUMBERS or REPORT NUMBERS>
 MERMAID THRESHOLD: <complete tracked-node threshold>
-MERMAID AT THRESHOLD: <EMIT FENCE PLUS PNG or NO FENCE>
+MERMAID AT THRESHOLD: <EMIT FENCE or NO FENCE>
 GIT: <NONE or REQUIRED>
 
 Do not add explanations, headings, bullets, blank lines, or any other prose.
@@ -53,8 +53,9 @@ EVENT_HOST_PATTERN='^EVENT HOST[[:space:]]*:[[:space:]]*COMPLETION-AWARE[[:space
 WAVE_HOST_PATTERN='^WAVE HOST[[:space:]]*:[[:space:]]*JOIN-ALL[[:space:]]*[.]?[[:space:]]*$'
 NO_CONCURRENCY_PATTERN='^NO CONCURRENCY[[:space:]]*:[[:space:]]*SERIAL[[:space:]]*[.]?[[:space:]]*$'
 TIMING_PATTERN='^TIMING[[:space:]]*:[[:space:]]*OMIT NUMBERS[[:space:]]*[.]?[[:space:]]*$'
-MERMAID_AT_THRESHOLD_PATTERN='^MERMAID AT THRESHOLD[[:space:]]*:[[:space:]]*EMIT[[:space:]]+FENCE[[:space:]]+PLUS[[:space:]]+PNG[[:space:]]*[.]?[[:space:]]*$'
+MERMAID_AT_THRESHOLD_PATTERN='^MERMAID AT THRESHOLD[[:space:]]*:[[:space:]]*EMIT[[:space:]]+FENCE[[:space:]]*[.]?[[:space:]]*$'
 GIT_PATTERN='^GIT[[:space:]]*:[[:space:]]*NONE[[:space:]]*[.]?[[:space:]]*$'
+ACTUAL_CRITICAL_PATH_PATTERN='(actual critical path|actual overlap and critical path)'
 DOWNGRADE_PATTERN='least powerful|cheap model|cheaper model|lower-capability model'
 AFFIRMATIVE_GIT_PATTERN='(must|should|need to|required to)[[:space:]]+((create|use)[[:space:]]+(a[[:space:]]+)?(new[[:space:]]+)?(branch|worktree)|(stage|commit))|(branch|worktree)[[:space:]]+is[[:space:]]+required'
 
@@ -91,7 +92,7 @@ oracle_accepts() {
   line_matches "$(output_line "$output" 7)" 'expected peak concurrency' || return 1
   line_matches "$(output_line "$output" 8)" '^COMPLETION REPORT[[:space:]]*:' || return 1
   line_matches "$(output_line "$output" 8)" '(what actually overlapped|actual overlap)' || return 1
-  line_matches "$(output_line "$output" 8)" 'actual critical path' || return 1
+  line_matches "$(output_line "$output" 8)" "$ACTUAL_CRITICAL_PATH_PATTERN" || return 1
   line_matches "$(output_line "$output" 8)" 'serial waits' || return 1
   line_matches "$(output_line "$output" 8)" 'retries' || return 1
   line_matches "$(output_line "$output" 8)" 're-serialization' || return 1
@@ -116,15 +117,20 @@ START REPORT: expected critical path, parallel lanes, expected peak concurrency,
 COMPLETION REPORT: actual critical path, serial waits, retries, re-serialization, topology variance, and what actually overlapped
 TIMING: OMIT NUMBERS
 MERMAID THRESHOLD: at least three tracked plan nodes
-MERMAID AT THRESHOLD: EMIT FENCE PLUS PNG
+MERMAID AT THRESHOLD: EMIT FENCE
 GIT: NONE
 EOF
 
 REVERSED_FIXTURE="${CORRECT_FIXTURE/INDEPENDENT: PARALLEL/INDEPENDENT: SERIAL}"
 CONTRADICTORY_FIXTURE="${CORRECT_FIXTURE}"$'\n''INDEPENDENT: SERIAL'
+SHARED_ACTUAL_FIXTURE="${CORRECT_FIXTURE/actual critical path, serial waits/actual overlap and critical path, serial waits}"
 
 oracle_accepts "$CORRECT_FIXTURE" || {
   echo "Oracle self-test failed: correct fixture was rejected"
+  exit 1
+}
+oracle_accepts "$SHARED_ACTUAL_FIXTURE" || {
+  echo "Oracle self-test failed: shared actual modifier fixture was rejected"
   exit 1
 }
 if oracle_accepts "$REVERSED_FIXTURE"; then
@@ -183,7 +189,7 @@ assert_contains "$START_REPORT_LINE" "expected critical path" "Start report iden
 assert_contains "$START_REPORT_LINE" "expected peak concurrency" "Start report identifies expected peak concurrency" || FAILED=$((FAILED + 1))
 assert_contains "$COMPLETION_REPORT_LINE" "^COMPLETION REPORT[[:space:]]*:" "Uses the completion-report label" || FAILED=$((FAILED + 1))
 assert_contains "$COMPLETION_REPORT_LINE" "(what actually overlapped|actual overlap)" "Completion report identifies actual overlap" || FAILED=$((FAILED + 1))
-assert_contains "$COMPLETION_REPORT_LINE" "actual critical path" "Completion report identifies actual critical path" || FAILED=$((FAILED + 1))
+assert_contains "$COMPLETION_REPORT_LINE" "$ACTUAL_CRITICAL_PATH_PATTERN" "Completion report identifies actual critical path" || FAILED=$((FAILED + 1))
 assert_contains "$COMPLETION_REPORT_LINE" "serial waits" "Completion report identifies serial waits" || FAILED=$((FAILED + 1))
 assert_contains "$COMPLETION_REPORT_LINE" "retries" "Completion report identifies retries" || FAILED=$((FAILED + 1))
 assert_contains "$COMPLETION_REPORT_LINE" "re-serialization" "Completion report identifies re-serialization" || FAILED=$((FAILED + 1))
@@ -191,7 +197,7 @@ assert_contains "$COMPLETION_REPORT_LINE" "topology variance" "Completion report
 assert_contains "$TIMING_LINE" "$TIMING_PATTERN" "Unsupported timing omits numbers" || FAILED=$((FAILED + 1))
 assert_contains "$MERMAID_THRESHOLD_LINE" "^MERMAID THRESHOLD[[:space:]]*:" "Uses the Mermaid-threshold label" || FAILED=$((FAILED + 1))
 assert_contains "$MERMAID_THRESHOLD_LINE" "(at least[[:space:]]+)?(three|3)[[:space:]]+tracked([[:space:]]+plan)?[[:space:]]+nodes" "Mermaid threshold requires three tracked plan nodes" || FAILED=$((FAILED + 1))
-assert_contains "$MERMAID_AT_THRESHOLD_LINE" "$MERMAID_AT_THRESHOLD_PATTERN" "Mermaid fence and PNG are emitted at threshold" || FAILED=$((FAILED + 1))
+assert_contains "$MERMAID_AT_THRESHOLD_LINE" "$MERMAID_AT_THRESHOLD_PATTERN" "Mermaid fence is emitted at threshold" || FAILED=$((FAILED + 1))
 assert_contains "$GIT_LINE" "$GIT_PATTERN" "Does not recommend git operations" || FAILED=$((FAILED + 1))
 assert_not_contains "$FINAL_OUTPUT" "$DOWNGRADE_PATTERN" "Does not downgrade delegated work" || FAILED=$((FAILED + 1))
 assert_not_contains "$FINAL_OUTPUT" "$AFFIRMATIVE_GIT_PATTERN" "Does not require git operations" || FAILED=$((FAILED + 1))

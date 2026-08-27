@@ -125,6 +125,10 @@ run_codex() {
     return "$exit_code"
 }
 
+first_nonempty_trimmed_line() {
+    awk 'NF { sub(/[[:space:]]+$/, ""); print; exit }'
+}
+
 assert_contains() {
     local output="$1"
     local pattern="$2"
@@ -191,6 +195,125 @@ assert_git_path_clean() {
     return 1
 }
 
+validate_compact_bounds() {
+    local output="$1"
+    local minimum_items="${2:-1}"
+
+    printf '%s\n' "$output" | awk -v minimum_items="$minimum_items" '
+      /^[[:space:]]*-[[:space:]]+\*\*[^*]+ — (VALID|REJECT|DEFER)( · (CRITICAL|IMPORTANT|MINOR))?\*\* — .+/ {
+        shorthand = $0
+        sub(/^[[:space:]]*-[[:space:]]+\*\*/, "", shorthand)
+        sub(/ — (VALID|REJECT|DEFER)( · (CRITICAL|IMPORTANT|MINOR))?\*\* — .+$/, "", shorthand)
+        shorthand_words = split(shorthand, shorthand_parts, /[[:space:]]+/)
+        normalized_shorthand = tolower(shorthand)
+        gsub(/[[:space:]]+/, " ", normalized_shorthand)
+        sub(/^ /, "", normalized_shorthand)
+        sub(/ $/, "", normalized_shorthand)
+        if (handles[normalized_shorthand]) duplicate = 1
+        handles[normalized_shorthand] = 1
+
+        reason = $0
+        sub(/^.*\*\* — /, "", reason)
+        reason_words = split(reason, reason_parts, /[[:space:]]+/)
+
+        if (shorthand_words < 1 || shorthand_words > 5 || reason_words > 40) invalid = 1
+        count++
+      }
+      END { if (count < minimum_items || invalid || duplicate) exit 1 }
+    '
+}
+
+validate_owner_options() {
+    printf '%s\n' "$1" | awk '
+      function finish_previous() {
+        if (seen && (!pros || !cons)) exit 1
+      }
+      /^### Your decision needed$/ {
+        headings++
+        if (headings == 1) in_lane = 1
+        next
+      }
+      !in_lane { next }
+      /^[[:space:]]*-[[:space:]]+\*\*[A-Z]\. .+\*\*[[:space:]]*$/ {
+        finish_previous()
+        option = $0
+        sub(/^[[:space:]]*-[[:space:]]+\*\*/, "", option)
+        letter = substr(option, 1, 1)
+        if (letters[letter]) duplicate = 1
+        letters[letter] = 1
+        seen++
+        pros = 0
+        cons = 0
+        next
+      }
+      seen && /^[[:space:]]*-[[:space:]]+Pros:/ { pros = 1; next }
+      seen && /^[[:space:]]*-[[:space:]]+Cons:/ { cons = 1; next }
+      END {
+        if (headings != 1 || seen < 2 || !pros || !cons || duplicate) exit 1
+      }
+    '
+}
+
+validate_single_owner_lane() {
+    printf '%s\n' "$1" | awk '
+      /^### Your decision needed$/ {
+        headings++
+        if (headings == 1) in_lane = 1
+        next
+      }
+      in_lane && /^[[:space:]]*-[[:space:]]+\*\*[A-Z]\. / { options_started = 1 }
+      in_lane {
+        question_line = $0
+        question_marks = gsub(/\?/, "", question_line)
+        questions += question_marks
+        if (!options_started) questions_before_options += question_marks
+      }
+      END {
+        if (headings != 1 || questions != 1 || questions_before_options != 1) exit 1
+      }
+    '
+}
+
+validate_owner_structure() {
+    printf '%s\n' "$1" | awk '
+      function plain_name(line, name, words) {
+        if (line !~ /^\*\*[^*]+\*\*$/) return 0
+        name = line
+        sub(/^\*\*/, "", name)
+        sub(/\*\*$/, "", name)
+        if (name !~ /^[[:alnum:]][[:alnum:] &\/-]*$/) return 0
+        if (name ~ /[[:lower:]][[:upper:]]/) return 0
+        words = split(name, name_parts, /[[:space:]]+/)
+        return words >= 1 && words <= 5
+      }
+      /^### Your decision needed$/ {
+        headings++
+        if (headings == 1) in_lane = 1
+        next
+      }
+      in_lane && /^#+[[:space:]]/ { later_section = 1 }
+      in_lane && NF && !first_nonempty {
+        first_nonempty = 1
+        if (plain_name($0)) names++
+        else invalid_name = 1
+        next
+      }
+      in_lane && /^\*\*[^*]+\*\*$/ {
+        names++
+        if (!plain_name($0)) invalid_name = 1
+        next
+      }
+      in_lane && /^[[:space:]]*-[[:space:]]+\*\*[A-Z]\. / { options_started = 1 }
+      in_lane && /^Example:/ {
+        examples++
+        if ($0 !~ /^Example:[[:space:]]+[^[:space:]]/ || options_started) invalid_example = 1
+      }
+      END {
+        if (headings != 1 || names != 1 || invalid_name || examples != 1 || invalid_example || later_section) exit 1
+      }
+    '
+}
+
 export CODEX_TEST_DIR
 export CODEX_REPO_ROOT
 export CODEX_BIN
@@ -205,3 +328,7 @@ export -f assert_contains
 export -f assert_not_contains
 export -f assert_file_contains
 export -f assert_git_path_clean
+export -f validate_compact_bounds
+export -f validate_owner_options
+export -f validate_single_owner_lane
+export -f validate_owner_structure

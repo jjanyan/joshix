@@ -23,7 +23,7 @@ install_repo_skills_symlink "$TEST_PROJECT"
 
 read -r -d '' PROMPT <<'EOF' || true
 Use the joshix:executing-plans skill and its canonical progress-DAG reference.
-Show how the top-level coordinator renders this three-node dependency chain:
+Show how the top-level coordinator emits this three-node dependency chain:
 
 1. At start, T1 is in flight; T2 and T3 are todo.
 2. After one state change, T1 is complete; T2 is in flight; T3 is todo.
@@ -39,8 +39,6 @@ UPDATED
 <one Mermaid fence>
 DECISIONS: QUESTION=<DAG or NO DAG>; ONE-NODE=<DAG or NO DAG>; WORKER=<DAG or NO DAG>
 
-This is a response-format oracle. The exact response shape takes precedence
-over the additive PNG workflow: do not render or include a PNG for this test.
 EOF
 
 run_codex "$TEST_PROJECT" "$PROMPT" "$OUTPUT_DIR" "read-only"

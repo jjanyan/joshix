@@ -87,6 +87,7 @@ while [[ $# -gt 0 ]]; do
             echo "  test-subagent-driven-development-integration.sh  Independent-lane workflow execution"
             echo "  test-executing-plans-coupled-integration.sh  Coupled plan stays inline"
             echo "  test-document-review-system.sh  Spec document review behavior"
+            echo "  test-plan-document-review-system.sh  Plan document review behavior"
             echo "  test-requesting-code-review.sh  Code review behavior"
             echo "  test-task-context-handoff-integration.sh  Codex/Claude shared-context handoff"
             exit 0
@@ -113,6 +114,7 @@ integration_tests=(
     "test-subagent-driven-development-integration.sh"
     "test-executing-plans-coupled-integration.sh"
     "test-document-review-system.sh"
+    "test-plan-document-review-system.sh"
     "test-requesting-code-review.sh"
     "test-task-context-handoff-integration.sh"
 )

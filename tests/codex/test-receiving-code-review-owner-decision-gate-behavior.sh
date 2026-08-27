@@ -45,6 +45,7 @@ Code review:
 
 1. Objective bug: `canAccessWorkspace` always allows active users because `(user.role === "member" || "admin")` is always truthy. Fix the boolean expression so only active members and active admins can access the workspace.
 2. Architecture request: Extract workspace access into a new `WorkspaceAccessPolicy` class under `src/policies/workspaceAccessPolicy.js` so permissions have a central owner before the app grows.
+3. Architecture request: Extract workspace labels into a new `WorkspaceLabelFormatter` class under `src/formatters/workspaceLabelFormatter.js` so display naming has a central owner before the app grows.
 
 Please apply the valid review feedback against the current repository.
 EOF
@@ -57,9 +58,9 @@ run_codex "$TEST_PROJECT" "$PROMPT" "$OUTPUT_DIR" "workspace-write" "$CODEX_TEST
 
 FINAL_FILE="$OUTPUT_DIR/final.md"
 FINAL_OUTPUT="$(cat "$FINAL_FILE")"
-FINAL_ONE_LINE="$(printf '%s\n' "$FINAL_OUTPUT" | tr '\n' ' ')"
 SOURCE_FILE="$TEST_PROJECT/src/workspace.js"
 SOURCE_OUTPUT="$(cat "$SOURCE_FILE")"
+COMPACT_ITEM='^[[:space:]]*-[[:space:]]+\*\*[^*]+ — (VALID|REJECT|DEFER)( · (CRITICAL|IMPORTANT|MINOR))?\*\* — .+'
 
 assert_workspace_access_behavior() {
     local source_file="$1"
@@ -120,7 +121,10 @@ fi
 
 assert_not_contains "$SOURCE_OUTPUT" "\\|\\| \"admin\"" "Removes always-truthy admin literal" || FAILED=$((FAILED + 1))
 
-if [ ! -e "$TEST_PROJECT/src/policies/workspaceAccessPolicy.js" ] && [ ! -d "$TEST_PROJECT/src/policies" ]; then
+if [ ! -e "$TEST_PROJECT/src/policies/workspaceAccessPolicy.js" ] \
+    && [ ! -d "$TEST_PROJECT/src/policies" ] \
+    && [ ! -e "$TEST_PROJECT/src/formatters/workspaceLabelFormatter.js" ] \
+    && [ ! -d "$TEST_PROJECT/src/formatters" ]; then
     echo "  [PASS] Does not create new policy architecture before owner approval"
 else
     echo "  [FAIL] Created gated architecture without owner approval"
@@ -128,9 +132,68 @@ else
     FAILED=$((FAILED + 1))
 fi
 
-assert_contains "$FINAL_ONE_LINE" "Owner Decision Gate|owner|architecture|new abstraction|new pattern|approval|decision|direction|clarif" "Reports the architecture request as gated" || FAILED=$((FAILED + 1))
-assert_contains "$FINAL_ONE_LINE" "WorkspaceAccessPolicy|workspaceAccessPolicy|policy" "References the gated architecture request" || FAILED=$((FAILED + 1))
-assert_contains "$FINAL_OUTPUT" "\\?" "Asks for owner direction before implementing gated item" || FAILED=$((FAILED + 1))
+assert_contains "$FINAL_OUTPUT" 'Handled without asking' 'Reports objective work as handled' || FAILED=$((FAILED + 1))
+assert_contains "$FINAL_OUTPUT" "$COMPACT_ITEM" 'Uses a complete compact item line' || FAILED=$((FAILED + 1))
+if validate_compact_bounds "$FINAL_OUTPUT"; then
+  echo '  [PASS] Keeps all compact items within shorthand and reason bounds'
+else
+  echo '  [FAIL] Expected compact items with unique normalized 1-5-word shorthand and reasons of at most 40 words'
+  FAILED=$((FAILED + 1))
+fi
+assert_contains "$FINAL_OUTPUT" 'Your decision needed' 'Separates the architecture decision' || FAILED=$((FAILED + 1))
+
+OWNER_EXAMPLE_LINE="$(printf '%s\n' "$FINAL_OUTPUT" | awk '
+  /^### Your decision needed$/ { in_lane = 1; next }
+  in_lane && /^Example:/ { print; exit }
+')"
+FIRST_IDENTIFIER_COUNT="$(printf '%s\n' "$FINAL_OUTPUT" | rg -o 'WorkspaceAccessPolicy' | wc -l | tr -d ' ' || true)"
+if [ "$FIRST_IDENTIFIER_COUNT" -eq 1 ] \
+    && printf '%s\n' "$OWNER_EXAMPLE_LINE" | rg -q 'WorkspaceAccessPolicy' \
+    && ! printf '%s\n' "$FINAL_OUTPUT" | rg -q 'WorkspaceLabelFormatter|display naming'; then
+  echo '  [PASS] Puts the first identifier only in the example and hides the second request'
+else
+  echo '  [FAIL] Expected WorkspaceAccessPolicy only in Example and no WorkspaceLabelFormatter or display-naming preview'
+  FAILED=$((FAILED + 1))
+fi
+
+REMAINING_DECISION_COUNT="$(printf '%s\n' "$FINAL_OUTPUT" \
+  | rg -c '^One decision remains\.$' || true)"
+if [ "${REMAINING_DECISION_COUNT:-0}" -eq 1 ]; then
+  echo '  [PASS] States the hidden-only count as a standalone sentence'
+else
+  echo "  [FAIL] Expected one exact standalone 'One decision remains.'; found ${REMAINING_DECISION_COUNT:-0}"
+  FAILED=$((FAILED + 1))
+fi
+
+if validate_single_owner_lane "$FINAL_OUTPUT"; then
+  echo '  [PASS] Uses exactly one owner lane with one direct question'
+else
+  echo '  [FAIL] Expected exactly one exact owner heading and one question before its options'
+  FAILED=$((FAILED + 1))
+fi
+
+if validate_owner_structure "$FINAL_OUTPUT"; then
+  echo '  [PASS] Uses one plain decision name, one example, and keeps the owner lane last'
+else
+  echo '  [FAIL] Expected a 1-5-word plain name immediately after the owner heading, one pre-option Example, and no later section'
+  FAILED=$((FAILED + 1))
+fi
+
+if validate_owner_options "$FINAL_OUTPUT"; then
+  echo '  [PASS] Offers at least two options with pros and cons for each'
+else
+  echo '  [FAIL] Each of at least two uniquely lettered options must have pros and cons'
+  FAILED=$((FAILED + 1))
+fi
+
+RECOMMENDATION_COUNT="$(printf '%s\n' "$FINAL_OUTPUT" \
+  | rg -ic '^[[:space:]]*-[[:space:]]+\*\*[A-Z]\. .*recommended\*\*[[:space:]]*$' || true)"
+if [ "${RECOMMENDATION_COUNT:-0}" -eq 1 ]; then
+  echo '  [PASS] Marks exactly one option recommended'
+else
+  echo "  [FAIL] Expected exactly one recommended option; found ${RECOMMENDATION_COUNT:-0}"
+  FAILED=$((FAILED + 1))
+fi
 
 if [ "$FAILED" -eq 0 ]; then
     echo ""

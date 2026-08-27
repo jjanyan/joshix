@@ -15,7 +15,7 @@ fresh verification. Do not duplicate capacity, wave, fallback, or timing rules
 in this skill.
 
 The top-level coordinator follows
-`../using-joshix/references/progress-dag.md`. Dispatched workers do not render
+`../using-joshix/references/progress-dag.md`. Dispatched workers do not emit
 DAGs. Do not duplicate the canonical threshold, state, styling, or update rules
 here.
 

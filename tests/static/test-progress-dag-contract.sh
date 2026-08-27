@@ -21,6 +21,16 @@ require_fixed() {
   fi
 }
 
+forbid_fixed() {
+  local file="$1" text="$2" label="$3"
+  local normalized
+  normalized="$(tr '\n\r\t' '   ' < "$file" | tr -s ' ')"
+  if [[ "$normalized" == *"$text"* ]]; then
+    printf 'FAIL: %s\nUnexpected: %s\n' "$label" "$text"
+    exit 1
+  fi
+}
+
 require_fixed "$DAG" 'at least three tracked nodes' 'trigger is objective'
 require_fixed "$DAG" 'When tracked node state changes' 'state changes cause updates'
 require_fixed "$DAG" 'When a blocker changes dependencies or the viable path' 'topology changes cause updates'
@@ -31,16 +41,19 @@ require_fixed "$DAG" 'Do not assign a class to todo nodes' 'todo uses Mermaid de
 require_fixed "$DAG" 'Keep node IDs and labels stable between updates' 'updates remain visually stable'
 require_fixed "$DAG" 'Show actual dependencies and available parallelism' 'topology is truthful'
 require_fixed "$DAG" 'Condense large plans into meaningful phase nodes' 'large graphs stay legible'
-require_fixed "$DAG" 'top-level coordinator' 'coordinator owns rendering'
-require_fixed "$DAG" 'Dispatched workers never render' 'workers are exempt'
+require_fixed "$DAG" 'top-level coordinator' 'coordinator owns emission'
+require_fixed "$DAG" 'Dispatched workers never emit, update, or persist it.' 'workers are exempt'
 require_fixed "$DAG" 'Do not write the DAG as shared task state' 'DAG stays conversation-only'
 require_fixed "$DAG" 'Ordinary questions and one- or two-node work do not get a DAG' 'small work does not trigger'
-require_fixed "$DAG" 'keep the Mermaid source fence in the response' 'source fence remains additive'
-require_fixed "$DAG" 'also render an additive PNG on both Claude Code and Codex' 'both hosts render PNG'
-require_fixed "$DAG" 'render_dir="$(mktemp -d)"' 'PNG output directory is assigned before use'
-require_fixed "$DAG" '<absolute-using-joshix-skill-dir>/scripts/render-mermaid.mjs' 'policy invokes shared helper'
-require_fixed "$DAG" 'do not persist the PNG in task context or Git' 'PNG stays ephemeral'
-require_fixed "$DAG" 'change the layout direction to make it readable' 'diagram layout stays legible'
+require_fixed "$DAG" 'Mermaid source fence is the user-facing artifact' 'source fence is the required artifact'
+require_fixed "$DAG" 'A client may render it natively' 'native rendering is optional'
+require_fixed "$DAG" 'agent does not create, inspect, attach, or persist a fallback image' 'agent does not create fallback images'
+require_fixed "$DAG" 'Failure to display Mermaid visually is not a workflow failure' 'missing native rendering does not block work'
+require_fixed "$DAG" 'condense it into meaningful phase nodes or change its layout direction' 'source graph stays legible'
+forbid_fixed "$DAG" 'additive PNG' 'PNG requirement is removed'
+forbid_fixed "$DAG" 'render-mermaid.mjs' 'renderer helper is removed from policy'
+forbid_fixed "$DAG" 'mktemp -d' 'temporary image rendering is removed'
+forbid_fixed "$DAG" 'PNG' 'PNG terminology is removed from policy'
 
 for skill in "${SKILLS[@]}"; do
   require_fixed "$skill" 'using-joshix/references/progress-dag.md' \

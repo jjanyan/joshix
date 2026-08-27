@@ -21,7 +21,9 @@ Expected skill names use the `joshix:` namespace, for example:
 - `joshix:commit-message`
 - `joshix:commit-staged`
 - `joshix:reviewing-plans`
+- `joshix:receiving-code-review`
 - `joshix:receiving-plan-review`
+- `joshix:receiving-spec-review`
 - `joshix:verification-before-completion`
 
 ### Claude Code
@@ -43,17 +45,23 @@ Gemini loads `GEMINI.md`, which points at the local `using-joshix` bootstrap and
 3. **reviewing-plans** reviews pasted or referenced plans by default; execution requires an explicit instruction.
 4. **subagent-driven-development** or **executing-plans** executes approved plans.
 5. **test-driven-development** applies RED-GREEN-REFACTOR for core behavior changes and bug fixes.
-6. **code-review**, **requesting-code-review**, **receiving-code-review**, and **receiving-plan-review** handle review workflows.
+6. **code-review**, **requesting-code-review**, **receiving-code-review**, **receiving-plan-review**, and **receiving-spec-review** handle review workflows.
 7. **commit-message** drafts commit messages from staged changes without mutating git state.
 8. **commit-staged** commits only when all local changes are already staged.
 9. **verification-before-completion** requires fresh evidence before claiming work is done.
 
 When an active joshix planning or development workflow has at least three tracked nodes,
-the top-level agent shows a Mermaid progress DAG at the start, on state or
+the top-level agent emits a Mermaid source DAG at the start, on state or
 dependency changes, and at completion. Completed work is green, in-flight work
-is blue, and todo work keeps Mermaid's default styling. The graph is a
-user-facing update only; subagents do not render it and it is not shared task
-state.
+is blue, and todo work keeps Mermaid's default styling. The source fence is the
+user-facing artifact; clients may render it natively, and agents do not create a
+PNG fallback. Subagents do not emit the DAG, and it is not shared task state.
+
+Plan, spec, and code reviewers keep detailed reports so another agent can check
+their evidence. When an agent responds to one of those reports, it summarizes
+settled findings with compact `VALID`, `REJECT`, or `DEFER` lines. Unresolved
+product, scope, and architecture choices are presented one at a time with
+lettered options, concrete pros and cons, and one recommendation.
 
 joshix is parallel-first after execution is authorized when meaningful tasks
 are independent, have disjoint ownership, and can be verified safely. Coupled,

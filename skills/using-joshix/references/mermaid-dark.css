@@ -1,5 +1,0 @@
-svg { background: #171717; }
-.node rect { rx: 10px; ry: 10px; }
-.edgeLabel rect { fill: #171717 !important; opacity: 0.96; }
-.flowchart-link { stroke: #737373; stroke-width: 1.4px; }
-.marker { fill: #737373; stroke: #737373; }

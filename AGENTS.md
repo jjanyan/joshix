@@ -30,6 +30,19 @@ is not being shaped as an upstream PR.
 - If the user pastes or references an agent plan review, evaluate the review
   item by item before editing the plan. Do not apply fixes unless explicitly
   asked.
+- If the user pastes or references an agent spec review, evaluate the review
+  item by item before editing the spec. Do not apply fixes unless explicitly
+  asked; when application is requested, apply verified objective corrections
+  but stop before new product, scope, or architecture decisions.
+- For received review feedback without edit authorization, the first emitted
+  agent sentence must be the corresponding sentence below, verbatim:
+  - Code: `I'm reviewing the review as feedback to evaluate, not as approval to edit files.`
+  - Plan: `I'm reviewing the plan review as feedback to evaluate, not as approval to edit the plan.`
+  - Spec: `I'm reviewing the spec review as feedback to evaluate, not as approval to edit the spec.`
+  The sentence itself replaces the generic skill announcement and must come
+  first; any required shared-task notice still follows on its own line. Repeat
+  the same sentence as the first non-empty line of the final response before
+  the compact review sections.
 
 ## Skill Names
 
@@ -51,6 +64,7 @@ Important workflow skills include:
 - `joshix:requesting-code-review`
 - `joshix:receiving-code-review`
 - `joshix:receiving-plan-review`
+- `joshix:receiving-spec-review`
 - `joshix:verification-before-completion`
 
 ## Testing

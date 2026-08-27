@@ -26,18 +26,32 @@ This is not negotiable. This is not optional. You cannot rationalize your way ou
 
 <EXTREMELY-IMPORTANT>
 If the current user message includes code review feedback, review comments, a
-pasted agent review, or critique of code changes, invoke
-`joshix:receiving-code-review` before any implementation skill, TDD step, file
-edit, or test-writing step.
+pasted agent review, or critique of code changes, or if it includes plan or
+spec reviewer feedback, first identify whether the review concerns code, a
+plan, or a spec. Invoke `joshix:receiving-code-review` for code,
+`joshix:receiving-plan-review` for plans, and
+`joshix:receiving-spec-review` for specs. Invoke the matching reception skill
+before any implementation skill, TDD step, file edit, or test-writing step.
+
+In review-only mode, the matching reception skill's exact mode sentence must be
+the first emitted agent sentence. Emit it before any skill, workflow,
+or repository-context announcement; it replaces the generic skill
+announcement. If task context requires a shared-task notice, that shared-task
+notice follows the exact mode sentence on its own line. Use the corresponding
+sentence verbatim:
+
+- Code: `I'm reviewing the review as feedback to evaluate, not as approval to edit files.`
+- Plan: `I'm reviewing the plan review as feedback to evaluate, not as approval to edit the plan.`
+- Spec: `I'm reviewing the spec review as feedback to evaluate, not as approval to edit the spec.`
 
 This still applies when the user says "fix these", "apply this", "address
 this", "get this done", or "get it done". Those phrases authorize verified
 objective fixes only; they do not authorize product decisions, owner decisions,
 scope expansion, or new architecture from review feedback.
 
-If a review item asks for a new class, module, service, policy object, owner,
-layer, dependency, or extraction, treat it as a gated architecture decision and
-ask the owner before editing that item.
+If a code, plan, or spec review item asks for a new class, module, service,
+policy object, owner, layer, dependency, or extraction, treat it as a gated
+architecture decision and ask the owner before editing that item.
 </EXTREMELY-IMPORTANT>
 
 ## Instruction Priority
@@ -78,7 +92,7 @@ digraph skill_flow {
     "Invoke brainstorming skill" [shape=box];
     "Might any skill apply?" [shape=diamond];
     "Invoke Skill tool" [shape=box];
-    "Announce: 'Using [skill] to [purpose]'" [shape=box];
+    "Announce: exact review-mode sentence,\notherwise 'Using [skill] to [purpose]'" [shape=box];
     "Invoke joshix:task-context\nfor supported top-level conversations" [shape=box];
     "Has checklist?" [shape=diamond];
     "Create task-list item per checklist item" [shape=box];
@@ -93,8 +107,8 @@ digraph skill_flow {
     "User message received" -> "Might any skill apply?";
     "Might any skill apply?" -> "Invoke Skill tool" [label="yes, even 1%"];
     "Might any skill apply?" -> "Respond (including clarifications)" [label="definitely not"];
-    "Invoke Skill tool" -> "Announce: 'Using [skill] to [purpose]'";
-    "Announce: 'Using [skill] to [purpose]'" -> "Invoke joshix:task-context\nfor supported top-level conversations";
+    "Invoke Skill tool" -> "Announce: exact review-mode sentence,\notherwise 'Using [skill] to [purpose]'";
+    "Announce: exact review-mode sentence,\notherwise 'Using [skill] to [purpose]'" -> "Invoke joshix:task-context\nfor supported top-level conversations";
     "Invoke joshix:task-context\nfor supported top-level conversations" -> "Has checklist?";
     "Has checklist?" -> "Create task-list item per checklist item" [label="yes"];
     "Has checklist?" -> "Follow skill exactly" [label="no"];
@@ -169,14 +183,19 @@ Execution requires explicit language such as "execute this plan", "implement
 this", "start on it", "apply this plan", "carry this out", or "get this done".
 A bare plan, "here is the plan", or "final plan" is not approval to execute.
 
-## Code Review Feedback Default
+## Review Feedback Default
 
-If the user provides, pastes, links, or references code review feedback, review
-comments, or an agent code review, invoke `joshix:receiving-code-review`.
+Route received reviewer feedback by what it evaluates:
+
+- Code review feedback invokes `joshix:receiving-code-review`.
+- Plan review feedback invokes `joshix:receiving-plan-review`.
+- Spec review feedback invokes `joshix:receiving-spec-review`.
+
 This still applies when the user says "fix these", "apply this", or "get it
-done". In implementation mode, `joshix:receiving-code-review` evaluates each
-item first and gates product, owner, and new architecture decisions before TDD
-or file edits begin.
+done". Application language authorizes verified objective fixes only; it never
+grants authority for product behavior, owner decisions, scope expansion, or new
+architecture. The matching reception skill evaluates each item and applies its
+owner gate before TDD or file edits begin.
 
 ## Agent Workspace Artifacts
 

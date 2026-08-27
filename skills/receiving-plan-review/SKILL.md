@@ -21,6 +21,8 @@ I'm reviewing the plan review as feedback to evaluate, not as approval to edit t
 If another workflow also requires a skill announcement, include the mode
 sentence in the same first response before any analysis. A generic statement
 like "I'll evaluate the feedback" is not enough.
+Treat the exact sentence as the required skill announcement. Do not prepend a
+skill-name or repository-context announcement.
 
 Then evaluate the review item by item. Do not edit files, stage, commit, branch,
 or start implementation unless the user explicitly asks for that action.
@@ -32,8 +34,8 @@ For each review item:
 1. Read the full review before reacting.
 2. Check the claim against the plan, spec, repo context, and existing workflow
    rules.
-3. Classify it as `Valid`, `Invalid`, `Needs investigation`, `Needs
-   clarification`, `Already handled`, or `Optional/taste`.
+3. Classify settled findings as `VALID`, `REJECT`, or `DEFER` under the
+   canonical response contract.
 4. Cite concrete evidence when possible: task names, step text, file paths,
    spec requirements, or the missing evidence.
 5. Recommend whether to fix, reject, defer, clarify, or investigate.
@@ -57,22 +59,49 @@ Treat these as non-blocking unless they create real implementation risk:
 - Suggestions to add "more complete" behavior not required by the spec
 - Requests to split or combine tasks when the current decomposition is workable
 
+## Owner Decision Gate
+
+Objective plan corrections may be recommended or applied when edits are
+authorized. New product behavior, scope, ownership, or architecture requested
+by plan feedback requires Josh's decision when existing requirements do not
+already settle it. Application language authorizes verified objective fixes;
+it does not authorize a new owner decision.
+
+When the gate triggers, leave that part of the plan unchanged, continue only
+independent objective work, and ask one concrete question using the canonical
+one-at-a-time owner-decision format.
+
+Treat each independent product, scope, ownership, or architecture request as a
+separate decision. When several remain, show only the first in review order.
+The canonical reference owns the exact presentation grammar, including plain
+naming, technical-identifier placement, hidden later requests, the remaining
+count, and response order.
+
+Never use `REJECT` or `DEFER` to dispose of an unresolved architecture request,
+including when the user says not to make the decision for them. That instruction
+means preserve the plan and present the choice in the owner-decision lane.
+
 ## If Asked To Apply The Review
 
 Even when the user asks you to apply plan review feedback, evaluate the items
 first. Push back on invalid, stale, speculative, or scope-expanding comments
 before editing. Clarify blocking ambiguities before changing the plan.
+Apply objective corrections minimally. When reordering existing steps, copy
+their heading wording verbatim and change only the ordinal when the verified
+feedback changes ordering alone. Add, split, or rename steps only when the
+verified feedback itself requires that structural change.
 
-## Response Shape
+## User-Facing Response
 
-```markdown
-I'm reviewing the plan review as feedback to evaluate, not as approval to edit the plan.
+Read and follow `../using-joshix/references/review-response-format.md`
+completely before composing the response. Map verified review claims to
+`VALID`, `REJECT`, or `DEFER` only after checking plan, spec, and repository
+evidence.
 
-1. [Reviewer item]
-   Assessment: Valid | Invalid | Needs investigation | Needs clarification | Already handled | Optional/taste
-   Evidence: [plan/spec/repo references or missing evidence]
-   Recommendation: [fix, reject, defer, clarify, or investigate]
-```
+Use the review-only heading when no plan edits were authorized. When
+application was authorized, use the handled heading and past tense for
+completed objective work. Move every unresolved product, scope, ownership, or
+architecture choice to the one-at-a-time owner-decision lane.
 
 ## Bottom Line
 

@@ -21,6 +21,7 @@ assert_file_contains "$SKILL_FILE" "Product/owner decisions" "Names product and 
 assert_file_contains "$SKILL_FILE" "Architecture decisions" "Names new architecture decisions" || FAILED=$((FAILED + 1))
 assert_file_contains "$SKILL_FILE" "Do not edit.*until the owner answers|must ask.*before editing" "Blocks edits until owner answers" || FAILED=$((FAILED + 1))
 assert_file_contains "$SKILL_FILE" "question.*recommendation|recommendation.*question" "Requires a question with a recommendation" || FAILED=$((FAILED + 1))
+assert_file_contains "$SKILL_FILE" "using-joshix/references/review-response-format\.md" "Links the canonical receiver response format" || FAILED=$((FAILED + 1))
 
 if [ "$FAILED" -eq 0 ]; then
     echo ""

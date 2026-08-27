@@ -16,6 +16,7 @@ trap 'cleanup_test_project "$TEST_PROJECT"' EXIT
 
 init_git_project "$TEST_PROJECT"
 install_repo_skills_symlink "$TEST_PROJECT"
+cp "$CODEX_REPO_ROOT/AGENTS.md" "$TEST_PROJECT/AGENTS.md"
 
 mkdir -p "$TEST_PROJECT/.joshix/specs" "$TEST_PROJECT/.joshix/plans"
 cat > "$TEST_PROJECT/.joshix/specs/import-widget-design.md" <<'EOF'
@@ -86,7 +87,7 @@ Call `recordAuditTrail("import.validation", result)` after validation.
 Render `accepted.length` and `rejected.length` in the import summary.
 EOF
 
-git -C "$TEST_PROJECT" add .joshix/specs/import-widget-design.md .joshix/plans/import-widget.md
+git -C "$TEST_PROJECT" add AGENTS.md .joshix/specs/import-widget-design.md .joshix/plans/import-widget.md
 git -C "$TEST_PROJECT" commit --quiet -m "Add import widget plan"
 
 read -r -d '' PROMPT <<'EOF' || true
@@ -106,30 +107,45 @@ EOF
 
 echo "Test project: $TEST_PROJECT"
 echo "Running Codex with workspace-write so accidental edits are observable..."
-run_codex "$TEST_PROJECT" "$PROMPT" "$OUTPUT_DIR" "workspace-write"
+run_codex "$TEST_PROJECT" "$PROMPT" "$OUTPUT_DIR" "workspace-write" "$CODEX_TEST_TIMEOUT" "use-rules"
 
 FINAL_FILE="$OUTPUT_DIR/final.md"
 EVENTS_FILE="$OUTPUT_DIR/events.jsonl"
 FINAL_OUTPUT="$(cat "$FINAL_FILE")"
-EARLY_AGENT_MESSAGES="$(
-    jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .item.text | gsub("\n"; " ")' "$EVENTS_FILE" \
-        | head -2 \
-        | tr '\n' ' '
-)"
-FINAL_ONE_LINE="$(printf '%s\n' "$FINAL_OUTPUT" | tr '\n' ' ')"
+FIRST_NONEMPTY_LINE="$(first_nonempty_trimmed_line < "$FINAL_FILE")"
+FIRST_AGENT_MESSAGE="$(jq -rs 'map(select(.type == "item.completed" and .item.type == "agent_message"))[0].item.text // ""' "$EVENTS_FILE")"
+FIRST_AGENT_LINE="$(printf '%s\n' "$FIRST_AGENT_MESSAGE" | first_nonempty_trimmed_line)"
+COMPACT_ITEM='^[[:space:]]*-[[:space:]]+\*\*[^*]+ — (VALID|REJECT|DEFER)( · (CRITICAL|IMPORTANT|MINOR))?\*\* — .+'
 
 echo ""
 echo "Verifying plan review-review behavior..."
 FAILED=0
 
-assert_contains "$EARLY_AGENT_MESSAGES" "reviewing (the )?plan review|review-review|feedback to evaluate|not as approval to edit" "Immediately announces plan review-review mode" || FAILED=$((FAILED + 1))
-assert_contains "$FINAL_OUTPUT" "Task 1|CSV parser" "Evaluates Task 1 item" || FAILED=$((FAILED + 1))
-assert_contains "$FINAL_OUTPUT" "recordAuditTrail|Task 2" "Evaluates Task 2 item" || FAILED=$((FAILED + 1))
-assert_contains "$FINAL_OUTPUT" "Task 3|gerund|Rendering accepted and rejected counts" "Evaluates Task 3 item" || FAILED=$((FAILED + 1))
-assert_contains "$FINAL_OUTPUT" "valid|invalid|needs investigation|needs clarification|already handled|optional|taste" "Classifies at least one item" || FAILED=$((FAILED + 1))
-assert_contains "$FINAL_ONE_LINE" "Task 1.*(invalid|incorrect|not valid|wrong|false positive|already handled|does add.*test|Step 1)" "Rejects false test-first finding with plan evidence" || FAILED=$((FAILED + 1))
-assert_contains "$FINAL_ONE_LINE" "recordAuditTrail.*(valid|needs investigation|undefined|never created|never defined|missing)" "Accepts or investigates missing recordAuditTrail issue" || FAILED=$((FAILED + 1))
-assert_contains "$FINAL_ONE_LINE" "gerund|optional|taste|non-blocking|style" "Treats heading rename as optional/taste" || FAILED=$((FAILED + 1))
+if [ "$FIRST_AGENT_LINE" = "I'm reviewing the plan review as feedback to evaluate, not as approval to edit the plan." ]; then
+    echo "  [PASS] Emits the exact plan-review mode sentence first"
+else
+    echo "  [FAIL] Expected first emitted agent sentence to be the exact plan-review mode sentence"
+    echo "  Actual: ${FIRST_AGENT_LINE:-<empty>}"
+    FAILED=$((FAILED + 1))
+fi
+if [ "$FIRST_NONEMPTY_LINE" = "I'm reviewing the plan review as feedback to evaluate, not as approval to edit the plan." ]; then
+    echo "  [PASS] Uses the exact plan-review mode sentence as the first non-empty line"
+else
+    echo "  [FAIL] Expected exact plan-review mode sentence as the first non-empty line"
+    echo "  Actual: ${FIRST_NONEMPTY_LINE:-<empty>}"
+    FAILED=$((FAILED + 1))
+fi
+assert_contains "$FINAL_OUTPUT" 'No decision needed.*no changes made' 'Uses review-only heading' || FAILED=$((FAILED + 1))
+assert_contains "$FINAL_OUTPUT" "$COMPACT_ITEM" 'Uses complete compact item lines' || FAILED=$((FAILED + 1))
+if validate_compact_bounds "$FINAL_OUTPUT" 3; then
+    echo '  [PASS] Keeps all compact items within shorthand and reason bounds'
+else
+    echo '  [FAIL] Expected at least three compact items with unique normalized 1-5-word shorthand and reasons of at most 40 words'
+    FAILED=$((FAILED + 1))
+fi
+assert_contains "$FINAL_OUTPUT" '^[[:space:]]*-[[:space:]]+\*\*[^*]+ — REJECT\*\* — .*([Ss]tep 1|test.*first|already.*test)' 'Rejects false plan-order finding with evidence' || FAILED=$((FAILED + 1))
+assert_contains "$FINAL_OUTPUT" '^[[:space:]]*-[[:space:]]+\*\*[^*]+ — VALID( · (CRITICAL|IMPORTANT|MINOR))?\*\* — .*(recordAuditTrail|audit.*missing|undefined)' 'Accepts missing plan dependency' || FAILED=$((FAILED + 1))
+assert_contains "$FINAL_OUTPUT" '^[[:space:]]*-[[:space:]]+\*\*[^*]+ — DEFER\*\* — .*(gerund|heading|style|naming)' 'Defers plan naming preference' || FAILED=$((FAILED + 1))
 assert_git_path_clean "$TEST_PROJECT" ".joshix/plans" "Does not edit plan files" || FAILED=$((FAILED + 1))
 
 if [ "$FAILED" -eq 0 ]; then

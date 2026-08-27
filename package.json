@@ -2,12 +2,5 @@
   "name": "joshix",
   "version": "1.2.0",
   "type": "module",
-  "main": ".opencode/plugins/joshix.js",
-  "scripts": {
-    "render-mermaid": "node skills/using-joshix/scripts/render-mermaid.mjs",
-    "test:render-mermaid": "node --test tests/mermaid-renderer/mermaid-renderer.test.mjs"
-  },
-  "devDependencies": {
-    "@mermaid-js/mermaid-cli": "11.16.0"
-  }
+  "main": ".opencode/plugins/joshix.js"
 }

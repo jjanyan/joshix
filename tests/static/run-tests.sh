@@ -9,6 +9,8 @@ tests=(
   "test-parallel-first-contract.sh"
   "test-task-context-contract.sh"
   "test-progress-dag-contract.sh"
+  "test-review-response-format-contract.sh"
+  "test-review-producer-format-contract.sh"
 )
 
 passed=0

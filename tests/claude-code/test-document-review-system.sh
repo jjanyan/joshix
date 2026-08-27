@@ -129,12 +129,14 @@ else
 fi
 echo ""
 
-# Test 3: Reviewer output includes Issues section
+# Test 3: Reviewer output uses the detailed spec review format
 echo "Test 3: Review output format..."
-if grep -qi "issues\|Issues" "$OUTPUT_FILE"; then
-    echo "  [PASS] Review includes Issues section"
+if grep -q '## Spec Review' "$OUTPUT_FILE" \
+   && grep -q '\*\*Status:\*\*' "$OUTPUT_FILE" \
+   && grep -q '\*\*Issues' "$OUTPUT_FILE"; then
+    echo "  [PASS] Review uses the detailed spec review format"
 else
-    echo "  [FAIL] Review missing Issues section"
+    echo "  [FAIL] Review missing detailed spec review markers"
     FAILED=$((FAILED + 1))
 fi
 echo ""
