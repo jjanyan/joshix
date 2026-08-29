@@ -55,6 +55,7 @@ FINAL_FILE="$OUTPUT_DIR/final.md"
 EVENTS_FILE="$OUTPUT_DIR/events.jsonl"
 FINAL_OUTPUT="$(cat "$FINAL_FILE")"
 FIRST_NONEMPTY_LINE="$(first_nonempty_trimmed_line < "$FINAL_FILE")"
+PRODUCER_OPENING="I'm using joshix:reviewing-specs to review this spec by default, not to edit it."
 FIRST_AGENT_MESSAGE="$(jq -rs 'map(select(.type == "item.completed" and .item.type == "agent_message"))[0].item.text // ""' "$EVENTS_FILE")"
 FIRST_AGENT_LINE="$(printf '%s\n' "$FIRST_AGENT_MESSAGE" | first_nonempty_trimmed_line)"
 COMPACT_ITEM='^[[:space:]]*-[[:space:]]+\*\*[^*]+ — (VALID|REJECT|DEFER)( · (CRITICAL|IMPORTANT|MINOR))?\*\* — .+'
@@ -77,7 +78,11 @@ else
   echo "  Actual: ${FIRST_NONEMPTY_LINE:-<empty>}"
   FAILED=$((FAILED + 1))
 fi
+assert_not_contains "$FINAL_OUTPUT" "$PRODUCER_OPENING" \
+  'Does not use the fresh spec-producer opening for received feedback' || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_OUTPUT" 'No decision needed.*no changes made' 'Uses review-only heading' || FAILED=$((FAILED + 1))
+assert_not_contains "$FINAL_OUTPUT" '^### Handled without asking$' 'Review-only mode never uses the automatic-application heading' || FAILED=$((FAILED + 1))
+assert_not_contains "$FINAL_OUTPUT" '^### Applied as requested$' 'Review-only mode never uses the explicit-application heading' || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_OUTPUT" "$COMPACT_ITEM" 'Uses complete compact item lines' || FAILED=$((FAILED + 1))
 if validate_compact_bounds "$FINAL_OUTPUT" 3; then
   echo '  [PASS] Keeps all compact items within shorthand and reason bounds'
@@ -89,6 +94,12 @@ assert_contains "$FINAL_OUTPUT" '^[[:space:]]*-[[:space:]]+\*\*[^*]+ — VALID( 
 assert_contains "$FINAL_OUTPUT" '^[[:space:]]*-[[:space:]]+\*\*[^*]+ — REJECT\*\* — .*(((three|3).*(retr|limit|already))|((retr|limit|already).*(three|3)))' 'Rejects the false unlimited-retry claim' || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_OUTPUT" '^[[:space:]]*-[[:space:]]+\*\*[^*]+ — DEFER\*\* — .*(Access|Authorization|heading|name|naming|style|taste)' 'Defers the heading preference' || FAILED=$((FAILED + 1))
 assert_git_path_clean "$TEST_PROJECT" ".joshix/specs" "Does not edit spec files" || FAILED=$((FAILED + 1))
+if validate_review_outcome "$FINAL_OUTPUT" 'Rereview required'; then
+  echo '  [PASS] Accepted but unapplied objective finding requires rereview'
+else
+  echo '  [FAIL] Expected exactly one Rereview required outcome'
+  FAILED=$((FAILED + 1))
+fi
 
 if [ "$FAILED" -eq 0 ]; then
   echo ""

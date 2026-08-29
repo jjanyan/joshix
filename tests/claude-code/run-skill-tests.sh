@@ -114,6 +114,7 @@ integration_tests=(
     "test-subagent-driven-development-integration.sh"
     "test-executing-plans-coupled-integration.sh"
     "test-document-review-system.sh"
+    "test-review-role-boundary.sh"
     "test-plan-document-review-system.sh"
     "test-requesting-code-review.sh"
     "test-task-context-handoff-integration.sh"

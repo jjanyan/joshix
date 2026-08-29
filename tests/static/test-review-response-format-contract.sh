@@ -32,10 +32,62 @@ forbid_fixed() {
 require_fixed "$FORMAT" 'applies to agents responding to reviewer reports' 'scope is receiver-only'
 require_fixed "$FORMAT" 'Reviewer reports stay detailed' 'reviewer reports keep their existing format'
 require_fixed "$FORMAT" 'fresh and delegated plan, spec, and code reviewers' 'producer reviews remain detailed'
+require_fixed "$FORMAT" '## Response grammar' 'one canonical response grammar exists'
+require_fixed "$FORMAT" '| Position | Emit when | Exact form |' 'response grammar owns lane selection and order'
+require_fixed "$FORMAT" 'first emitted agent sentence' \
+  'canonical grammar protects review-only openings before announcements'
+require_fixed "$FORMAT" 'first non-empty line of the final response' \
+  'canonical grammar repeats the exact review-only opening in final output'
+require_fixed "$FORMAT" 'replaces the generic skill announcement' \
+  'canonical grammar narrows what the exact opening replaces'
+require_fixed "$FORMAT" 'shared-task notice follows' \
+  'canonical grammar preserves the task-context notice after the exact opening'
 require_fixed "$FORMAT" 'No decision needed — no changes made' 'review-only heading is canonical'
 require_fixed "$FORMAT" '### No decision needed — no changes made' 'review-only heading syntax is canonical'
-require_fixed "$FORMAT" 'Handled without asking' 'authorized-application heading is canonical'
-require_fixed "$FORMAT" '### Handled without asking' 'authorized-application heading syntax is canonical'
+require_fixed "$FORMAT" '| `### No decision needed — no changes made` | The compact no-decision lane is non-empty' \
+  'no-change heading requires a non-empty compact lane'
+require_fixed "$FORMAT" 'Omit it for clean approval, no findings, unsettled-evidence-only responses, and owner-decision-only responses.' \
+  'no-change heading is absent when the compact lane is empty'
+forbid_fixed "$FORMAT" 'Use `### No decision needed — no changes made` whenever Agent 1 applied no changes' \
+  'no-change heading is not an unconditional no-edit fallback'
+require_fixed "$FORMAT" '### Handled without asking' \
+  'automatic application heading is canonical'
+require_fixed "$FORMAT" '| `### Handled without asking` | Automatic mode actually applied at least one change without an explicit apply, fix, or proceed request.' \
+  'handled heading is automatic-only'
+require_fixed "$FORMAT" '### Applied as requested' \
+  'explicit application heading is canonical'
+require_fixed "$FORMAT" '| `### Applied as requested` | An explicit application request actually resulted in at least one change, or an owner-answer continuation applied the answer or newly unblocked work.' \
+  'owner continuation uses requested heading'
+require_fixed "$FORMAT" '`VALID`, `REJECT`, and `DEFER` apply only to actual review findings' \
+  'positive observations stay outside the issue lane'
+require_fixed "$FORMAT" '### Evidence needed — no changes made' \
+  'unsettled evidence has a distinct canonical lane'
+require_fixed "$FORMAT" 'This lane is distinct from the settled issue lane.' \
+  'unsettled evidence cannot masquerade as a settled finding'
+require_fixed "$FORMAT" 'Do not label these items `VALID`, `REJECT`, or `DEFER`.' \
+  'unsettled evidence does not invent a settled classification'
+require_fixed "$FORMAT" 'Name the specific missing evidence' \
+  'unsettled evidence names what is missing'
+require_fixed "$FORMAT" 'Leave the artifact unchanged and use `Rereview required`' \
+  'unsettled evidence remains unchanged and returns to Agent 2'
+require_fixed "$FORMAT" 'Never render approval as a `VALID` issue' \
+  'approval cannot look like a finding'
+require_fixed "$FORMAT" 'The review producer'\''s `**Status:** Approved | Issues Found` is provisional. It communicates review readiness, not the authoritative artifact outcome.' \
+  'producer status remains provisional'
+require_fixed "$FORMAT" 'After independent verification, Agent 1 emits exactly one authoritative artifact outcome unless an owner-decision lane alone communicates the only unresolved blocker.' \
+  'receiver emits one authoritative outcome except for an owner-only blocker'
+require_fixed "$FORMAT" 'Do not suppress the outcome when applied changes, unresolved disagreement, or unsettled evidence make it informative.' \
+  'informative outcomes remain present alongside other lanes'
+require_fixed "$FORMAT" '**Approved** — Agent 1 agrees that no actual findings remain.' \
+  'artifact approval outcome is canonical'
+require_fixed "$FORMAT" 'In semantic explicit no-edit mode, any accepted objective finding left unapplied requires `**Rereview required**`.' \
+  'accepted but unapplied objective findings are not approved'
+require_fixed "$FORMAT" '**Rereview required** — Another Agent 2 pass is required because the artifact changed, an accepted objective finding remains unapplied, or a reviewer-raised finding remains unsettled, disputed, or lacks evidence.' \
+  'rereview outcome covers every state requiring another Agent 2 pass'
+require_fixed "$FORMAT" '**Approval disputed** — Agent 2 approved the artifact, but Agent 1 identified a newly discovered concern that must wait for Agent 2'\''s next review.' \
+  'disputed approval outcome is canonical'
+require_fixed "$FORMAT" 'its outcome reason must explicitly state that Agent 2 must accept or rebut Agent 1'\''s reasoning.' \
+  'rejection and deferral outcomes name the next exchange'
 require_fixed "$FORMAT" 'one-to-five-word shorthand' 'compact items use short handles'
 require_fixed "$FORMAT" '40 words' 'compact reasons have a word limit'
 require_fixed "$FORMAT" 'concrete evidence and the proposed action or actual outcome' 'compact reasons contain evidence and outcomes'
@@ -83,6 +135,9 @@ require_fixed "$FORMAT" 'reviewed change, a stale expectation, the environment, 
 forbid_fixed "$FORMAT" 'skills/code-review' 'shared contract does not couple to code review producer paths'
 forbid_fixed "$FORMAT" 'skills/reviewing-plans' 'shared contract does not couple to plan review producer paths'
 
+RESPONSE_GRAMMAR_COUNT="$(rg -c '^## Response grammar$' "$FORMAT" || true)"
+[ "${RESPONSE_GRAMMAR_COUNT:-0}" -eq 1 ]
+
 USING="$ROOT/skills/using-joshix/SKILL.md"
 RECEIVERS=(
   "$ROOT/skills/receiving-code-review/SKILL.md"
@@ -112,18 +167,30 @@ require_fixed "$USING" 'receiving-plan-review` for plans' \
   'bootstrap routes plan reviews explicitly'
 require_fixed "$USING" 'receiving-spec-review` for specs' \
   'bootstrap routes spec reviews explicitly'
-require_fixed "$USING" 'first emitted agent sentence' \
-  'bootstrap preserves exact review-only openings before announcements'
-require_fixed "$USING" 'shared-task notice follows' \
-  'bootstrap preserves the task-context notice after the exact opening'
-forbid_fixed "$USING" 'task-context announcement; the exact sentence itself is' \
-  'bootstrap does not imply the exact opening replaces task-context notices'
+require_fixed "$USING" 'review-response-format.md' \
+  'bootstrap routes presentation to the canonical response grammar'
 require_fixed "$USING" "I'm reviewing the review as feedback to evaluate, not as approval to edit files." \
-  'bootstrap carries the exact code-review opening'
+  'bootstrap owns the pre-tool code-review opening'
 require_fixed "$USING" "I'm reviewing the plan review as feedback to evaluate, not as approval to edit the plan." \
-  'bootstrap carries the exact plan-review opening'
+  'bootstrap owns the pre-tool plan-review opening'
 require_fixed "$USING" "I'm reviewing the spec review as feedback to evaluate, not as approval to edit the spec." \
-  'bootstrap carries the exact spec-review opening'
+  'bootstrap owns the pre-tool spec-review opening'
+for file in "$ROOT/AGENTS.md" "$ROOT/CLAUDE.md"; do
+  require_fixed "$file" "I'm reviewing the review as feedback to evaluate, not as approval to edit files." \
+    "$(basename "$file") owns its pre-tool code opening"
+  require_fixed "$file" "I'm reviewing the plan review as feedback to evaluate, not as approval to edit the plan." \
+    "$(basename "$file") owns its pre-tool plan opening"
+  require_fixed "$file" "I'm reviewing the spec review as feedback to evaluate, not as approval to edit the spec." \
+    "$(basename "$file") owns its pre-tool spec opening"
+done
+for file in "$FORMAT" "${RECEIVERS[@]}"; do
+  forbid_fixed "$file" "I'm reviewing the review as feedback to evaluate, not as approval to edit files." \
+    "$(basename "$file") does not duplicate the pre-tool code opening"
+  forbid_fixed "$file" "I'm reviewing the plan review as feedback to evaluate, not as approval to edit the plan." \
+    "$(basename "$file") does not duplicate the pre-tool plan opening"
+  forbid_fixed "$file" "I'm reviewing the spec review as feedback to evaluate, not as approval to edit the spec." \
+    "$(basename "$file") does not duplicate the pre-tool spec opening"
+done
 require_fixed "${RECEIVERS[0]}" 'code review comments, pasted agent code reviews' \
   'code receiver metadata is code-specific'
 forbid_fixed "${RECEIVERS[0]}" 'review comments, pasted agent reviews' \
@@ -192,7 +259,21 @@ for test_file in "${REVIEW_ONLY_RECEIVER_TESTS[@]}"; do
     "$(basename "$test_file") checks the normalized first final line"
   require_fixed "$test_file" '| first_nonempty_trimmed_line)"' \
     "$(basename "$test_file") normalizes the first emitted sentence"
+  require_fixed "$test_file" "validate_review_outcome \"\$FINAL_OUTPUT\" 'Rereview required'" \
+    "$(basename "$test_file") requires rereview for accepted but unapplied findings"
 done
+
+AUTOMATIC_TEST="$ROOT/tests/codex/test-receiving-review-automatic-application.sh"
+require_fixed "$AUTOMATIC_TEST" 'Later objective correction does not manufacture an owner gate' \
+  'later corrections explicitly reject manufactured owner gates'
+
+OWNER_CONTINUATION_TEST="$ROOT/tests/codex/test-receiving-review-owner-answer-continuation.sh"
+require_fixed "$OWNER_CONTINUATION_TEST" 'Owner continuation matches the exact agreed artifact' \
+  'owner continuation verifies exact replacement text and topology'
+
+CONVERGENCE_TEST="$ROOT/tests/codex/test-receiving-review-convergence-outcomes.sh"
+require_fixed "$CONVERGENCE_TEST" 'Owner-only blocker omits the review outcome lane' \
+  'owner-only blocker behavior covers the canonical outcome exception'
 
 TRIMMED_FIRST_LINE="$(printf '\nMode sentence   \t\nLater line\n' | first_nonempty_trimmed_line)"
 if [ "$TRIMMED_FIRST_LINE" != 'Mode sentence' ]; then
@@ -202,42 +283,20 @@ fi
 forbid_fixed "$ROOT/tests/codex/test-receiving-plan-review-owner-decision-gate-behavior.sh" \
   'Reorders only the two original step headings' \
   'plan owner behavior test does not pin the fixture to exactly two headings'
+require_fixed "$ROOT/tests/codex/test-receiving-review-convergence-outcomes.sh" \
+  'Clean approval omits the no-change compact heading' \
+  'convergence behavior pins clean-approval heading omission'
+require_fixed "$ROOT/tests/codex/test-receiving-review-convergence-outcomes.sh" \
+  'Unverified reviewer claim uses the evidence-needed lane' \
+  'convergence behavior covers unsettled evidence'
 
 require_fixed "$ROOT/AGENTS.md" 'joshix:receiving-spec-review' \
   'repository guidance routes received spec reviews'
 require_fixed "$ROOT/CLAUDE.md" 'joshix:receiving-spec-review' \
   'Claude guidance routes received spec reviews'
-require_fixed "$ROOT/AGENTS.md" 'first emitted agent sentence' \
-  'repository guidance protects review-only openings before skill announcements'
-require_fixed "$ROOT/CLAUDE.md" 'first emitted agent sentence' \
-  'Claude guidance protects review-only openings before skill announcements'
-require_fixed "$ROOT/AGENTS.md" 'first non-empty line of the final response' \
-  'repository guidance repeats the exact opening in final output'
-require_fixed "$ROOT/CLAUDE.md" 'first non-empty line of the final response' \
-  'Claude guidance repeats the exact opening in final output'
-require_fixed "$ROOT/AGENTS.md" 'replaces the generic skill announcement' \
-  'repository guidance narrows what the exact opening replaces'
-require_fixed "$ROOT/CLAUDE.md" 'replaces the generic skill announcement' \
-  'Claude guidance narrows what the exact opening replaces'
-require_fixed "$ROOT/AGENTS.md" 'shared-task notice still follows' \
-  'repository guidance preserves the task-context notice'
-require_fixed "$ROOT/CLAUDE.md" 'shared-task notice still follows' \
-  'Claude guidance preserves the task-context notice'
-forbid_fixed "$ROOT/AGENTS.md" 'satisfies every skill, workflow, repository-context, and task-context announcement requirement' \
-  'repository guidance does not waive task-context announcements'
-forbid_fixed "$ROOT/CLAUDE.md" 'satisfies every skill, workflow, repository-context, and task-context announcement requirement' \
-  'Claude guidance does not waive task-context announcements'
-require_fixed "$ROOT/AGENTS.md" "I'm reviewing the review as feedback to evaluate, not as approval to edit files." \
-  'repository guidance carries the exact code-review opening'
-require_fixed "$ROOT/AGENTS.md" "I'm reviewing the plan review as feedback to evaluate, not as approval to edit the plan." \
-  'repository guidance carries the exact plan-review opening'
-require_fixed "$ROOT/AGENTS.md" "I'm reviewing the spec review as feedback to evaluate, not as approval to edit the spec." \
-  'repository guidance carries the exact spec-review opening'
-require_fixed "$ROOT/CLAUDE.md" "I'm reviewing the review as feedback to evaluate, not as approval to edit files." \
-  'Claude guidance carries the exact code-review opening'
-require_fixed "$ROOT/CLAUDE.md" "I'm reviewing the plan review as feedback to evaluate, not as approval to edit the plan." \
-  'Claude guidance carries the exact plan-review opening'
-require_fixed "$ROOT/CLAUDE.md" "I'm reviewing the spec review as feedback to evaluate, not as approval to edit the spec." \
-  'Claude guidance carries the exact spec-review opening'
+require_fixed "$ROOT/AGENTS.md" 'review-response-format.md' \
+  'repository guidance routes presentation to the canonical response grammar'
+require_fixed "$ROOT/CLAUDE.md" 'review-response-format.md' \
+  'Claude guidance routes presentation to the canonical response grammar'
 
 echo 'STATUS: PASSED'

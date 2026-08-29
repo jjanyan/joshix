@@ -161,7 +161,7 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 ## Plan Review Decision
 
 After self-review, decide whether to request an independent plan review using
-`plan-document-reviewer-prompt.md`.
+`../reviewing-plans/plan-document-reviewer-prompt.md`.
 
 Default to requesting plan review unless the plan is clearly small and low risk.
 Use judgment, but silence is not allowed: the execution handoff must state

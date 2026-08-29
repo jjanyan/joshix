@@ -19,6 +19,9 @@ I'm using joshix:code-review to review the requested scope.
 Then produce the review. Do not replace this with a generic heading.
 </EXTREMELY-IMPORTANT>
 
+Follow the producer boundary in
+`../using-joshix/references/review-producer-contract.md`.
+
 ## Scope
 
 Default: review local changes against `HEAD`, including staged and unstaged

@@ -5,63 +5,37 @@ description: Use when spec review feedback, pasted spec reviewer comments, or cr
 
 # Spec Review Reception
 
-Spec review feedback is input to evaluate, not an order to rewrite the spec.
+Read and follow
+`../using-joshix/references/review-reception-contract.md` and
+`../using-joshix/references/review-response-format.md` completely. The first is
+the single decision table for authority and convergence; the second is the
+single response grammar. Do not restate either here. The canonical reference
+owns the exact presentation grammar.
 
-## Default Mode
+## Reception Mode
 
-If the user provides spec review feedback and does not explicitly ask to edit
-the spec, begin with this exact sentence:
+Receiving another agent's spec review enters automatic meta-review mode by
+role. Verify the report against the spec, settled owner decisions, repository
+context, and approved requirements, then follow the canonical decision table.
+Semantic explicit no-edit mode uses the bootstrap's spec-specific exact
+opening, placed by the canonical response grammar, and never executes the spec.
 
-I'm reviewing the spec review as feedback to evaluate, not as approval to edit the spec.
+## Spec Classification
 
-Treat that exact sentence as the required skill announcement. Do not prepend a
-skill-name or repository-context announcement. If the host requires commentary
-before tool use, make this exact sentence the first sentence of that commentary.
-
-Then evaluate every claim. Do not edit files or perform git operations unless
-the user explicitly asks for that action.
-
-## Evaluation
-
-For each item, read the complete review, check the claim against the spec,
-settled user decisions, repository context, and existing requirements, then
-decide whether it is correct, false, non-blocking and outside scope, unclear,
-or already handled.
+Objective corrections include verified contradictions, missing approved
+requirements, placeholders, stale statements, and broken references. Apply
+them minimally while preserving the document's topology and unrelated content.
+Test any machine-checkable contract affected by an edit. Harmless heading,
+naming, and style preferences are normally non-blocking `DEFER` items.
 
 ## Owner Decision Gate
 
-Objective corrections such as contradictions, missing approved requirements,
-placeholders, and broken references may be recommended or applied when edits
-are authorized. New product behavior, scope, acceptance criteria, ownership,
-or architecture requires Josh's decision when existing requirements do not
-already settle it. Application language authorizes verified objective fixes;
-it does not authorize a new owner decision.
+New product behavior, scope, acceptance criteria, ownership, or architecture
+requires Josh's decision unless settled requirements already determine it. A
+reviewer-requested new class, module, service, policy object, owner, layer,
+dependency, directory, registry, or extraction is gated unless already approved
+or established.
 
-When the gate triggers, leave that part of the spec unchanged, continue only
-independent objective work, and ask one concrete owner question using the
-canonical lettered format.
-
-Treat each independent product, scope, acceptance-criteria, ownership, or
-architecture request as a separate decision. When several remain, show only
-the first in review order. The canonical reference owns the exact presentation
-grammar, including plain naming, technical-identifier placement, hidden later
-requests, the remaining count, and response order.
-
-Never use `REJECT` or `DEFER` to dispose of an unresolved product, scope, or
-architecture request, including when the user says not to make the decision for
-them. Preserve the spec and present the choice in the owner-decision lane.
-
-## Authorized Application
-
-When the user explicitly asks to update the spec, verify each item first,
-apply objective corrections, preserve rejected or deferred content, test any
-machine-checkable contract affected by the edit, and stop before gated items.
-
-## User-Facing Response
-
-Read and follow `../using-joshix/references/review-response-format.md`
-completely before composing the response. Use the review-only heading when no
-edits were authorized. Use the handled heading and past tense only for completed
-objective edits. Map verified claims to `VALID`, `REJECT`, or `DEFER`, and move
-unresolved product, scope, ownership, or architecture choices to the
-one-at-a-time owner-decision lane.
+Do not use `REJECT` or `DEFER` to choose an unresolved gated question.
+Automatic reception never authorizes implementation, unrelated spec expansion,
+staging, commits, branches, pushes, pull requests, or deployment.

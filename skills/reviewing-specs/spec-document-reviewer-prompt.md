@@ -10,9 +10,14 @@ Use this template when dispatching a spec document reviewer subagent.
 Task tool (general-purpose):
   description: "Review spec document"
   prompt: |
+    Use only the artifacts and reasoning supplied in this dispatch; do not seek outside conversation state.
+    Every producer status, approval, or readiness verdict is provisional.
+    The artifact owner emits the authoritative outcome after independent concurrence.
+
     You are a spec document reviewer. Verify this spec is complete and ready for planning.
 
     **Spec to review:** [SPEC_FILE_PATH]
+    **Prior reasoning:** [PRIOR_REASONING]
 
     ## What to Check
 

@@ -17,28 +17,35 @@ is not being shaped as an upstream PR.
     durable product docs.
 - After implementation, durable decisions belong in repo docs, code comments,
   or other permanent project files.
-- If the user asks an honest question, answer it before making changes.
+- If the user asks a substantive honest question about whether work should
+  occur, answer it before making changes. A question that merely asks for
+  meta-review (`What do you think?`, `Thoughts?`, or `Is this right?`) does not
+  pause automatic review reception.
 - If the user pastes or references an implementation plan without explicitly
   asking for execution, review the plan by default. Do not implement unless
   explicitly asked.
-- If the user pastes or references an agent code review, evaluate the review
-  item by item before editing. Do not apply fixes unless explicitly asked.
-- If the user pastes or references an agent plan review, evaluate the review
-  item by item before editing the plan. Do not apply fixes unless explicitly
-  asked.
-- If the user pastes or references an agent spec review, evaluate the review
-  item by item before editing the spec. Do not apply fixes unless explicitly
-  asked; when application is requested, apply verified objective corrections
-  but stop before new product, scope, or architecture decisions.
-- For received review feedback without edit authorization, the first emitted
-  agent sentence must be the corresponding sentence below, verbatim:
+- If the user provides a supplied or referenced spec without explicitly asking
+  to edit it or execute implementation, review the spec by default with
+  `joshix:reviewing-specs` and remain read-only.
+- Receiving another agent's code, plan, or spec review enters automatic
+  meta-review by role. Use the matching `joshix:receiving-*` skill and follow the
+  single decision table in
+  `skills/using-joshix/references/review-reception-contract.md` plus the single
+  response grammar in
+  `skills/using-joshix/references/review-response-format.md`. Those references
+  own objective application, semantic explicit no-edit behavior, owner-gated
+  product and architecture decisions, convergence, and reporting; do not restate
+  them here.
+- Pre-tool exception: semantic explicit no-edit mode must use the matching
+  sentence below verbatim as the first emitted agent sentence; do not prepend a
+  generic skill announcement. The response grammar governs its later placement.
   - Code: `I'm reviewing the review as feedback to evaluate, not as approval to edit files.`
   - Plan: `I'm reviewing the plan review as feedback to evaluate, not as approval to edit the plan.`
   - Spec: `I'm reviewing the spec review as feedback to evaluate, not as approval to edit the spec.`
-  The sentence itself replaces the generic skill announcement and must come
-  first; any required shared-task notice still follows on its own line. Repeat
-  the same sentence as the first non-empty line of the final response before
-  the compact review sections.
+  Use this exception only when the user semantically says review only, do not
+  edit, do not apply, or keep the artifact unchanged. `What do you think?`,
+  `Thoughts?`, and `Is this right?` remain automatic and must never trigger the
+  no-edit opening.
 
 ## Skill Names
 
@@ -50,6 +57,7 @@ Important workflow skills include:
 - `joshix:task-context`
 - `joshix:writing-plans`
 - `joshix:reviewing-plans`
+- `joshix:reviewing-specs`
 - `joshix:subagent-driven-development`
 - `joshix:executing-plans`
 - `joshix:systematic-debugging`

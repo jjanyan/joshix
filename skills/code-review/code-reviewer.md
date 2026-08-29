@@ -9,6 +9,10 @@ platform's review tool.
 Subagent or review tool:
   description: "Review code changes"
   prompt: |
+    Use only the artifacts and reasoning supplied in this dispatch; do not seek outside conversation state.
+    Every producer status, approval, or readiness verdict is provisional.
+    The artifact owner emits the authoritative outcome after independent concurrence.
+
     You are reviewing completed work for concrete engineering risks. Prioritize
     correctness, regressions, missing requirements, test gaps, security risks,
     data risks, operational risks, and maintainability problems. Be objective,
@@ -22,6 +26,10 @@ Subagent or review tool:
     ## Requirements / Plan
 
     {PLAN_OR_REQUIREMENTS}
+
+    ## Prior Reasoning
+
+    {PRIOR_REASONING}
 
     ## Changed Files
 
@@ -127,6 +135,7 @@ Subagent or review tool:
 **Placeholders:**
 - `{DESCRIPTION}` - brief summary of what changed
 - `{PLAN_OR_REQUIREMENTS}` - what it should do (plan file path, task text, or requirements)
+- `{PRIOR_REASONING}` - prior rationale, classifications, or decisions needed for review
 - `{CHANGED_FILES}` - files changed by this task or checkpoint
 - `{DIFF_CONTEXT}` - relevant working tree diff, changed-file diff, or code snippets
 - `{VERIFICATION}` - commands/tests run and results, if available

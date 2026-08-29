@@ -7,9 +7,10 @@ description: Use when completing tasks, implementing major features, or reviewin
 
 Request a focused code review to catch concrete issues before they cascade.
 Provide the reviewer with relevant implementation context, requirements,
-changed files, and diff context. By default, provide focused context instead of
-the full session history. Inherit or fork session context only when the
-platform or task genuinely requires it.
+changed files, diff context, and prior reasoning. Dispatch every reviewer in an
+isolated context with every required artifact, requirement, and prior reasoning
+item embedded in the dispatch prompt. Never use inherited or forked conversation
+history as review context.
 
 **Core principle:** Review concrete risks before proceeding.
 
@@ -43,6 +44,8 @@ answer it before requesting review.
 
 - `{DESCRIPTION}` - Brief summary of what changed
 - `{PLAN_OR_REQUIREMENTS}` - What it should do
+- `{PRIOR_REASONING}` - Prior rationale, classifications, or decisions needed
+  for review
 - `{CHANGED_FILES}` - Files changed by this task or checkpoint
 - `{DIFF_CONTEXT}` - Relevant working tree diff, changed-file diff, or code
   snippets to review
@@ -51,7 +54,7 @@ answer it before requesting review.
 **2. Dispatch a code reviewer:**
 
 Use the platform's subagent, review, or task tool with the template at
-`code-reviewer.md`.
+`../code-review/code-reviewer.md`.
 
 **3. Act on feedback:**
 - Fix Critical issues immediately
@@ -70,6 +73,7 @@ You: Let me request code review before proceeding.
 [Dispatch code reviewer subagent]
   DESCRIPTION: Added verifyIndex() and repairIndex() with 4 issue types
   PLAN_OR_REQUIREMENTS: Task 2 from .joshix/plans/deployment-plan.md
+  PRIOR_REASONING: Task 1 review established the current indexing and repair assumptions
   CHANGED_FILES: src/index.ts, tests/index.test.ts
   DIFF_CONTEXT: Current working tree diff for the changed files
   VERIFICATION: npm test tests/index.test.ts - passing
@@ -115,4 +119,4 @@ You: [Fix progress indicators]
 - Show code/tests that prove it works
 - Request clarification
 
-See template at: requesting-code-review/code-reviewer.md
+See template at: skills/code-review/code-reviewer.md

@@ -6,6 +6,11 @@ CODEX_REPO_ROOT="$(cd "$CODEX_TEST_DIR/../.." && pwd)"
 CODEX_BIN="${CODEX_BIN:-codex}"
 CODEX_TEST_TIMEOUT="${CODEX_TEST_TIMEOUT:-300}"
 
+fail() {
+    echo "FAIL: $*" >&2
+    exit 1
+}
+
 create_test_project() {
     local base="${TMPDIR:-/tmp}"
     mktemp -d "$base/joshix-codex-test.XXXXXX"
@@ -177,6 +182,30 @@ assert_file_contains() {
     assert_contains "$(cat "$file")" "$pattern" "$test_name"
 }
 
+assert_exact_heading_count() {
+    local output="$1" heading="$2" expected="$3" label="$4" count
+    count="$(printf '%s\n' "$output" | rg -c "^${heading}$" || true)"
+    if [ "${count:-0}" -eq "$expected" ]; then
+        echo "  [PASS] $label"
+        return 0
+    fi
+    echo "  [FAIL] $label (expected $expected, got ${count:-0})"
+    return 1
+}
+
+validate_review_outcome() {
+    local output="$1" expected="$2"
+    printf '%s\n' "$output" | awk -v expected="$expected" '
+      /^### Review outcome$/ { headings++; in_outcome=1; next }
+      /^### / && !/^### Review outcome$/ { in_outcome=0 }
+      in_outcome && /^\*\*/ {
+        outcomes++
+        if (index($0, "**" expected "**") == 1) matched++
+      }
+      END { exit !(headings == 1 && outcomes == 1 && matched == 1) }
+    '
+}
+
 assert_git_path_clean() {
     local project_dir="$1"
     local pathspec="$2"
@@ -318,6 +347,7 @@ export CODEX_TEST_DIR
 export CODEX_REPO_ROOT
 export CODEX_BIN
 export CODEX_TEST_TIMEOUT
+export -f fail
 export -f create_test_project
 export -f cleanup_test_project
 export -f init_git_project
@@ -327,8 +357,10 @@ export -f run_codex
 export -f assert_contains
 export -f assert_not_contains
 export -f assert_file_contains
+export -f assert_exact_heading_count
 export -f assert_git_path_clean
 export -f validate_compact_bounds
 export -f validate_owner_options
 export -f validate_single_owner_lane
 export -f validate_owner_structure
+export -f validate_review_outcome

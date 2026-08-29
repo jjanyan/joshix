@@ -102,7 +102,7 @@ Here is a Plan Review from another agent. What do you think?
 2. [Task 2, Step 2]: `recordAuditTrail` is called but never created, imported, or defined anywhere in the plan.
 3. [Task 3]: Rename this task to "Rendering accepted and rejected counts" because gerund-style headings are cleaner.
 
-Please evaluate the review against the current repository. Do not edit files unless I explicitly ask you to.
+Please evaluate the review against the current repository. Review only; do not edit the plan.
 EOF
 
 echo "Test project: $TEST_PROJECT"
@@ -136,6 +136,8 @@ else
     FAILED=$((FAILED + 1))
 fi
 assert_contains "$FINAL_OUTPUT" 'No decision needed.*no changes made' 'Uses review-only heading' || FAILED=$((FAILED + 1))
+assert_not_contains "$FINAL_OUTPUT" '^### Handled without asking$' 'Review-only mode never uses the automatic-application heading' || FAILED=$((FAILED + 1))
+assert_not_contains "$FINAL_OUTPUT" '^### Applied as requested$' 'Review-only mode never uses the explicit-application heading' || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_OUTPUT" "$COMPACT_ITEM" 'Uses complete compact item lines' || FAILED=$((FAILED + 1))
 if validate_compact_bounds "$FINAL_OUTPUT" 3; then
     echo '  [PASS] Keeps all compact items within shorthand and reason bounds'
@@ -147,6 +149,12 @@ assert_contains "$FINAL_OUTPUT" '^[[:space:]]*-[[:space:]]+\*\*[^*]+ — REJECT\
 assert_contains "$FINAL_OUTPUT" '^[[:space:]]*-[[:space:]]+\*\*[^*]+ — VALID( · (CRITICAL|IMPORTANT|MINOR))?\*\* — .*(recordAuditTrail|audit.*missing|undefined)' 'Accepts missing plan dependency' || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_OUTPUT" '^[[:space:]]*-[[:space:]]+\*\*[^*]+ — DEFER\*\* — .*(gerund|heading|style|naming)' 'Defers plan naming preference' || FAILED=$((FAILED + 1))
 assert_git_path_clean "$TEST_PROJECT" ".joshix/plans" "Does not edit plan files" || FAILED=$((FAILED + 1))
+if validate_review_outcome "$FINAL_OUTPUT" 'Rereview required'; then
+    echo '  [PASS] Accepted but unapplied objective finding requires rereview'
+else
+    echo '  [FAIL] Expected exactly one Rereview required outcome'
+    FAILED=$((FAILED + 1))
+fi
 
 if [ "$FAILED" -eq 0 ]; then
     echo ""

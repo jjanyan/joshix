@@ -9,25 +9,111 @@ Use this template when dispatching a code quality reviewer subagent.
 ```
 Task tool (general-purpose):
   description: "Quality review Task N: [task name]"
-  Use template at requesting-code-review/code-reviewer.md
+  prompt: |
+    Use only the artifacts and reasoning supplied in this dispatch; do not seek outside conversation state.
+    Every producer status, approval, or readiness verdict is provisional.
+    The artifact owner emits the authoritative outcome after independent concurrence.
 
-  PLAN_OR_REQUIREMENTS: Task N from [plan-file]
-  DECLARED_LANE_SCOPE: {DECLARED_LANE_FILES_AND_RESOURCES}
-  LANE_CHANGED_FILES: {ACTUAL_LANE_CHANGED_FILES_INCLUDING_UNTRACKED}
-  LANE_SCOPED_CHANGE_CONTEXT: {LANE_ONLY_DIFF_OR_EQUIVALENT_SUMMARY}
-  VERIFICATION: {FOCUSED_AND_DEFERRED_VERIFICATION_RESULTS}
+    You are reviewing completed work for concrete engineering risks. Prioritize
+    correctness, regressions, missing requirements, test gaps, security risks,
+    data risks, operational risks, and maintainability problems. Be objective,
+    fair, and specific. Do not include a positive-assessment section. Do not
+    give taste-based feedback.
+
+    ## Requirements / Plan
+
+    Task N from [plan-file]
+
+    ## Prior Reasoning
+
+    {PRIOR_REASONING}
+
+    ## Declared Lane Scope
+
+    {DECLARED_LANE_FILES_AND_RESOURCES}
+
+    ## Lane Changed Files
+
+    {ACTUAL_LANE_CHANGED_FILES_INCLUDING_UNTRACKED}
+
+    ## LANE_SCOPED_CHANGE_CONTEXT
+
+    {LANE_ONLY_DIFF_OR_EQUIVALENT_SUMMARY}
+
+    ## Verification
+
+    {FOCUSED_AND_DEFERRED_VERIFICATION_RESULTS}
+
+    ## Scope Rules
+
+    Inspect and review only the supplied declared lane scope, changed files,
+    and lane-scoped change context. Untracked lane files are in scope only when
+    explicitly included in the supplied lane fields. Unrelated in-flight work
+    may be visible in the checkout. Do not inspect or review the aggregate
+    in-flight working-tree diff.
+
+    ## What to Check
+
+    **Plan alignment:**
+    - Does the implementation match the plan / requirements, with all planned functionality present?
+    - Are deviations justified improvements, or problematic departures?
+
+    **Correctness and maintainability:**
+    - Are error handling, type safety where applicable, and edge cases handled correctly?
+    - Does each file have one clear responsibility with a well-defined interface?
+    - Are units decomposed so they can be understood and tested independently?
+    - Is the implementation following the file structure from the plan?
+    - Is the implementation DRY without premature abstraction?
+    - Did this implementation create new files that are already large, or
+      significantly grow existing files? Do not flag pre-existing file sizes;
+      focus on what this change contributed.
+
+    **Architecture, integration, and performance:**
+    - Are design decisions sound within the declared lane scope?
+    - Does the change integrate cleanly with surrounding code?
+    - Are scalability or performance concerns concrete and relevant?
+
+    **Testing:**
+    - Do tests verify real behavior rather than mocks where practical?
+    - Are meaningful edge cases and integration paths covered where they matter?
+    - Does the supplied verification support the implementation claims?
+
+    **Security, data, and operations:**
+    - Are security, data-loss or corruption, and operational risks addressed?
+
+    **Production readiness:**
+    - Are schema migration strategy, backward compatibility, and documentation complete where applicable?
+
+    ## Calibration
+
+    Categorize issues by actual severity. Not everything is Critical.
+    Ground findings in code you actually inspected. Do not invent issues or rely on assumptions.
+    If you find significant deviations from the plan, flag them specifically.
+    If the issue belongs to the plan rather than the implementation, say so.
+
+    ## Output Format
+
+    ### Findings
+
+    #### Critical (Must Fix)
+    [Bugs, security issues, data loss risks, broken functionality]
+
+    #### Important (Should Fix)
+    [Architecture problems, missing features, poor error handling, test gaps]
+
+    #### Minor (Nice to Have)
+    [Code style, optimization opportunities, documentation polish]
+
+    For each issue, include a file:line reference, what is wrong, why it matters, and how to fix it when the fix is not obvious.
+
+    ### Recommendations
+    [Targeted improvements. Omit if there are no useful recommendations.]
+
+    ### Assessment
+
+    **Ready to proceed?** [Yes | No | With fixes]
+
+    **Reasoning:** [1-2 sentence technical assessment]
 ```
-
-Inspect and review only the supplied declared lane scope, changed files, and
-lane-scoped change context. Untracked lane files are in scope only when they
-are explicitly included in the supplied lane fields. Unrelated in-flight work
-may be visible in the checkout. Do not inspect or review the aggregate
-in-flight working-tree diff.
-
-**In addition to standard code quality concerns, the reviewer should check:**
-- Does each file have one clear responsibility with a well-defined interface?
-- Are units decomposed so they can be understood and tested independently?
-- Is the implementation following the file structure from the plan?
-- Did this implementation create new files that are already large, or significantly grow existing files? (Don't flag pre-existing file sizes — focus on what this change contributed.)
 
 **Code reviewer returns:** Findings (Critical/Important/Minor), Recommendations, Assessment

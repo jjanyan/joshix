@@ -79,7 +79,12 @@ tests=(
     "test-receiving-plan-review-owner-decision-gate-behavior.sh"
     "test-receiving-spec-review-review-review.sh"
     "test-receiving-spec-review-owner-decision-gate-behavior.sh"
+    "test-receiving-review-automatic-application.sh"
+    "test-receiving-review-owner-answer-continuation.sh"
+    "test-receiving-review-failure-policy.sh"
+    "test-receiving-review-convergence-outcomes.sh"
     "test-reviewing-plans-default.sh"
+    "test-reviewing-specs-default.sh"
     "test-joshix-guidance-regressions.sh"
     "test-using-joshix-no-implicit-git.sh"
 )

@@ -81,7 +81,10 @@ else
   echo '  [PASS] Changes only the named spec'
 fi
 
-assert_contains "$FINAL_OUTPUT" 'Handled without asking' 'Reports objective work as handled' || FAILED=$((FAILED + 1))
+assert_contains "$FINAL_OUTPUT" '^### Applied as requested$' \
+  'Explicit application uses requested heading' || FAILED=$((FAILED + 1))
+assert_not_contains "$FINAL_OUTPUT" '^### Handled without asking$' \
+  'Explicit application never claims it was unrequested' || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_OUTPUT" "$COMPACT_ITEM" 'Uses a complete compact item line' || FAILED=$((FAILED + 1))
 if validate_compact_bounds "$FINAL_OUTPUT"; then
   echo '  [PASS] Keeps all compact items within shorthand and reason bounds'

@@ -25,6 +25,12 @@ cat > "$TEST_PROJECT/AGENTS.md" <<'EOF'
 Use `joshix:using-joshix` before responding.
 EOF
 
+cat > "$TEST_PROJECT/package.json" <<'EOF'
+{
+  "type": "module"
+}
+EOF
+
 cat > "$TEST_PROJECT/src/workspace.js" <<'EOF'
 export function canAccessWorkspace(user) {
   return Boolean(user && user.active === true && (user.role === "member" || "admin"));
@@ -35,7 +41,7 @@ export function workspaceLabel(workspace) {
 }
 EOF
 
-git -C "$TEST_PROJECT" add AGENTS.md src/workspace.js
+git -C "$TEST_PROJECT" add AGENTS.md package.json src/workspace.js
 git -C "$TEST_PROJECT" commit --quiet -m "Add workspace helpers"
 
 read -r -d '' PROMPT <<'EOF' || true
@@ -132,7 +138,10 @@ else
     FAILED=$((FAILED + 1))
 fi
 
-assert_contains "$FINAL_OUTPUT" 'Handled without asking' 'Reports objective work as handled' || FAILED=$((FAILED + 1))
+assert_contains "$FINAL_OUTPUT" '^### Applied as requested$' \
+  'Explicit application uses requested heading' || FAILED=$((FAILED + 1))
+assert_not_contains "$FINAL_OUTPUT" '^### Handled without asking$' \
+  'Explicit application never claims it was unrequested' || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_OUTPUT" "$COMPACT_ITEM" 'Uses a complete compact item line' || FAILED=$((FAILED + 1))
 if validate_compact_bounds "$FINAL_OUTPUT"; then
   echo '  [PASS] Keeps all compact items within shorthand and reason bounds'

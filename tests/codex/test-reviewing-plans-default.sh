@@ -70,7 +70,7 @@ EOF
 has_missing_delivery_dependency() {
   local output="$1"
   local finding direct_absence delivery_absence no_direct_definition
-  direct_absence='sendNotification[^.!?]{0,80}(does not exist|is (undefined|missing|absent)|is not (defined|created|imported)|has no (defined )?(source|contract|definition|implementation|module|import|export)|needs investigation)'
+  direct_absence='(sendNotification[^.!?]{0,80}(does not exist|is (undefined|missing|absent)|is not (defined|created|imported)|has no (defined )?(source|contract|definition|implementation|module|import|export)|needs investigation)|(does not|doesn.t) identify where[^.!?]{0,40}sendNotification[^.!?]{0,40}(comes from|is sourced))'
   delivery_absence='delivery (service )?(dependency|module|contract|mechanism)[^.!?]{0,80}((is|are|remains) (undefined|missing|absent)|does not exist|is not (defined|created|imported))'
   no_direct_definition='(there is no[[:space:][:punct:]]+sendNotification|no (definition|implementation|module|function|import|export|creation)[^.!?]{0,80}sendNotification)'
 
@@ -122,6 +122,7 @@ VALID_NO_SOURCE='`sendNotification(message)` has no defined source or contract.'
 VALID_DELIVERY_ABSENCE='The delivery dependency is undefined. Evidence: The plan calls `sendNotification(message)`.'
 VALID_CONTRACT_ABSENCE='The delivery contract and worker lifecycle are undefined. Evidence: no `sendNotification` service exists.'
 VALID_NO_DEFINITION='There is no `sendNotification`, import path, or worker entry point.'
+VALID_UNIDENTIFIED_SOURCE='The plan does not identify where `sendNotification` comes from.'
 INVALID_NEGATED_DIRECT='No, sendNotification is defined by the existing module.'
 INVALID_NOT_MISSING='sendNotification is not missing from the repository.'
 INVALID_NEGATED_DELIVERY='The delivery dependency is not missing; sendNotification is defined.'
@@ -133,6 +134,7 @@ if ! has_missing_delivery_dependency "$VALID_DIRECT_ABSENCE" \
     || ! has_missing_delivery_dependency "$VALID_DELIVERY_ABSENCE" \
     || ! has_missing_delivery_dependency "$VALID_CONTRACT_ABSENCE" \
     || ! has_missing_delivery_dependency "$VALID_NO_DEFINITION" \
+    || ! has_missing_delivery_dependency "$VALID_UNIDENTIFIED_SOURCE" \
     || has_missing_delivery_dependency "$INVALID_NEGATED_DIRECT" \
     || has_missing_delivery_dependency "$INVALID_NOT_MISSING" \
     || has_missing_delivery_dependency "$INVALID_NEGATED_DELIVERY" \

@@ -18,6 +18,9 @@ I'm using joshix:reviewing-plans to review this plan by default, not to execute 
 Then review the plan. Do not replace this with a generic heading.
 </EXTREMELY-IMPORTANT>
 
+Follow the producer boundary in
+`../using-joshix/references/review-producer-contract.md`.
+
 ## Default Mode
 
 If the user provides, pastes, links, or references an implementation plan

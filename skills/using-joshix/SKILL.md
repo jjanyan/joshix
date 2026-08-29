@@ -33,25 +33,27 @@ plan, or a spec. Invoke `joshix:receiving-code-review` for code,
 `joshix:receiving-spec-review` for specs. Invoke the matching reception skill
 before any implementation skill, TDD step, file edit, or test-writing step.
 
-In review-only mode, the matching reception skill's exact mode sentence must be
-the first emitted agent sentence. Emit it before any skill, workflow,
-or repository-context announcement; it replaces the generic skill
-announcement. If task context requires a shared-task notice, that shared-task
-notice follows the exact mode sentence on its own line. Use the corresponding
-sentence verbatim:
+Read and follow `references/review-reception-contract.md` and
+`references/review-response-format.md` completely. Receiving another agent's
+code, plan, or spec review enters automatic meta-review mode by role. The first
+reference is the single decision table for edit authority, owner gates,
+continuation, convergence, and failure; the second is the single response
+grammar, including semantic explicit no-edit openings. Do not restate or infer
+variants of either contract.
+
+The explicit no-edit opening must be known before the first skill-loading tool
+call, so this bootstrap owns its exact text. In that mode, use the matching
+sentence below as the first emitted agent sentence; do not prepend a generic
+skill announcement:
 
 - Code: `I'm reviewing the review as feedback to evaluate, not as approval to edit files.`
 - Plan: `I'm reviewing the plan review as feedback to evaluate, not as approval to edit the plan.`
 - Spec: `I'm reviewing the spec review as feedback to evaluate, not as approval to edit the spec.`
 
-This still applies when the user says "fix these", "apply this", "address
-this", "get this done", or "get it done". Those phrases authorize verified
-objective fixes only; they do not authorize product decisions, owner decisions,
-scope expansion, or new architecture from review feedback.
-
-If a code, plan, or spec review item asks for a new class, module, service,
-policy object, owner, layer, dependency, or extraction, treat it as a gated
-architecture decision and ask the owner before editing that item.
+Use this exception only when the user semantically says review only, do not
+edit, do not apply, or keep the artifact unchanged. `What do you think?`,
+`Thoughts?`, and `Is this right?` merely request meta-review; they remain
+automatic and must never trigger the no-edit opening.
 </EXTREMELY-IMPORTANT>
 
 ## Instruction Priority
@@ -162,6 +164,12 @@ Instructions say WHAT, not HOW. "Add X" or "Fix Y" doesn't mean skip workflows.
 If the user's message contains an honest question, answer the question before
 making changes, running consequential tools, or continuing implementation.
 
+A question that merely asks for meta-review does not pause automatic review
+reception. `What do you think?`, `Thoughts?`, and `Is this right?` about another
+agent's review ask for meta-review; evaluate and continue under the reception
+contract. A substantive question about whether work should occur still pauses
+action and must be answered first.
+
 A question is honest when the answer could affect scope, approach, priority, or
 whether work should happen at all. Do not treat an honest question as approval
 to proceed.
@@ -183,6 +191,18 @@ Execution requires explicit language such as "execute this plan", "implement
 this", "start on it", "apply this plan", "carry this out", or "get this done".
 A bare plan, "here is the plan", or "final plan" is not approval to execute.
 
+## Spec Documents Default To Review
+
+If the user supplies, pastes, links, or references a design spec without an
+explicit instruction to edit the spec or execute implementation work, invoke
+`joshix:reviewing-specs` and remain read-only. Treat direct requests to review,
+audit, sanity-check, validate, or critique a spec the same way.
+
+Do not edit the spec or execute implementation unless the user explicitly asks
+for that action. Received spec-review feedback is different: it takes
+precedence over this producer route and invokes `joshix:receiving-spec-review`
+under the review-feedback rules below.
+
 ## Review Feedback Default
 
 Route received reviewer feedback by what it evaluates:
@@ -191,11 +211,10 @@ Route received reviewer feedback by what it evaluates:
 - Plan review feedback invokes `joshix:receiving-plan-review`.
 - Spec review feedback invokes `joshix:receiving-spec-review`.
 
-This still applies when the user says "fix these", "apply this", or "get it
-done". Application language authorizes verified objective fixes only; it never
-grants authority for product behavior, owner decisions, scope expansion, or new
-architecture. The matching reception skill evaluates each item and applies its
-owner gate before TDD or file edits begin.
+The canonical `references/review-reception-contract.md` decision table and
+`references/review-response-format.md` response grammar above own all shared
+receiver behavior. The matching reception skill adds only artifact-specific
+classification and application guidance.
 
 ## Agent Workspace Artifacts
 

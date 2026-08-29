@@ -131,6 +131,9 @@ After writing the spec document, look at it with fresh eyes:
 
 Fix any issues inline. No need to re-review — just fix and move on.
 
+When a delegated spec reviewer is used, use the template at
+`../reviewing-specs/spec-document-reviewer-prompt.md`.
+
 **User Review Gate:**
 After the spec review loop passes, ask the user to review the written spec before proceeding:
 

@@ -21,6 +21,7 @@ Expected skill names use the `joshix:` namespace, for example:
 - `joshix:commit-message`
 - `joshix:commit-staged`
 - `joshix:reviewing-plans`
+- `joshix:reviewing-specs`
 - `joshix:receiving-code-review`
 - `joshix:receiving-plan-review`
 - `joshix:receiving-spec-review`
@@ -42,7 +43,7 @@ Gemini loads `GEMINI.md`, which points at the local `using-joshix` bootstrap and
 
 1. **brainstorming** refines rough ideas before implementation.
 2. **writing-plans** turns approved requirements into executable plans under `.joshix/plans/`.
-3. **reviewing-plans** reviews pasted or referenced plans by default; execution requires an explicit instruction.
+3. **reviewing-plans** and **reviewing-specs** review pasted or referenced plans and specs by default; execution requires an explicit instruction.
 4. **subagent-driven-development** or **executing-plans** executes approved plans.
 5. **test-driven-development** applies RED-GREEN-REFACTOR for core behavior changes and bug fixes.
 6. **code-review**, **requesting-code-review**, **receiving-code-review**, **receiving-plan-review**, and **receiving-spec-review** handle review workflows.
@@ -57,11 +58,17 @@ is blue, and todo work keeps Mermaid's default styling. The source fence is the
 user-facing artifact; clients may render it natively, and agents do not create a
 PNG fallback. Subagents do not emit the DAG, and it is not shared task state.
 
-Plan, spec, and code reviewers keep detailed reports so another agent can check
-their evidence. When an agent responds to one of those reports, it summarizes
-settled findings with compact `VALID`, `REJECT`, or `DEFER` lines. Unresolved
-product, scope, and architecture choices are presented one at a time with
-lettered options, concrete pros and cons, and one recommendation.
+Plan, spec, and code review producers remain read-only and return detailed,
+evidence-backed reports. Top-level producers may use prior shared reasoning;
+delegated producers receive the required context in their dispatch and never
+access shared task context.
+
+The artifact-owning agent responds through the matching reception skill. It
+independently verifies the review, automatically applies agreed objective
+findings, and reports afterward. Product, scope, ownership, and architecture
+choices remain owner-gated, and an explicit no-edit instruction keeps the
+meta-review read-only. Artifact readiness requires reviewer approval plus the
+owner agent's independent concurrence.
 
 joshix is parallel-first after execution is authorized when meaningful tasks
 are independent, have disjoint ownership, and can be verified safely. Coupled,

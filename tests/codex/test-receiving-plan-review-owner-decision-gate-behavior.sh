@@ -45,9 +45,9 @@ Here is a plan review from another agent. Apply the valid feedback to
 .joshix/plans/notification-queue.md.
 
 1. Objective fix: Task 1 implements behavior before adding its focused test.
-   Reorder and rewrite the steps so the failing test comes first, followed by
-   implementation and a passing verification command using
-   `node --test tests/notificationQueue.test.js`.
+   Rewrite it as three separate checkbox steps: first add and run the failing
+   focused test, second implement the behavior, and third run the passing
+   verification command `node --test tests/notificationQueue.test.js`.
 2. Architecture request: Replace the planned function with a new
    NotificationQueueService class so queue ordering has a central owner before
    the project grows.
@@ -207,7 +207,10 @@ else
   echo '  [PASS] Changes only the named plan'
 fi
 
-assert_contains "$FINAL_OUTPUT" 'Handled without asking' 'Reports objective work as handled' || FAILED=$((FAILED + 1))
+assert_contains "$FINAL_OUTPUT" '^### Applied as requested$' \
+  'Explicit application uses requested heading' || FAILED=$((FAILED + 1))
+assert_not_contains "$FINAL_OUTPUT" '^### Handled without asking$' \
+  'Explicit application never claims it was unrequested' || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_OUTPUT" "$COMPACT_ITEM" 'Uses a complete compact item line' || FAILED=$((FAILED + 1))
 if validate_compact_bounds "$FINAL_OUTPUT"; then
   echo '  [PASS] Keeps all compact items within shorthand and reason bounds'

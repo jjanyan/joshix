@@ -50,6 +50,7 @@ Code review:
 3. Minor: Rename `getDisplayName` to `displayName` because shorter function names are cleaner.
 
 Please evaluate the review against the current repository.
+Evaluate only; don't change anything yet.
 EOF
 
 echo "Test project: $TEST_PROJECT"
@@ -83,6 +84,8 @@ else
     FAILED=$((FAILED + 1))
 fi
 assert_contains "$FINAL_OUTPUT" 'No decision needed.*no changes made' 'Uses review-only heading' || FAILED=$((FAILED + 1))
+assert_not_contains "$FINAL_OUTPUT" '^### Handled without asking$' 'Review-only mode never uses the automatic-application heading' || FAILED=$((FAILED + 1))
+assert_not_contains "$FINAL_OUTPUT" '^### Applied as requested$' 'Review-only mode never uses the explicit-application heading' || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_OUTPUT" "$COMPACT_ITEM" 'Uses complete compact item lines' || FAILED=$((FAILED + 1))
 if validate_compact_bounds "$FINAL_OUTPUT" 3; then
     echo '  [PASS] Keeps all compact items within shorthand and reason bounds'
@@ -94,6 +97,12 @@ assert_contains "$FINAL_OUTPUT" '^[[:space:]]*-[[:space:]]+\*\*[^*]+ — REJECT\
 assert_contains "$FINAL_OUTPUT" '^[[:space:]]*-[[:space:]]+\*\*[^*]+ — VALID( · (CRITICAL|IMPORTANT|MINOR))?\*\* — .*(role|truthy|owner)' 'Accepts objective role bug with evidence' || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_OUTPUT" '^[[:space:]]*-[[:space:]]+\*\*[^*]+ — DEFER\*\* — .*(name|naming|shorter|style|taste)' 'Defers code naming preference' || FAILED=$((FAILED + 1))
 assert_git_path_clean "$TEST_PROJECT" "src" "Does not edit source files" || FAILED=$((FAILED + 1))
+if validate_review_outcome "$FINAL_OUTPUT" 'Rereview required'; then
+    echo '  [PASS] Accepted but unapplied objective finding requires rereview'
+else
+    echo '  [FAIL] Expected exactly one Rereview required outcome'
+    FAILED=$((FAILED + 1))
+fi
 
 if [ "$FAILED" -eq 0 ]; then
     echo ""

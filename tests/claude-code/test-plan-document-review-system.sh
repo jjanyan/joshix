@@ -68,7 +68,7 @@ echo ""
 OUTPUT_FILE="$TEST_PROJECT/claude-output.txt"
 PROMPT="You are testing the plan document reviewer.
 
-Read skills/writing-plans/plan-document-reviewer-prompt.md to understand the review criteria and output format.
+Read skills/reviewing-plans/plan-document-reviewer-prompt.md to understand the review criteria and output format.
 
 Then review the exact plan at $TEST_PROJECT/.joshix/plans/report-export.md and return the template's detailed report.
 
