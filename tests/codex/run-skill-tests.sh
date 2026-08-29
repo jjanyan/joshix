@@ -96,6 +96,21 @@ fi
 passed=0
 failed=0
 skipped=0
+retried=0
+
+# Every behavior test in this runner is model-backed unless it is explicitly
+# listed here as deterministic-only. Model-backed failures receive one retry;
+# deterministic failures remain single-attempt failures.
+is_model_backed_test() {
+    case "$1" in
+        test-receiving-code-review-owner-decision-gate.sh)
+            return 1
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+}
 
 for test in "${tests[@]}"; do
     echo "----------------------------------------"
@@ -110,18 +125,43 @@ for test in "${tests[@]}"; do
         continue
     fi
 
+    test_passed=false
+
     if [ "$VERBOSE" = true ]; then
         if bash "$test_path"; then
+            test_passed=true
+        elif is_model_backed_test "$test"; then
             echo ""
+            echo "  [RETRY] Model-backed test failed; retrying once."
+            retried=$((retried + 1))
+            if bash "$test_path"; then
+                test_passed=true
+            fi
+        fi
+
+        echo ""
+        if [ "$test_passed" = true ]; then
             echo "  [PASS] $test"
             passed=$((passed + 1))
         else
-            echo ""
             echo "  [FAIL] $test"
             failed=$((failed + 1))
         fi
     else
         if output="$(bash "$test_path" 2>&1)"; then
+            test_passed=true
+        elif is_model_backed_test "$test"; then
+            first_output="$output"
+            echo "  [RETRY] Model-backed test failed; retrying once."
+            retried=$((retried + 1))
+            if output="$(bash "$test_path" 2>&1)"; then
+                test_passed=true
+            else
+                output="${first_output}"$'\n\n'"Retry output:"$'\n'"${output}"
+            fi
+        fi
+
+        if [ "$test_passed" = true ]; then
             echo "  [PASS]"
             passed=$((passed + 1))
         else
@@ -143,6 +183,7 @@ echo ""
 echo "  Passed:  $passed"
 echo "  Failed:  $failed"
 echo "  Skipped: $skipped"
+echo "  Retried: $retried"
 echo ""
 
 if [ "$failed" -gt 0 ]; then

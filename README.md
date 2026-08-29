@@ -31,6 +31,19 @@ Expected skill names use the `joshix:` namespace, for example:
 
 The Claude plugin metadata lives in `.claude-plugin/`. During local testing, the Claude test harness passes this repository as `--plugin-dir`, so tests exercise the skills in this checkout instead of any globally installed plugin.
 
+The user installation comes from the local `joshix-dev` marketplace. Because
+the development manifest remains at version `1.2.0`, `claude plugin update`
+reports that it is current without recopying changed files. Refresh the local
+cache explicitly after workflow changes:
+
+```bash
+claude plugin uninstall joshix@joshix-dev --scope user --keep-data --yes
+claude plugin install joshix@joshix-dev --scope user --yes
+```
+
+Start a new Claude session after reinstalling; an existing session may retain
+skills it already loaded.
+
 ### OpenCode
 
 The OpenCode plugin entrypoint is `.opencode/plugins/joshix.js`. See `.opencode/INSTALL.md` for harness-specific notes.

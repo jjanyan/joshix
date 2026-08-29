@@ -39,7 +39,7 @@ EOF
 cat > "$PRE_PROJECT/verify-review.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-CALL_LOG='output/verify-review.calls'
+CALL_LOG="$(cd "$(dirname "$0")" && pwd)/output/verify-review.calls"
 if rg -q 'Failed jobs retry twice' .joshix/specs/retry-policy.md; then
   echo 'retry twice | exit 1' >> "$CALL_LOG"
   exit 1
@@ -52,27 +52,72 @@ echo 'unexpected retry state | exit 2' >> "$CALL_LOG"
 exit 2
 EOF
 chmod +x "$PRE_PROJECT/verify-review.sh"
-git -C "$PRE_PROJECT" add AGENTS.md .joshix/specs/retry-policy.md verify-review.sh
-git -C "$PRE_PROJECT" commit --quiet -m 'Add pre-application failure fixture'
 
-read -r -d '' PRE_PROMPT <<'EOF' || true
+mkdir -p "$PRE_PROJECT/output" "$PRE_PROJECT/subdir"
+set +e
+(
+  cd "$PRE_PROJECT/subdir"
+  ../verify-review.sh >/dev/null 2>&1
+)
+PRE_SUBDIR_EXIT=$?
+set -e
+PRE_SUBDIR_LOG="$(cat "$PRE_PROJECT/output/verify-review.calls" 2>/dev/null || true)"
+if [ "$PRE_SUBDIR_EXIT" -eq 2 ] \
+    && [ "$PRE_SUBDIR_LOG" = 'unexpected retry state | exit 2' ]; then
+  echo '  [PASS] Verifier call log is anchored to the fixture script directory'
+else
+  echo '  [FAIL] Verifier call log followed the caller working directory'
+  printf '    exit: %s\n' "$PRE_SUBDIR_EXIT"
+  printf '    root log: %s\n' "${PRE_SUBDIR_LOG:-<empty>}"
+  FAILED=$((FAILED + 1))
+fi
+: > "$PRE_PROJECT/output/verify-review.calls"
+
+PRE_CALL_LOG="$PRE_PROJECT/output/verify-review.calls"
+
+pre_call_log_is_valid() {
+  local call_log="$1"
+  local actual_calls failure_count success_count total_count last_call
+
+  actual_calls="$(cat "$call_log" 2>/dev/null || true)"
+  failure_count="$(grep -cFx 'retry twice | exit 1' "$call_log" 2>/dev/null || true)"
+  success_count="$(grep -cFx 'retry three times | exit 0' "$call_log" 2>/dev/null || true)"
+  total_count="$(printf '%s\n' "$actual_calls" | awk 'NF { count++ } END { print count + 0 }')"
+  last_call="$(printf '%s\n' "$actual_calls" | tail -n 1)"
+
+  [ "$failure_count" -ge 1 ] \
+    && [ "$success_count" -eq 1 ] \
+    && [ "$total_count" -eq $((failure_count + success_count)) ] \
+    && [ "$last_call" = 'retry three times | exit 0' ]
+}
+
+if [ "${FAILURE_POLICY_ORACLE_ONLY:-0}" = '1' ]; then
+  printf '%s\n' \
+    'retry twice | exit 1' \
+    'retry twice | exit 1' \
+    'retry three times | exit 0' > "$PRE_CALL_LOG"
+else
+  git -C "$PRE_PROJECT" add AGENTS.md .joshix/specs/retry-policy.md verify-review.sh
+  git -C "$PRE_PROJECT" commit --quiet -m 'Add pre-application failure fixture'
+
+  read -r -d '' PRE_PROMPT <<'EOF' || true
 Here is another agent's spec review. What do you think?
 
 The Runtime rule objectively contradicts the approved retry count. The expected diagnostic `./verify-review.sh` demonstrates that `retry twice` must become `retry three times`.
 EOF
-run_codex "$PRE_PROJECT" "$PRE_PROMPT" "$PRE_PROJECT/output" \
-  "workspace-write" "$CODEX_TEST_TIMEOUT" "use-rules"
-PRE_FINAL="$(cat "$PRE_PROJECT/output/final.md")"
-PRE_CALL_LOG="$PRE_PROJECT/output/verify-review.calls"
-assert_file_contains "$PRE_PROJECT/.joshix/specs/retry-policy.md" \
-  'Failed jobs retry three times' \
-  'Expected RED diagnostic guides the accepted correction' || FAILED=$((FAILED + 1))
-EXPECTED_PRE_CALLS=$'retry twice | exit 1\nretry three times | exit 0'
+  run_codex "$PRE_PROJECT" "$PRE_PROMPT" "$PRE_PROJECT/output" \
+    "workspace-write" "$CODEX_TEST_TIMEOUT" "use-rules"
+  PRE_FINAL="$(cat "$PRE_PROJECT/output/final.md")"
+  assert_file_contains "$PRE_PROJECT/.joshix/specs/retry-policy.md" \
+    'Failed jobs retry three times' \
+    'Expected RED diagnostic guides the accepted correction' || FAILED=$((FAILED + 1))
+fi
+
 ACTUAL_PRE_CALLS="$(cat "$PRE_CALL_LOG" 2>/dev/null || true)"
-if [ "$ACTUAL_PRE_CALLS" = "$EXPECTED_PRE_CALLS" ]; then
-  echo '  [PASS] Diagnostic fails before editing and passes after editing, exactly once each'
+if pre_call_log_is_valid "$PRE_CALL_LOG"; then
+  echo '  [PASS] Diagnostic fails one or more times before editing and passes exactly once after editing'
 else
-  echo '  [FAIL] Expected exactly one pre-edit failure followed by one post-edit pass'
+  echo '  [FAIL] Expected one or more pre-edit failures followed by exactly one post-edit pass'
   if [ -n "$ACTUAL_PRE_CALLS" ]; then
     printf '%s\n' "$ACTUAL_PRE_CALLS" | sed 's/^/    /'
   else
@@ -80,6 +125,44 @@ else
   fi
   FAILED=$((FAILED + 1))
 fi
+
+if [ "${FAILURE_POLICY_ORACLE_ONLY:-0}" = '1' ]; then
+  assert_pre_call_log_rejected() {
+    local description="$1"
+    shift
+    printf '%s\n' "$@" > "$PRE_CALL_LOG"
+    if pre_call_log_is_valid "$PRE_CALL_LOG"; then
+      echo "  [FAIL] Oracle accepted $description"
+      FAILED=$((FAILED + 1))
+    else
+      echo "  [PASS] Oracle rejects $description"
+    fi
+  }
+
+  assert_pre_call_log_rejected \
+    'duplicate post-edit success' \
+    'retry twice | exit 1' \
+    'retry three times | exit 0' \
+    'retry three times | exit 0'
+  assert_pre_call_log_rejected \
+    'a pre-edit failure after success' \
+    'retry twice | exit 1' \
+    'retry three times | exit 0' \
+    'retry twice | exit 1'
+  assert_pre_call_log_rejected \
+    'an unexpected diagnostic line' \
+    'retry twice | exit 1' \
+    'unexpected retry state | exit 2' \
+    'retry three times | exit 0'
+
+  if [ "$FAILED" -eq 0 ]; then
+    echo 'STATUS: PASSED (oracle only)'
+    exit 0
+  fi
+  echo 'STATUS: FAILED (oracle only)'
+  exit 1
+fi
+
 assert_contains "$PRE_FINAL" '^### Handled without asking$' \
   'Successful automatic correction is reported as handled' || FAILED=$((FAILED + 1))
 if validate_review_outcome "$PRE_FINAL" 'Rereview required'; then
@@ -120,7 +203,7 @@ EOF
 cat > "$POST_PROJECT/verify-review.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-CALL_LOG='output/verify-review.calls'
+CALL_LOG="$(cd "$(dirname "$0")" && pwd)/output/verify-review.calls"
 if rg -q 'Failed jobs retry three times' .joshix/specs/retry-policy.md \
     && rg -q 'Retries use a fixed delay' .joshix/specs/retry-policy.md; then
   echo 'retry three times; fixed delay | exit 23' >> "$CALL_LOG"

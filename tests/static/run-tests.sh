@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 tests=(
   "test-claude-runner-timeout-contract.sh"
+  "test-codex-runner-retry-contract.sh"
   "test-parallel-oracles.sh"
   "test-parallel-first-contract.sh"
   "test-task-context-contract.sh"
