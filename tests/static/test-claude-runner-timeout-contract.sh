@@ -8,6 +8,7 @@ PARALLEL_TEST="$ROOT_DIR/tests/claude-code/test-subagent-driven-development-inte
 SKILL_TRIGGER_RUNNER="$ROOT_DIR/tests/skill-triggering/run-test.sh"
 SKILL_TRIGGER_PROMPT="$ROOT_DIR/tests/skill-triggering/prompts/dispatching-parallel-agents.txt"
 CODEX_HELPERS="$ROOT_DIR/tests/codex/test-helpers.sh"
+CLAUDE_HELPERS="$ROOT_DIR/tests/claude-code/test-helpers.sh"
 TEST_NAME="test-subagent-driven-development.sh"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/joshix-runner-timeout.XXXXXX")"
 FAKE_BIN="$TMP_DIR/bin"
@@ -244,6 +245,26 @@ if [ "$codex_failure_status" -eq 7 ] &&
     echo "[PASS] Codex helper preserves execution failures"
 else
     echo "[FAIL] Codex helper reported status $codex_failure_status instead of 7"
+    FAILED=$((FAILED + 1))
+fi
+
+source "$CLAUDE_HELPERS"
+large_assert_output="$(
+    printf 'Codex reviewer selected\n'
+    awk 'BEGIN { for (i = 0; i < 20000; i++) print "review output padding" }'
+)"
+
+set +e
+assert_contains "$large_assert_output" 'Codex' 'large output contains an early match' >/dev/null 2>&1
+contains_status=$?
+assert_not_contains "$large_assert_output" 'Codex' 'large output rejects a forbidden early match' >/dev/null 2>&1
+not_contains_status=$?
+set -e
+
+if [ "$contains_status" -eq 0 ] && [ "$not_contains_status" -ne 0 ]; then
+    echo "[PASS] Claude assertions handle early matches in large output under pipefail"
+else
+    echo "[FAIL] Claude assertions misclassified an early match in large output (contains=$contains_status, not_contains=$not_contains_status)"
     FAILED=$((FAILED + 1))
 fi
 

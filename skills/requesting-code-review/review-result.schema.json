@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "findings"],
+  "properties": {
+    "status": {"enum": ["approved", "issues"]},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "severity", "criticality", "surface", "decisionLevel", "evidence", "recommendation"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "title": {"type": "string", "minLength": 1},
+          "severity": {"enum": ["critical", "important", "minor"]},
+          "criticality": {"type": "string", "minLength": 1},
+          "surface": {"type": "string", "minLength": 1},
+          "decisionLevel": {"enum": ["dev", "policy", "product"]},
+          "evidence": {"type": "string", "minLength": 1},
+          "recommendation": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

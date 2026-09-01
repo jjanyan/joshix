@@ -73,8 +73,9 @@ PNG fallback. Subagents do not emit the DAG, and it is not shared task state.
 
 Plan, spec, and code review producers remain read-only and return detailed,
 evidence-backed reports. Top-level producers may use prior shared reasoning;
-delegated producers receive the required context in their dispatch and never
-access shared task context.
+ordinary delegated producers receive the required context in their dispatch
+and never access shared task context. A policy-active persistent reviewer peer
+is the narrow exception described below.
 
 The artifact-owning agent responds through the matching reception skill. It
 independently verifies the review, automatically applies agreed objective
@@ -82,6 +83,44 @@ findings, and reports afterward. Product, scope, ownership, and architecture
 choices remain owner-gated, and an explicit no-edit instruction keeps the
 meta-review read-only. Artifact readiness requires reviewer approval plus the
 owner agent's independent concurrence.
+
+### Proportional workflow policy
+
+A repository may opt into proportional ceremony and verification by naming a
+policy from its loaded guidance or one directly referenced runbook:
+
+```text
+joshix-workflow-policy: <repo-relative-path>
+```
+
+Without that declaration, joshix keeps its existing workflow unchanged. With
+it, repository-defined criticality controls verification and review rigor;
+task complexity independently controls planning ceremony; and the effort
+estimate only drives the proportional cost alarm. Repository safety,
+authorization, and completion rules remain unconditional at every level.
+
+Policy-active reviews use one persistent reviewer peer per task. Codex pairs
+with Claude and Claude pairs with Codex; OpenAI and Anthropic are the complete
+built-in provider boundary, including their current and future models. Adding
+another provider requires a joshix update, not repository configuration.
+Activating a repository workflow policy also activates this pairing, so review
+may send repository content between OpenAI and Anthropic.
+
+Both peers may read the repository and shared task history. The coordinator
+alone edits files and appends history. It automatically relays review,
+fix/rebuttal, and rereview turns until approval or a real bubble-up. If the
+other provider is unavailable, a separate same-model reviewer assumes the same
+role for the task. A lost provider session is replaced from SQLite. Review
+turns remain bounded and recorded idempotently; only the absence of every
+automatic reviewer path becomes one capability decision memo.
+
+Without a workflow-policy declaration, joshix review behaves as before.
+Ordinary subagents remain outside top-level shared task context in both modes.
+
+Approval never implies authorization for the next phase. A completed approved
+spec ends with `Ready to plan; waiting for your command.` and a completed
+approved plan ends with `Ready to execute; waiting for your command.` These are
+hold states, not fabricated owner decisions.
 
 joshix is parallel-first after execution is authorized when meaningful tasks
 are independent, have disjoint ownership, and can be verified safely. Coupled,
@@ -92,8 +131,8 @@ uncertain, overlapping, and unsafe shared-state work stays inline or serial.
 Every top-level Git-backed Codex or Claude task creates or connects to a private
 `.joshix/tasks/<task>/` workspace before substantive work, including one-turn
 questions. The workspace gives both agents the same compact current state,
-visible-message history, and accessible files. Subagents never touch this
-shared context; their top-level coordinator owns it.
+visible-message history, and accessible files. The top-level coordinator owns
+writes; only a declared policy-active reviewer peer may read the supplied task.
 
 ## Agent Artifacts
 

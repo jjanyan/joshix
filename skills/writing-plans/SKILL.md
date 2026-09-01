@@ -11,6 +11,29 @@ Write comprehensive implementation plans for a skilled engineer who has limited 
 
 Assume they are a skilled developer, but know almost nothing about our toolset or problem domain.
 
+## Workflow policy router
+
+If loaded repository guidance declares `joshix-workflow-policy:`, read
+`../using-joshix/references/workflow-policy.md` first. For `trivial`, skip this
+skill. For `routine`, continue only when the plan is the task's one selected
+planning artifact; never add a brainstorm or spec. For `complex`, continue
+below. Policy absence preserves this skill unchanged.
+
+### Routine short-plan terminal
+
+When an active declaration says `routine` and selects a plan as the one planning
+artifact, write one short plan containing the requested outcome and authorized
+scope, exact files, ordered implementation steps, focused checks, and the
+repository's final completion checks. Apply the policy's tier-defined review
+rigor; do not add a brainstorm, spec, detailed task boilerplate, or a legacy
+plan-review gate. Self-review for ambiguity, missing coverage, and scope growth,
+save it in the configured plan location, then stop before the detailed legacy
+sections below. If execution is not already authorized, end exactly:
+
+`Ready to execute; waiting for your command.`
+
+All remaining sections are the `complex` and policy-absent branch only.
+
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
 **Git context:** Plans should assume implementation happens in the current checkout and current branch. Include branch or worktree setup only when the user explicitly requested it.
@@ -160,7 +183,12 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 ## Plan Review Decision
 
-After self-review, decide whether to request an independent plan review using
+With an active workflow policy, request independent plan review only when the
+task-level tier selects that existing gate. The tier-defined review rigor is
+authoritative; do not add the policy-absent heuristic gate below. Record a
+tier-selected skip in the execution handoff.
+
+With policy absent, after self-review decide whether to request an independent plan review using
 `../reviewing-plans/plan-document-reviewer-prompt.md`.
 
 Default to requesting plan review unless the plan is clearly small and low risk.
@@ -199,19 +227,24 @@ Plan review completed and accounted for. Issues found: [count]. [Accepted/reject
 
 ## Execution Handoff
 
-After saving the plan, offer execution choice:
+After saving and reviewing the plan, report the recommendation declaratively:
 
-**"Plan complete and saved to `.joshix/plans/<filename>.md`. [Plan review disclosure]. Recommended execution: <subagent-driven or inline>, because <brief reason>.**
+**"Plan complete and saved to `.joshix/plans/<filename>.md`. [Plan review disclosure]. Recommended execution: <subagent-driven or inline>, because <brief reason>."**
 
 **Subagent-driven** is a good fit when tasks touch disjoint files or can be reviewed independently.
 
 **Inline execution** is a good fit when tasks are tightly coupled, small, or likely to require continuous judgment in one context.
 
-**Proceed with the recommended approach, or use the other one?"**
+Approval is not execution authorization. Unless the same owner message already
+explicitly authorizes execution, do not ask a question, manufacture an A/B
+choice, or re-request approval. End exactly:
+
+`Ready to execute; waiting for your command.`
 
 **If Subagent-Driven chosen:**
 - **REQUIRED SUB-SKILL:** Use joshix:subagent-driven-development
-- Fresh subagent per task + two-stage review
+- Policy absent: fresh subagent per task plus two-stage review. Active policy:
+  use only the task-level tier's selected review gates.
 
 **If Inline Execution chosen:**
 - **REQUIRED SUB-SKILL:** Use joshix:executing-plans

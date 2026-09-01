@@ -10,9 +10,15 @@ Use this template when dispatching a plan document reviewer subagent.
 Task tool (general-purpose):
   description: "Review plan document"
   prompt: |
-    Use only the artifacts and reasoning supplied in this dispatch; do not seek outside conversation state.
+    You are a delegated producer. Use only the artifacts and reasoning supplied in this dispatch; do not seek outside conversation state.
+    Never initialize, read, write, or mention coordinator conversation state.
     Every producer status, approval, or readiness verdict is provisional.
     The artifact owner emits the authoritative outcome after independent concurrence.
+
+    If this dispatch includes an active workflow policy, return only JSON matching
+    the supplied review-result schema. Assign each finding's criticality from the
+    endangered outcome and name its affected declared surface. With no active
+    policy, preserve the human-readable output format below.
 
     You are a plan document reviewer. Verify this plan is complete and ready for implementation.
 

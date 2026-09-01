@@ -13,7 +13,9 @@ PLAN_TEMPLATE="$ROOT/skills/reviewing-plans/plan-document-reviewer-prompt.md"
 SPEC_TEMPLATE="$ROOT/skills/reviewing-specs/spec-document-reviewer-prompt.md"
 QUALITY_TEMPLATE="$ROOT/skills/subagent-driven-development/code-quality-reviewer-prompt.md"
 PRODUCER_CONTRACT="$ROOT/skills/using-joshix/references/review-producer-contract.md"
-DELEGATED_BOUNDARY='Use only the artifacts and reasoning supplied in this dispatch; do not seek outside conversation state.'
+AUTONOMOUS_CONTRACT="$ROOT/skills/using-joshix/references/autonomous-review.md"
+DELEGATED_BOUNDARY='You are a delegated producer. Use only the artifacts and reasoning supplied in this dispatch; do not seek outside conversation state.'
+DELEGATED_ISOLATION='Never initialize, read, write, or mention coordinator conversation state.'
 PROVISIONAL_VERDICT='Every producer status, approval, or readiness verdict is provisional.'
 OWNER_OUTCOME='The artifact owner emits the authoritative outcome after independent concurrence.'
 EXPECTED_SPEC_OPENING="I'm using joshix:reviewing-specs to review this spec by default, not to edit it."
@@ -76,10 +78,12 @@ require_prompt_preamble() {
       print
       getline
       print
+      getline
+      print
       exit
     }
   ' "$file")"
-  expected="    ${DELEGATED_BOUNDARY}"$'\n'"    ${PROVISIONAL_VERDICT}"$'\n'"    ${OWNER_OUTCOME}"
+  expected="    ${DELEGATED_BOUNDARY}"$'\n'"    ${DELEGATED_ISOLATION}"$'\n'"    ${PROVISIONAL_VERDICT}"$'\n'"    ${OWNER_OUTCOME}"
   if [[ "$actual" != "$expected" ]]; then
     printf 'FAIL: %s\nExpected first three prompt lines:\n%s\nActual first three prompt lines:\n%s\n' \
       "$label" "$expected" "$actual"
@@ -152,6 +156,15 @@ require_fixed "$PRODUCER_CONTRACT" 'delegated producer receives every required a
   'delegated producers rely on dispatch context'
 require_fixed "$PRODUCER_CONTRACT" 'never reads, writes, or mentions top-level shared task context' \
   'delegated producers stay outside shared context'
+require_fixed "$PRODUCER_CONTRACT" \
+  'A policy-active persistent reviewer peer reads the exact shared task folder supplied by the coordinator' \
+  'persistent peer reads shared history'
+require_fixed "$PRODUCER_CONTRACT" \
+  'never initializes, appends, or replaces shared task state' \
+  'persistent peer stays read-only'
+require_fixed "$AUTONOMOUS_CONTRACT" \
+  'The coordinator is the only writer' \
+  'automatic loop preserves one writer'
 require_fixed "$PRODUCER_CONTRACT" 'Keep artifact-specific evidence, severity, recommendations, and existing status, approval, or readiness fields.' \
   'producer contract preserves artifact-specific verdict fields'
 require_fixed "$PRODUCER_CONTRACT" 'Every producer status, approval, or readiness verdict is provisional.' \
@@ -205,8 +218,8 @@ require_prompt_fixed "$QUALITY_TEMPLATE" \
   'Do not include a positive-assessment section.' \
   'quality payload forbids positive-assessment sections'
 
-require_fixed "$REQUESTING" 'Dispatch every reviewer in an isolated context with every required artifact, requirement, and prior reasoning item embedded in the dispatch prompt.' \
-  'review requests embed complete context in isolated dispatches'
+require_fixed "$REQUESTING" 'With no active workflow policy, dispatch every reviewer in an isolated context with every required artifact, requirement, and prior reasoning item embedded in the dispatch prompt.' \
+  'policy-absent review requests embed complete context in isolated dispatches'
 require_fixed "$REQUESTING" 'PRIOR_REASONING: Task 1 review established the current indexing and repair assumptions' \
   'review request example embeds prior reasoning'
 forbid_fixed "$REQUESTING" 'Inherit or fork session context' \
@@ -216,6 +229,7 @@ DELEGATED_TEMPLATES=(
   "$CODE_TEMPLATE"
   "$PLAN_TEMPLATE"
   "$SPEC_TEMPLATE"
+  "$ROOT/skills/subagent-driven-development/spec-reviewer-prompt.md"
   "$QUALITY_TEMPLATE"
 )
 for template in "${DELEGATED_TEMPLATES[@]}"; do

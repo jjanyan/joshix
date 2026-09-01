@@ -4,7 +4,9 @@ description: Use when starting any conversation - establishes how to find and us
 ---
 
 <SUBAGENT-STOP>
-If you were dispatched as a subagent to execute a specific task, skip this skill.
+If the prompt declares a persistent reviewer peer, skip top-level task-context
+initialization and follow the read-only reviewer branch in `joshix:task-context`.
+Other delegated workers never read or write top-level shared task context.
 </SUBAGENT-STOP>
 
 <TOP-LEVEL-TASK-CONTEXT>
@@ -16,6 +18,12 @@ initial tool call, preserve that exact commentary for task-context to append
 after initialization.
 </TOP-LEVEL-TASK-CONTEXT>
 
+<WORKFLOW-POLICY>
+When loaded repository guidance declares `joshix-workflow-policy:`, read and
+follow `references/workflow-policy.md` before choosing ceremony, verification,
+or review. If no directive is declared, preserve the existing workflow.
+</WORKFLOW-POLICY>
+
 <EXTREMELY-IMPORTANT>
 If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill.
 
@@ -23,6 +31,8 @@ IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
 
 This is not negotiable. This is not optional. You cannot rationalize your way out of this.
 </EXTREMELY-IMPORTANT>
+
+If an invoked skill turns out to be wrong for the situation, you don't need to use it.
 
 <EXTREMELY-IMPORTANT>
 If the current user message includes code review feedback, review comments, a
@@ -81,10 +91,6 @@ If CLAUDE.md, GEMINI.md, or AGENTS.md says "don't use TDD" and a skill says to u
 Skills use Claude Code tool names. Non-CC platforms: see `references/copilot-tools.md` (Copilot CLI), `references/codex-tools.md` (Codex) for tool equivalents. Gemini CLI users get the tool mapping loaded automatically via GEMINI.md.
 
 # Using Skills
-
-## The Rule
-
-**Invoke relevant or requested skills BEFORE any response or action.** Even a 1% chance a skill might apply means that you should invoke the skill to check. If an invoked skill turns out to be wrong for the situation, you don't need to use it.
 
 ```dot
 digraph skill_flow {
@@ -147,13 +153,7 @@ When multiple skills could apply, use this order:
 "Let's build X" → brainstorming first, then implementation skills.
 "Fix this bug" → debugging first, then domain-specific skills.
 
-## Skill Types
-
-**Rigid** (TDD, debugging): Follow exactly. Don't adapt away discipline.
-
-**Flexible** (patterns): Adapt principles to context.
-
-The skill itself tells you which.
+Rigid skills are exact; flexible skills adapt their principles to context.
 
 ## User Instructions
 

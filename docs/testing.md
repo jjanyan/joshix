@@ -19,13 +19,30 @@ These checks are deterministic and inexpensive. They catch wording drift and
 missing integration surfaces, but they do not prove that a model follows the
 guidance.
 
-The static runner also executes the deterministic shared-task helper suite. Run
-that suite directly while narrowing helper failures:
+The static runner also executes deterministic shared-task and reviewer
+transport suites. Run these focused model-free checks while narrowing failures:
 
 ```bash
-node --disable-warning=ExperimentalWarning --test \
-  tests/task-context/task-context.test.mjs
+node --test tests/task-context/task-context.test.mjs
+node --test tests/reviewer-runner/reviewer-runner.test.mjs
+node --test tests/reviewer-runner/provider-help-contract.test.mjs
+node --test tests/autonomous-review/autonomous-review-flow.test.mjs
+bash tests/static/test-workflow-policy-contract.sh
+bash tests/static/test-autonomous-review-contract.sh
+bash tests/static/test-readiness-hold-contract.sh
 ```
+
+These seven commands are deterministic and model-free. The task-context suite may
+also be run with `node --disable-warning=ExperimentalWarning --test` on runtimes
+that do not suppress the experimental SQLite warning themselves.
+
+The reviewer-runner suite proves persistent session start, resume, and
+replacement; literal argv transport; read-only repository and task-history
+access; explicit read-only Codex resume arguments; safe Claude evidence
+transport; bounded failure handling; portable provider discovery; and
+machine-default model inheritance. The autonomous flow suite proves one
+coordinator writer and one reviewer identity across gates, including version-1
+history tolerance.
 
 The static runner also aggregates the model-free transcript and decision
 oracles used before paying for live model execution. Run an individual oracle
@@ -51,6 +68,20 @@ Because outputs can vary, these tests assert important behaviors rather than
 exact prose. They are intentional and cost-bearing: run the smallest relevant
 test first, then expand only when the local changes justify the time and model
 usage.
+
+Focused policy and autonomous-review behavior checks are:
+
+```bash
+tests/codex/run-skill-tests.sh --test test-workflow-policy-behavior.sh
+tests/codex/run-skill-tests.sh --test test-autonomous-review-loop-behavior.sh
+bash tests/codex/test-readiness-hold-behavior.sh
+tests/claude-code/run-skill-tests.sh --test test-autonomous-review-loop-behavior.sh
+```
+
+These commands invoke models and are intentional cost-bearing coverage. The
+autonomous-review scripts also expose `--oracle-only` for their deterministic
+direction/profile checks. Development slices and review rounds use focused
+checks; full completion gates run once, after whole-change review sign-off.
 
 ### 3. Representative orchestration checks
 

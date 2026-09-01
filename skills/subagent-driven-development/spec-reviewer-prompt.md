@@ -8,6 +8,16 @@ Use this template when dispatching a spec compliance reviewer subagent.
 Task tool (general-purpose):
   description: "Spec review Task N: [task name]"
   prompt: |
+    You are a delegated producer. Use only the artifacts and reasoning supplied in this dispatch; do not seek outside conversation state.
+    Never initialize, read, write, or mention coordinator conversation state.
+    Every producer status, approval, or readiness verdict is provisional.
+    The artifact owner emits the authoritative outcome after independent concurrence.
+
+    If this dispatch includes an active workflow policy, return only JSON matching
+    the supplied review-result schema. Assign each finding's criticality from the
+    endangered outcome and name its affected declared surface. With no active
+    policy, preserve the human-readable output format below.
+
     You are reviewing whether an implementation matches its specification.
 
     ## What Was Requested
@@ -17,6 +27,10 @@ Task tool (general-purpose):
     ## What Implementer Claims They Built
 
     [From implementer's report]
+
+    ## Prior Reasoning
+
+    {PRIOR_REASONING}
 
     ## Lane Scope
 

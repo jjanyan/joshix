@@ -5,8 +5,10 @@ description: Use when executing implementation plans with independent tasks in t
 
 # Subagent-Driven Development
 
-Execute an approved plan as dependency-aware lanes, with a fresh implementer
-and two-stage review for each lane: spec compliance first, then code quality.
+Execute an approved plan as dependency-aware lanes. With no workflow policy,
+use a fresh implementer and two-stage review for each lane: spec compliance
+first, then code quality. With an active policy, the tier-defined review rigor
+is authoritative and selects which existing gates run.
 
 When two or more plan tasks are ready and potentially safe to overlap, invoke
 `joshix:dispatching-parallel-agents` to classify, schedule, and report them.
@@ -19,8 +21,10 @@ The top-level coordinator follows
 DAGs. Do not duplicate the canonical threshold, state, styling, or update rules
 here.
 
-**Core principle:** Each lane owns a bounded scope and passes implementation,
-verification, spec review, and quality review before its dependents advance.
+**Core principle:** Each lane owns a bounded scope. Under policy absence it
+passes implementation, verification, spec review, and quality review before
+its dependents advance. Under an active policy it passes the focused checks and
+review gates selected by the task-level tier.
 
 **Continuous execution:** Do not pause to check in with the human partner
 between tasks. Continue until all authorized work is complete, a blocker or
@@ -49,6 +53,17 @@ digraph when_to_use {
 
 ## The Process
 
+If a workflow policy is active, the coordinator reads
+`../using-joshix/references/workflow-policy.md` and
+`../using-joshix/references/autonomous-review.md`, and owns scope, active-time,
+review-rigor, bounded passes, recording, and progress-transition checks.
+Workers receive the declaration needed for their lane but never write shared
+task context. Slices use focused checks; the coordinator reserves full
+completion gates for the end after review sign-off. A trivial task stops before
+pass two; every gate stops before pass three. `dev` disagreements are settled
+and logged locally after one rebuttal; `policy` and `product` disagreements
+bubble up.
+
 1. Read the plan once; extract every task, `Depends on`, file/resource scope,
    verification command, and full task text.
 2. Classify older tasks without `Depends on` conservatively.
@@ -56,13 +71,18 @@ digraph when_to_use {
 4. If two or more ready tasks may overlap safely, invoke
    `joshix:dispatching-parallel-agents`; otherwise run the ready task inline or
    serially.
-5. For each lane: implementation and self-review → safe focused or deferred
-   verification → spec-compliance review → code-quality review → fix and
-   re-review loops.
-6. Do not advance the same lane or its dependents while either required review
-   has open issues. Unrelated lanes may continue.
-7. When every lane passes, run serial integration, broad checks, final
-   whole-change review, and `joshix:verification-before-completion`.
+5. Policy absent: for each lane, implementation and self-review → safe focused
+   or deferred verification → spec-compliance review → code-quality review →
+   fix and re-review loops.
+6. Active policy: for each lane, run focused verification and only the existing
+   review gates required by the task-level tier. Do not add the legacy
+   two-stage lane review by default.
+7. Do not advance a lane or its dependents while a selected review gate has
+   open issues. Unrelated lanes may continue.
+8. After every lane passes, run serial integration and the selected final
+   whole-change review if the tier requires it. Run broad/full completion gates
+   only once after review sign-off through
+   `joshix:verification-before-completion`.
 
 ## Controller Rules
 
@@ -72,10 +92,12 @@ the plan. Before dispatch, declare exclusive file and mutable-resource scope
 and safe focused checks. Work in the current checkout and branch unless the
 user explicitly requested a git operation.
 
-Use a fresh role-specific worker for each lane's initial implementation, spec
-review, and quality review. Return findings to the same implementer when
-continuation is supported, then send the fixes through the corresponding
-review gate again.
+Under policy absence, use a fresh role-specific worker for each lane's initial
+implementation, spec review, and quality review. Under an active policy, keep
+one task-scoped persistent reviewer peer across every selected plan, spec,
+quality, and whole-change gate. Implementation workers remain lane-scoped.
+Return findings to the same implementer when continuation is supported, then
+resume the reviewer peer for the selected gate within the central cap.
 
 Use these exact descriptions for lane dispatches so coordination and transcript
 evidence do not depend on free-form summaries:
@@ -88,7 +110,8 @@ evidence do not depend on free-form summaries:
 Keep the complete role-specific prompt from the corresponding template; the
 description is stable metadata, not a replacement for that prompt.
 
-For the final review, use the `joshix:requesting-code-review` template, replace
+When the policy-absent workflow or active tier requires final review, use the
+`joshix:requesting-code-review` template, replace
 its generic dispatch description with the stable final-review description
 above, and require exactly one final line:
 `QUALITY OUTCOME: <APPROVED or CHANGES REQUIRED>`. Fix and re-review until the
@@ -116,7 +139,8 @@ verify.
 
 Implementers report one of four statuses:
 
-- **DONE:** Proceed to verification, then spec-compliance review.
+- **DONE:** Proceed to focused verification, then the next tier-selected review
+  gate if policy is active, or spec-compliance review when policy is absent.
 - **DONE_WITH_CONCERNS:** Correctness, scope, or verification concerns remain
   pre-review; observational concerns may proceed after coordinator judgment.
 - **NEEDS_CONTEXT:** Resume the same worker when supported or dispatch a fully
@@ -133,8 +157,10 @@ escalation or retry the same prompt without changing context or task shape.
 - `./implementer-prompt.md` - implementation and self-review
 - `./spec-reviewer-prompt.md` - spec-compliance review
 - `./code-quality-reviewer-prompt.md` - code-quality review after spec passes
+  when policy is absent or both gates are selected; active policy may select
+  the quality gate alone
 
-## Example Workflow
+## Policy-absent Example Workflow
 
 An approved plan has four tasks:
 
@@ -156,24 +182,27 @@ whole-change review, and fresh completion verification.
 
 ## Quality Gates
 
-- Keep spec-compliance review before code-quality review in every lane.
-- The implementer fixes findings, and the corresponding reviewer re-reviews
-  until the gate passes.
-- Self-review never replaces either independent review.
-- Do not advance the same lane or its dependents while either required review
-  has open issues; unrelated lanes may proceed.
+- Policy absent: keep spec-compliance review before code-quality review in every
+  lane, and re-review until each gate passes.
+- Active policy: run only tier-selected gates and use the central two-pass cap
+  and disagreement protocol.
+- Self-review never replaces a required independent review.
+- Do not advance the same lane or its dependents while a selected review has
+  open issues; unrelated lanes may proceed.
 - Verify actual changed files and resources remain within declared scope.
 - Preserve deferred checks for the first safe serialization point; never treat
   deferral as a pass.
-- After all lanes pass, perform a final whole-change review.
+- After all lanes pass, perform a final whole-change review only when the
+  policy-absent workflow or active tier requires it.
 
 ## Red Flags
 
 **Never:**
 
 - Create or switch branches/worktrees unless the user explicitly requested it
-- Skip spec-compliance or code-quality review
-- Start code-quality review before spec-compliance review passes
+- Under policy absence, skip spec-compliance or code-quality review
+- When both gates are selected, start code-quality review before spec-compliance
+  review passes
 - Accept open findings without a fix and re-review loop
 - Make a worker read the plan instead of providing full task text
 - Dispatch a worker without exclusive file/resource scope and verification

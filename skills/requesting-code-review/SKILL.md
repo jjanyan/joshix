@@ -7,30 +7,78 @@ description: Use when completing tasks, implementing major features, or reviewin
 
 Request a focused code review to catch concrete issues before they cascade.
 Provide the reviewer with relevant implementation context, requirements,
-changed files, diff context, and prior reasoning. Dispatch every reviewer in an
-isolated context with every required artifact, requirement, and prior reasoning
-item embedded in the dispatch prompt. Never use inherited or forked conversation
-history as review context.
+changed files, diff context, and prior reasoning. With no active workflow
+policy, dispatch every reviewer in an isolated context with every required
+artifact, requirement, and prior reasoning item embedded in the dispatch
+prompt. Never use inherited or forked conversation history for that
+policy-absent review context.
 
 **Core principle:** Review concrete risks before proceeding.
 
+## Active workflow policy
+
+When repository guidance declares `joshix-workflow-policy:`, read
+`../using-joshix/references/workflow-policy.md` and
+`../using-joshix/references/autonomous-review.md` before dispatch. That central
+protocol replaces the manual dispatch and unbounded feedback rules below. With
+no policy, keep this skill's existing behavior unchanged.
+
+| Task reviewer state | Action |
+|---|---|
+| Saved reviewer session exists | Resume it for the next selected gate or pass. |
+| No reviewer session exists | Start the other provider and record its returned session ID. |
+| Saved session cannot resume | Replace it on the same provider; continue from shared history. |
+| Other provider is unavailable | Start one persistent same-model reviewer in the same role. |
+| No automatic reviewer path exists | Emit one capability decision memo. |
+
+Never ask the owner to copy a prompt, paste a result, or relay review messages
+unless the owner selects that fallback from the capability memo.
+
+The coordinator validates the review, constructs
+version-2 `review-record.schema.json`, computes the digest and append key exactly
+as defined by the central protocol, and appends the canonical envelope through
+task-context `--idempotency-key`. Keep version 1 history unchanged and readable;
+a version-1 latest row starts a fresh session on its recorded provider. Retain
+the returned history ID whether new or duplicate, then atomically replace the
+snapshot with gate, round, path, provider, session ID, and history ID in its
+compact `Review:` field while preserving scope, active time, deferred history
+IDs, and every other declaration field. If replacement fails, preserve history,
+report and rebuild the stale snapshot, and do not dispatch again until repaired.
+The invoked reviewer never writes coordinator state.
+
+Before each later gate or pass, consult the snapshot and authoritative review
+history for the saved provider and session. A recorded provider fallback stays
+in the same reviewer role for the rest of the task; do not probe the unavailable
+provider again.
+
+Build active-policy prompts from the compact payload in the central contract;
+the peer reads prior reasoning from the supplied task instead of receiving a
+reconstructed transcript. For Claude code review, capture a bounded scoped
+diff/log into the mode-`0444` OS-temporary scratch file defined there. Remove it
+after the call and never grant the reviewer Git-capable Bash.
+
 ## Model Selection
 
-Use the current/default model for delegated review work. Do not downgrade models
-to conserve cost. If the platform inherits the current model by default, let
-that cascade to reviewer subagents. Avoid overriding model selection unless the
-user, repo guidance, or platform-specific workflow explicitly calls for a
-different model.
+Personal provider configuration supplies reviewer model and reasoning-effort defaults.
+Do not suppress those defaults or downgrade models to conserve cost. Let native
+reviewers inherit the current platform selection and cross-provider CLIs load
+their normal machine-specific configuration. Override either value only when
+the user explicitly requests a task-specific selection.
 
 ## When to Request Review
 
-**Mandatory:**
+With an active workflow policy, tier-defined review rigor is authoritative.
+Use only the review gates required by the task-level tier; do not carry the
+policy-absent mandatory per-task or per-lane gates into the active branch.
+
+**Policy absent — mandatory:**
+
 - After each task in subagent-driven development
 - After completing a major feature or risky change
 - Before reporting substantial work complete when correctness,
   maintainability, security, data, or operational risk matters
 
-**Optional but valuable:**
+**Policy absent — optional but valuable:**
 - When stuck (fresh perspective)
 - Before refactoring (baseline check)
 - After fixing complex bug
@@ -63,6 +111,11 @@ Use the platform's subagent, review, or task tool with the template at
 - Consider Minor issues, but do not let taste-only feedback churn the work
 - Push back if reviewer is wrong (with reasoning)
 
+Under an active policy, the implementer fixes or rebuts once. Before a second
+producer pass, settle `dev` disagreements locally and bubble `policy` or
+`product` disagreements. Never request pass two for a trivial task or pass
+three for any task; emit the central decision memo instead.
+
 ## Example
 
 ```
@@ -90,6 +143,9 @@ You: [Fix progress indicators]
 
 ## Integration with Workflows
 
+The bullets below describe the policy-absent workflow. Under an active policy,
+use the selected tier's gate count and placement instead.
+
 **Subagent-Driven Development:**
 - Review after EACH task
 - Catch issues before they compound
@@ -106,7 +162,7 @@ You: [Fix progress indicators]
 ## Red Flags
 
 **Never:**
-- Skip review because "it's simple"
+- Under policy absence, skip review because "it's simple"
 - Ignore Critical issues
 - Proceed with unfixed Important issues
 - Argue with valid technical feedback

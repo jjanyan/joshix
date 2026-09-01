@@ -124,7 +124,7 @@ forbid_fixed "$EXECUTING" "in a separate session with review checkpoints" "execu
 require_fixed "$EXECUTING" "joshix:subagent-driven-development" "inline executor preserves independent-plan routing"
 
 require_fixed "$SDD" "joshix:dispatching-parallel-agents" "subagent execution invokes the canonical policy"
-require_fixed "$SDD" "For each lane: implementation and self-review" "lane gate starts with implementation and self-review"
+require_fixed "$SDD" "Policy absent: for each lane, implementation and self-review" "lane gate starts with implementation and self-review"
 require_fixed "$SDD" "verification → spec-compliance review" "verification precedes spec review"
 require_fixed "$SDD" "spec-compliance review → code-quality review" "spec review precedes quality review"
 require_fixed "$SDD" "Quality review Task N:" "review dispatch descriptions are stable"

@@ -24,14 +24,14 @@ const SQLITE_WARNING =
   'SQLite is an experimental feature and might change at any time';
 let DatabaseSync;
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const PREVIEW_LENGTH = 240;
 const DEFAULT_RECENT_LIMIT = 20;
 const HELP = `Usage: task-context <command> <task-folder> [options]
 
 Commands:
   init <task-folder>
-  append <task-folder> --speaker <name> --content-file <path>
+  append <task-folder> --speaker <name> --content-file <path> [--idempotency-key <key>]
   recent <task-folder> [--limit <1-1000>] [--full]
   since-id <task-folder> <id> [--full]
   since-time <task-folder> <ISO-8601 timestamp> [--full]
@@ -40,11 +40,15 @@ Commands:
   export <task-folder> --format markdown
   check <task-folder>
 `;
-const EXPECTED_COLUMNS = [
+const VERSION_ONE_COLUMNS = [
   { name: 'id', type: 'INTEGER', notnull: 0, pk: 1 },
   { name: 'created_at', type: 'TEXT', notnull: 1, pk: 0 },
   { name: 'speaker', type: 'TEXT', notnull: 1, pk: 0 },
   { name: 'content', type: 'TEXT', notnull: 1, pk: 0 },
+];
+const EXPECTED_COLUMNS = [
+  ...VERSION_ONE_COLUMNS,
+  { name: 'idempotency_key', type: 'TEXT', notnull: 0, pk: 0 },
 ];
 const TIMESTAMP_DEFAULT = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
 const SCHEMA = `
@@ -52,10 +56,14 @@ CREATE TABLE messages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   speaker TEXT NOT NULL,
-  content TEXT NOT NULL
+  content TEXT NOT NULL,
+  idempotency_key TEXT
 );
 CREATE INDEX messages_created_at_idx ON messages(created_at);
-PRAGMA user_version = 1;
+CREATE UNIQUE INDEX messages_idempotency_key_idx
+  ON messages(idempotency_key)
+  WHERE idempotency_key IS NOT NULL;
+PRAGMA user_version = 2;
 `;
 
 function nodeVersionParts(version) {
@@ -245,6 +253,9 @@ function readSchemaState(db) {
   const tableSql = db
     .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'messages'")
     .get()?.sql ?? '';
+  const idempotencyIndexSql = db
+    .prepare("SELECT sql FROM sqlite_master WHERE type = 'index' AND name = 'messages_idempotency_key_idx'")
+    .get()?.sql ?? '';
 
   return {
     integrity,
@@ -252,6 +263,7 @@ function readSchemaState(db) {
     columns,
     hasIndex: JSON.stringify(indexColumns) === JSON.stringify(['created_at']),
     hasAutomaticTimestamp: tableSql.includes(TIMESTAMP_DEFAULT),
+    idempotencyIndexSql,
   };
 }
 
@@ -260,14 +272,54 @@ function isExpectedSchema(state) {
     && state.version === SCHEMA_VERSION
     && state.hasIndex
     && state.hasAutomaticTimestamp
+    && state.idempotencyIndexSql.includes('CREATE UNIQUE INDEX messages_idempotency_key_idx')
+    && state.idempotencyIndexSql.includes('WHERE idempotency_key IS NOT NULL')
     && JSON.stringify(state.columns) === JSON.stringify(EXPECTED_COLUMNS);
 }
 
+function isExpectedVersionOneSchema(state) {
+  return state.integrity === 'ok'
+    && state.version === 1
+    && state.hasIndex
+    && state.hasAutomaticTimestamp
+    && state.idempotencyIndexSql === ''
+    && JSON.stringify(state.columns) === JSON.stringify(VERSION_ONE_COLUMNS);
+}
+
 function validateExistingDatabase(databasePath) {
-  const db = new DatabaseSync(databasePath, { readOnly: true });
+  const db = new DatabaseSync(databasePath);
   try {
-    if (!isExpectedSchema(readSchemaState(db))) {
+    db.exec('PRAGMA busy_timeout = 5000');
+    const initialState = readSchemaState(db);
+    if (isExpectedSchema(initialState)) return;
+    if (!isExpectedVersionOneSchema(initialState)) {
       fail('Existing task database failed integrity or schema validation.');
+    }
+
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      const lockedState = readSchemaState(db);
+      if (isExpectedSchema(lockedState)) {
+        db.exec('COMMIT');
+        return;
+      }
+      if (!isExpectedVersionOneSchema(lockedState)) {
+        fail('Existing task database changed during migration.');
+      }
+      db.exec(`
+        ALTER TABLE messages ADD COLUMN idempotency_key TEXT;
+        CREATE UNIQUE INDEX messages_idempotency_key_idx
+          ON messages(idempotency_key)
+          WHERE idempotency_key IS NOT NULL;
+        PRAGMA user_version = 2;
+      `);
+      if (!isExpectedSchema(readSchemaState(db))) {
+        fail('Migrated task database failed integrity or schema validation.');
+      }
+      db.exec('COMMIT');
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
     }
   } finally {
     db.close();
@@ -369,18 +421,47 @@ function printJson(value) {
 function append(folder, args) {
   const speaker = option(args, '--speaker');
   const contentFile = option(args, '--content-file');
+  const idempotencyKey = option(args, '--idempotency-key');
   assertNoArgs(args);
   if (!speaker || !contentFile) {
     fail('append requires --speaker and --content-file.');
+  }
+  if (idempotencyKey !== null && idempotencyKey.length === 0) {
+    fail('--idempotency-key requires a non-empty value.');
   }
 
   const content = readFileSync(resolve(contentFile), 'utf8');
   const { db } = databaseFor(folder, { verifyPrivacy: true });
   try {
-    const result = db
-      .prepare('INSERT INTO messages (speaker, content) VALUES (?, ?)')
-      .run(speaker, content);
-    process.stdout.write(`${result.lastInsertRowid}\n`);
+    if (idempotencyKey === null) {
+      const result = db
+        .prepare('INSERT INTO messages (speaker, content) VALUES (?, ?)')
+        .run(speaker, content);
+      process.stdout.write(`${result.lastInsertRowid}\n`);
+      return;
+    }
+
+    db.exec('PRAGMA busy_timeout = 5000');
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      db.prepare(`
+        INSERT OR IGNORE INTO messages (speaker, content, idempotency_key)
+        VALUES (?, ?, ?)
+      `).run(speaker, content, idempotencyKey);
+      const row = db.prepare(`
+        SELECT id, speaker, content
+        FROM messages
+        WHERE idempotency_key = ?
+      `).get(idempotencyKey);
+      if (!row || row.speaker !== speaker || row.content !== content) {
+        fail('Idempotency key already belongs to different content.');
+      }
+      db.exec('COMMIT');
+      process.stdout.write(`${row.id}\n`);
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
   } finally {
     db.close();
   }

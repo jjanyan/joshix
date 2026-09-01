@@ -87,6 +87,9 @@ tests=(
     "test-reviewing-specs-default.sh"
     "test-joshix-guidance-regressions.sh"
     "test-using-joshix-no-implicit-git.sh"
+    "test-workflow-policy-behavior.sh"
+    "test-autonomous-review-loop-behavior.sh"
+    "test-readiness-hold-behavior.sh"
 )
 
 if [ -n "$SPECIFIC_TEST" ]; then

@@ -20,6 +20,10 @@ repository guidance, then follow the canonical decision table. Semantic
 explicit no-edit mode uses the bootstrap's code-specific exact opening, placed
 by the canonical response grammar.
 
+When a workflow policy is active and the report is structured, apply the
+canonical policy-active tier validation and pricing before the code-specific
+classification below. Policy absence preserves existing reception behavior.
+
 ## Code Classification
 
 Objective findings include verified bugs, regressions, broken tests, typos,

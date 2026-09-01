@@ -16,6 +16,12 @@ This applies to the meaning of the claim, not the exact wording.
 
 ## Completion Gate
 
+When loaded repository guidance declares `joshix-workflow-policy:`, read
+`../using-joshix/references/workflow-policy.md`. Apply test depth per materially
+changed surface, keep manual verification additive, and use focused checks for
+slices and review rounds. Run the repository's full completion gates once,
+after review sign-off, at the end. Policy absence preserves the existing gate.
+
 ```
 NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 ```

@@ -20,6 +20,10 @@ context, and approved requirements, then follow the canonical decision table.
 Semantic explicit no-edit mode uses the bootstrap's spec-specific exact
 opening, placed by the canonical response grammar, and never executes the spec.
 
+When a workflow policy is active and the report is structured, apply the
+canonical policy-active tier validation and pricing before the spec-specific
+classification below. Policy absence preserves existing reception behavior.
+
 ## Spec Classification
 
 Objective corrections include verified contradictions, missing approved

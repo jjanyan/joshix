@@ -54,6 +54,9 @@ The settled item grammar is:
 - Use unique shorthand handles. State concrete evidence and the proposed action
   or actual outcome in no more than 40 words. Preserve natural review order
   except for urgent valid findings. Omit empty sections and repetitive summaries.
+- Under an active workflow policy, include each finding's repository tier tag.
+  A priced lower-tier finding is shown as a deferred observation with its task
+  history ID; do not imply it was implemented or still needs routine brokering.
 - On `Expand <shorthand>`, return full evidence, affected files or plan steps,
   and the proposed action.
 - Never use `REJECT` or `DEFER` to silently choose product behavior, scope, or
@@ -140,3 +143,17 @@ Include a readiness line only when it adds information about whether work may
 proceed. Automated test failures are evidence, not automatic owner decisions;
 verify whether they come from the reviewed change, a stale expectation, the
 environment, or pre-existing behavior before classifying them.
+
+### Readiness hold
+
+Approval is not authorization for the next phase. When no genuine unresolved
+choice remains and the next phase requires an explicit owner command, never
+emit `### Your decision needed`, invent options, or ask a question. Report the
+settled state and end with exactly one applicable line:
+
+`Ready to plan; waiting for your command.`
+
+`Ready to execute; waiting for your command.`
+
+Use the owner-decision lane only for a real unresolved choice. When a genuine
+choice exists, render the lane and options; do not merely describe its grammar.

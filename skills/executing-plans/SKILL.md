@@ -35,6 +35,17 @@ or reporting rules here.
 
 ### Step 2: Execute Tasks
 
+If a workflow policy is active, read
+`../using-joshix/references/workflow-policy.md` and
+`../using-joshix/references/autonomous-review.md`. Before each edit, next
+planned step, reviewer dispatch, and state transition, check authorized scope
+and the active-time alarm. Stop before new subsystems, invariants, dependencies,
+generalized hardening, or future infrastructure. Use focused checks until the
+single final completion gate, and report progress only on `started`, `done`,
+`blocked`, or `bubble-up` transitions. The coordinator owns every bounded
+review pass, fix or rebuttal, local `dev` settlement, history append, and
+snapshot replacement; never ask the owner to broker a routine round.
+
 For each task:
 1. Mark as in_progress
 2. Follow each step as written (plan has bite-sized steps). If new facts
@@ -52,6 +63,10 @@ canonical trigger, rendering, state, topology, and update rules in
 ### Step 3: Complete Development
 
 After all tasks complete and verified:
+- With an active workflow policy, invoke `joshix:requesting-code-review` for
+  each task-level tier-selected whole-change gate and complete its autonomous
+  bounded loop. Do not start full completion verification before review
+  sign-off. Policy absence preserves the existing completion sequence.
 - Announce: "I'm using the verification-before-completion skill to verify this work before reporting completion."
 - **REQUIRED SUB-SKILL:** Use joshix:verification-before-completion
 - Follow that skill to run fresh verification and report evidence before claiming completion
@@ -93,4 +108,5 @@ After all tasks complete and verified:
 
 **Required workflow skills:**
 - **joshix:writing-plans** - Creates the plan this skill executes
+- **joshix:requesting-code-review** - Runs active-policy tier-selected review gates
 - **joshix:verification-before-completion** - Verify work before reporting completion

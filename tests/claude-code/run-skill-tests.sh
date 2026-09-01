@@ -118,6 +118,7 @@ integration_tests=(
     "test-plan-document-review-system.sh"
     "test-requesting-code-review.sh"
     "test-task-context-handoff-integration.sh"
+    "test-autonomous-review-loop-behavior.sh"
 )
 
 # Add integration tests if requested

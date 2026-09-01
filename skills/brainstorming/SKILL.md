@@ -7,11 +7,40 @@ description: "You MUST use this before any creative work - creating features, bu
 
 Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
 
+## Workflow policy router
+
+If loaded repository guidance declares `joshix-workflow-policy:`, read
+`../using-joshix/references/workflow-policy.md` first. For `trivial`, skip this
+skill. For `routine`, use it only when the single selected artifact is a short
+design note; never add a plan too. For `complex`, continue below. Policy absence
+preserves this skill unchanged.
+
+### Routine design-note terminal
+
+When an active declaration says `routine` and selects a design note as the one
+planning artifact:
+
+1. Inspect the relevant project context and identify the one uncertainty the
+   note must settle.
+2. Follow established repository policy for dev-level instances; bubble only
+   a genuinely new or ambiguous product or policy choice.
+3. Write one short note with outcome, authorized scope, chosen approach, and
+   focused verification. Do not create a brainstorm, spec, or plan.
+4. Self-review the note for ambiguity and scope expansion, then return to the
+   coordinator. Do not continue into the legacy hard gate, checklist, process,
+   spec review, or writing-plans transition below.
+
+If execution is not already authorized, end with the exact execution readiness
+hold from the review response contract.
+
 Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
 
 <HARD-GATE>
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
 </HARD-GATE>
+
+The hard gate and all remaining sections are the `complex` and policy-absent
+branch only.
 
 ## Anti-Pattern: "This Is Too Simple To Need A Design"
 
@@ -135,11 +164,18 @@ When a delegated spec reviewer is used, use the template at
 `../reviewing-specs/spec-document-reviewer-prompt.md`.
 
 **User Review Gate:**
-After the spec review loop passes, ask the user to review the written spec before proceeding:
+After any independent spec-review gate selected by the active tier, or required
+by the policy-absent workflow, passes, report the written spec for owner review.
+If the
+owner approves but has not explicitly authorized planning in the same message,
+do not ask again or invent a choice. End exactly:
 
-> "Spec written to `<path>`. Please review it and let me know if you want to make any changes before we start writing out the implementation plan."
+`Ready to plan; waiting for your command.`
 
-Wait for the user's response. If they request changes, make them and re-run the spec review loop. Only proceed once the user approves.
+If they request changes, make them and rerun only a tier-selected or
+policy-absent spec-review gate. Approval is not planning authorization. Proceed
+only when the owner explicitly commands planning; a command in the same message
+as approval is sufficient.
 
 **Implementation:**
 

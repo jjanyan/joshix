@@ -15,6 +15,19 @@ When this skill applies, violating the letter of the rules is violating the spir
 
 ## When to Use
 
+### Active workflow policy
+
+When loaded repository guidance declares `joshix-workflow-policy:`, read
+`../using-joshix/references/workflow-policy.md`. Select coverage depth
+separately for every materially changed surface. Manual execution/inspection is
+additive and cannot replace required automated checks. Complexity never changes
+test depth: a trivial change to the highest-criticality surface may require
+exhaustive verification without planning documents.
+
+A policy tier requiring no new automated test changes coverage depth only; it
+never permits deleting existing tests or skipping repository completion checks.
+Policy absence preserves this skill unchanged.
+
 **Use TDD for:**
 - Core behavior changes
 - Bug fixes

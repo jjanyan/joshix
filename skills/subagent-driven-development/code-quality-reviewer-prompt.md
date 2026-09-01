@@ -4,15 +4,23 @@ Use this template when dispatching a code quality reviewer subagent.
 
 **Purpose:** Verify implementation is well-built (clean, tested, maintainable)
 
-**Only dispatch after spec compliance review passes.**
+With no workflow policy, dispatch only after spec compliance passes. With an
+active policy, dispatch after spec compliance only when both gates are selected;
+a tier may select this quality gate alone after focused verification.
 
 ```
 Task tool (general-purpose):
   description: "Quality review Task N: [task name]"
   prompt: |
-    Use only the artifacts and reasoning supplied in this dispatch; do not seek outside conversation state.
+    You are a delegated producer. Use only the artifacts and reasoning supplied in this dispatch; do not seek outside conversation state.
+    Never initialize, read, write, or mention coordinator conversation state.
     Every producer status, approval, or readiness verdict is provisional.
     The artifact owner emits the authoritative outcome after independent concurrence.
+
+    If this dispatch includes an active workflow policy, return only JSON matching
+    the supplied review-result schema. Assign each finding's criticality from the
+    endangered outcome and name its affected declared surface. With no active
+    policy, preserve the human-readable output format below.
 
     You are reviewing completed work for concrete engineering risks. Prioritize
     correctness, regressions, missing requirements, test gaps, security risks,

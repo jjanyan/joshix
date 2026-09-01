@@ -4,9 +4,11 @@ description: Use when starting or continuing a top-level Codex or Claude convers
 ---
 
 <SUBAGENT-STOP>
-If you were dispatched as a subagent or worker for a bounded task, stop. Do not
-create, connect to, read, append to, summarize, or mention shared task context.
-The top-level coordinator owns it.
+A declared persistent reviewer peer may use `recent`, `since-id`, `since-time`,
+`search`, `get`, and `check` against only the exact task folder supplied by its
+coordinator. It never calls `init`, `append`, or `export`, never rewrites
+`current.md`, and emits no attachment notice. Every other delegated worker
+stops without reading or writing shared task context.
 </SUBAGENT-STOP>
 
 # Shared Task Context
@@ -83,6 +85,9 @@ the same chat.
   message before emitting it, then emit that same intended content. This
   includes commentary, progress DAGs, and final responses; it excludes tools
   and hidden reasoning.
+- For coordinator-owned records that may be retried, pass a stable
+  `--idempotency-key`. Reusing a key is valid only for the identical speaker
+  and content; a collision is an error, never permission to append a variant.
 - If append fails, keep helping when safe but warn that shared history was not
   updated.
 - Rewrite `current.md` as a present-state snapshot under 500 words and never
@@ -92,6 +97,32 @@ the same chat.
 - Replace `current.md` using a temporary file followed by an atomic rename.
 - On handoff, use `recent`, `since-id`, `since-time`, `search`, and `get`
   selectively. Never load or export full history by default.
+
+### Active workflow policy
+
+When loaded repository guidance declares `joshix-workflow-policy:`, read
+`../using-joshix/references/workflow-policy.md`. After initialization and before
+planning or the first repository edit, append the task declaration required by
+that contract. Policy absence leaves this skill's existing behavior unchanged.
+
+Keep only this compact active state in `current.md`:
+
+```markdown
+## Workflow declaration
+- Surfaces: `<name> — <tier> — <effect>`
+- Complexity: `<trivial|routine|complex>`
+- Effort: `<duration>`
+- Outcome/scope: `<one sentence>`
+- Active time: `<total and open/closed state>`
+- Review: `<gate>; round <n>; <path>; <provider> session <uuid>; history <id>`
+- Deferred: `<count; history IDs>`
+```
+
+Full declarations, overrides, timer transitions, reviews, findings, and
+deferred observations remain append-only history. The coordinator alone writes
+this history and atomically replaces the snapshot. A declared persistent
+reviewer peer may read the exact supplied task through the commands allowed by
+the stop block; every delegated worker reports results to the coordinator.
 
 ## Failures and boundaries
 

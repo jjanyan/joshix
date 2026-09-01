@@ -26,22 +26,69 @@ acceptance-criteria, or architecture choices remain owner-gated.
 | Agent 1 discovers a concern Agent 2 did not raise | A newly discovered concern from Agent 1 remains unchanged until Agent 2 agrees in a later review. | If Agent 2 approved, approval is disputed; otherwise explain the concern for the next pass. |
 | Later Agent 2 review says a previous automatic change was wrong | If a later Agent 2 pass identifies a previously applied automatic change as wrong, that report is an ordinary new finding. Verify it and apply an objective correction automatically; the prior application does not create a new owner gate. | A changed artifact requires rereview. |
 | Current Agent 2 review approves and Agent 1 concurs | Make no change. | Approved. |
+| Current phase is approved and the next phase lacks explicit authorization | Treat readiness as settled state, not an unresolved choice. | Emit the exact readiness hold from the response format; never manufacture owner options. |
+
+## Policy-active structured findings
+
+After independent verification, validate a structured finding's surface and
+criticality against the active declaration and policy, then price it before the
+legacy finding classification above:
+
+| Comparison | Required action | Result |
+|---|---|---|
+| Lower than the affected changed surface | Append an idempotent deferred observation and reference its history ID in the snapshot. Never implement it without explicit owner authorization. | Settled and visibly deferred; it does not force another producer pass. |
+| Equal to the affected changed surface | Fix or rebut once within authorized scope. | Continue the bounded review loop. |
+| Higher than the affected changed surface | Stop before editing and emit the decision memo immediately. | Bubble-up. |
+| Not tied to one changed surface | Compare with the task-level criticality. | Apply the same lower, equal, or higher action. |
+
+Unknown names make the producer result malformed; never guess. Severity remains
+separate from criticality. After one unresolved rebuttal, `dev` instance choices
+inside established policy are coordinator-settled and logged; new or changed
+`policy` and `product` choices bubble up. Approval with no unresolved choice
+uses the readiness hold, never the owner-decision lane.
 
 Rejected, deferred, unclear, and unverified findings remain unchanged with
 evidence-backed reasoning in the shared conversation. Complete all independent
 objective work before the first owner question. Do not add orchestration state
 or a dispute ledger.
 
-## Failure boundary
+## Failure recovery
 
 Expected pre-application diagnostics and a deliberate TDD-red result may guide
-an accepted change. After application begins, the first unexpected edit or
-verification failure stops further edits to that artifact for the turn,
-preserves its exact current state, and does not attempt same-turn repair or
-automatic rollback. Do not rerun the failed verification in the same turn
-unless an external condition changes.
+an accepted change. Bounded retry and fallback protocols defined elsewhere
+remain authoritative.
 
-Report verified, `changed-but-unverified` or `partial`, and `unattempted`
+After application begins, an unexpected edit or verification failure pauses
+further writes to the affected artifact while Agent 1 diagnoses the failure
+read-only. Preserve the artifact's exact current state and never automatically
+roll back a partial change. A verification failure is evidence, not by itself a
+reason to end the turn.
+
+Agent 1 continues automatically without an owner message when diagnosis
+establishes the artifact's current state and identifies an objective, in-scope
+recovery that needs no new product, policy, architecture, scope, destructive,
+or irreversible decision. Make one bounded recovery pass for that failure,
+then run focused verification. If it passes, resume ordinary review reception.
+Do not rerun a passing focused verification solely to confirm it. If a final
+completion gate failed, rerun that gate once after the focused repair passes;
+never repeat full gates per review round.
+
+A failure while making the recovery change or during its focused verification
+is the same failure and ends automatic recovery; it does not open another pass.
+Across one review application, Agent 1 may make at most two recovery passes in
+total, even for distinct failures.
+
+Stop before further writes when the current state is uncertain, recovery risks
+overwriting user changes, recovery requires excluded authority or scope
+expansion, a recovery pass fails, a third recovery pass would be required, or a
+review, effort, or scope cap fires. Emit one owner question through the response
+format's owner-decision lane; under an active workflow policy, use its decision
+memo format. Never require an owner message solely to reset a conversational
+turn boundary.
+
+The eventual reception report names every successfully recovered failure and
+the focused command or evidence that established recovery. When recovery stops,
+report verified, `changed-but-unverified` or `partial`, and `unattempted`
 findings by name, plus the failing command or evidence needed for recovery. Do
 not classify these failure-state entries as `VALID` or claim they were updated,
 handled, completed, or fixed.

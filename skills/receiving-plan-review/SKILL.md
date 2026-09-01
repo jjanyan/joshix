@@ -20,6 +20,10 @@ and workflow rules, then follow the canonical decision table. Semantic explicit
 no-edit mode uses the bootstrap's plan-specific exact opening, placed by the
 canonical response grammar, and never starts implementation.
 
+When a workflow policy is active and the report is structured, apply the
+canonical policy-active tier validation and pricing before the plan-specific
+classification below. Policy absence preserves existing reception behavior.
+
 ## Plan Classification
 
 Objective plan findings include missing approved requirements, placeholders

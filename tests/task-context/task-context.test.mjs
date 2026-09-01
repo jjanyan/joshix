@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import {
   chmodSync,
   copyFileSync,
@@ -107,6 +107,36 @@ function appendMessage(root, folder, speaker, content) {
   );
   assertSuccess(result);
   return Number(result.stdout.trim());
+}
+
+function appendKeyed(root, folder, speaker, content, idempotencyKey) {
+  const contentFile = join(tempDir(), 'keyed-message.md');
+  writeFileSync(contentFile, content);
+  const result = run(
+    root,
+    'append',
+    folder,
+    '--speaker',
+    speaker,
+    '--content-file',
+    contentFile,
+    '--idempotency-key',
+    idempotencyKey,
+  );
+  return { result, id: Number(result.stdout.trim()) };
+}
+
+function spawnHelper(cwd, args) {
+  return new Promise((resolvePromise) => {
+    const child = spawn(helper, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    child.stderr.on('data', (chunk) => { stderr += chunk; });
+    child.on('close', (status) => resolvePromise({ status, stdout, stderr }));
+  });
 }
 
 test('the task-context command is executable in the working tree', () => {
@@ -231,7 +261,7 @@ test('init resolves relative paths from the Git root and protects them before us
   );
 
   const db = new DatabaseSync(join(task, 'history.sqlite'), { readOnly: true });
-  assert.equal(db.prepare('PRAGMA user_version').get().user_version, 1);
+  assert.equal(db.prepare('PRAGMA user_version').get().user_version, 2);
   assert.deepEqual(
     db.prepare(
       "SELECT name FROM sqlite_master WHERE type IN ('table', 'index') AND name IN ('messages', 'messages_created_at_idx') ORDER BY name",
@@ -458,6 +488,176 @@ test('append preserves arbitrary Markdown and assigns ordered IDs and UTC timest
   );
 });
 
+test('append without an idempotency key remains backward compatible', () => {
+  const root = initRepo();
+  const folder = '.joshix/tasks/2026-08-31-unkeyed-idempotency';
+  assertSuccess(run(root, 'init', folder));
+
+  assert.equal(appendMessage(root, folder, 'Reviewer', 'same review'), 1);
+  assert.equal(appendMessage(root, folder, 'Reviewer', 'same review'), 2);
+});
+
+test('a repeated identical idempotency key returns the original message id', () => {
+  const root = initRepo();
+  const folder = '.joshix/tasks/2026-08-31-keyed-idempotency';
+  assertSuccess(run(root, 'init', folder));
+  const key = 'task|gate|1|same-model|sha256:abc';
+
+  const first = appendKeyed(root, folder, 'Reviewer', '{"status":"approved"}', key);
+  const second = appendKeyed(root, folder, 'Reviewer', '{"status":"approved"}', key);
+
+  assertSuccess(first.result);
+  assertSuccess(second.result);
+  assert.equal(first.id, 1);
+  assert.equal(second.id, 1);
+  const db = new DatabaseSync(join(root, folder, 'history.sqlite'), { readOnly: true });
+  assert.equal(db.prepare('SELECT count(*) AS count FROM messages').get().count, 1);
+  db.close();
+});
+
+test('different content cannot reuse an idempotency key', () => {
+  const root = initRepo();
+  const folder = '.joshix/tasks/2026-08-31-key-collision';
+  assertSuccess(run(root, 'init', folder));
+  const key = 'task|gate|1|same-model|sha256:def';
+  assertSuccess(appendKeyed(root, folder, 'Reviewer', 'first', key).result);
+
+  const collision = appendKeyed(root, folder, 'Reviewer', 'different', key).result;
+
+  assert.notEqual(collision.status, 0);
+  assert.match(collision.stderr, /Idempotency key already belongs to different content\./);
+});
+
+test('distinct idempotency keys append distinct messages', () => {
+  const root = initRepo();
+  const folder = '.joshix/tasks/2026-08-31-distinct-idempotency';
+  assertSuccess(run(root, 'init', folder));
+
+  const first = appendKeyed(root, folder, 'Reviewer', 'review', 'key-one');
+  const second = appendKeyed(root, folder, 'Reviewer', 'review', 'key-two');
+
+  assertSuccess(first.result);
+  assertSuccess(second.result);
+  assert.deepEqual([first.id, second.id], [1, 2]);
+});
+
+test('init migrates a valid version 1 database to version 2 without data loss', () => {
+  const root = initRepo();
+  const folder = '.joshix/tasks/2026-08-31-version-1';
+  const task = join(root, folder);
+  mkdirSync(task, { recursive: true });
+  writeFileSync(join(root, '.joshix/tasks/.gitignore'), '*\n');
+  const db = new DatabaseSync(join(task, 'history.sqlite'));
+  db.exec(`
+    CREATE TABLE messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      speaker TEXT NOT NULL,
+      content TEXT NOT NULL
+    );
+    CREATE INDEX messages_created_at_idx ON messages(created_at);
+    INSERT INTO messages (speaker, content) VALUES ('User', 'preserve me');
+    PRAGMA user_version = 1;
+  `);
+  db.close();
+
+  assertSuccess(run(root, 'init', folder));
+
+  const migrated = new DatabaseSync(join(task, 'history.sqlite'), { readOnly: true });
+  assert.equal(migrated.prepare('PRAGMA user_version').get().user_version, 2);
+  assert.equal(
+    migrated.prepare('SELECT content FROM messages WHERE id = 1').get().content,
+    'preserve me',
+  );
+  assert.deepEqual(
+    migrated.prepare('PRAGMA table_info(messages)').all().map(({ name }) => name),
+    ['id', 'created_at', 'speaker', 'content', 'idempotency_key'],
+  );
+  assert.equal(
+    migrated.prepare("SELECT sql FROM sqlite_master WHERE name = 'messages_idempotency_key_idx'").get().sql.includes('WHERE idempotency_key IS NOT NULL'),
+    true,
+  );
+  migrated.close();
+});
+
+test('concurrent init serializes and rechecks a version 1 migration', async () => {
+  const root = initRepo();
+  const folder = '.joshix/tasks/2026-08-31-concurrent-version-1';
+  const task = join(root, folder);
+  mkdirSync(task, { recursive: true });
+  writeFileSync(join(root, '.joshix/tasks/.gitignore'), '*\n');
+  const databasePath = join(task, 'history.sqlite');
+  const setup = new DatabaseSync(databasePath);
+  setup.exec(`
+    CREATE TABLE messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      speaker TEXT NOT NULL,
+      content TEXT NOT NULL
+    );
+    CREATE INDEX messages_created_at_idx ON messages(created_at);
+    INSERT INTO messages (speaker, content) VALUES ('User', 'preserve concurrently');
+    PRAGMA user_version = 1;
+  `);
+  setup.close();
+
+  const blocker = new DatabaseSync(databasePath);
+  blocker.exec('BEGIN IMMEDIATE');
+  const first = spawnHelper(root, ['init', folder]);
+  const second = spawnHelper(root, ['init', folder]);
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 100));
+  blocker.exec('COMMIT');
+  blocker.close();
+
+  const results = await Promise.all([first, second]);
+  for (const result of results) assertSuccess(result);
+  const migrated = new DatabaseSync(databasePath, { readOnly: true });
+  assert.equal(migrated.prepare('PRAGMA user_version').get().user_version, 2);
+  assert.equal(
+    migrated.prepare('SELECT content FROM messages WHERE id = 1').get().content,
+    'preserve concurrently',
+  );
+  migrated.close();
+});
+
+test('repeated init leaves a valid version 2 database unchanged', () => {
+  const root = initRepo();
+  const folder = '.joshix/tasks/2026-08-31-version-2';
+  assertSuccess(run(root, 'init', folder));
+  appendKeyed(root, folder, 'Reviewer', 'preserve', 'stable-key');
+  const databasePath = join(root, folder, 'history.sqlite');
+  const before = readFileSync(databasePath);
+
+  assertSuccess(run(root, 'init', folder));
+
+  assert.deepEqual(readFileSync(databasePath), before);
+});
+
+test('concurrent duplicate appends leave one keyed row', async () => {
+  const root = initRepo();
+  const folder = '.joshix/tasks/2026-08-31-concurrent-duplicate';
+  assertSuccess(run(root, 'init', folder));
+  const contentFile = join(tempDir(), 'concurrent-review.json');
+  writeFileSync(contentFile, '{"status":"approved","findings":[]}');
+  const args = [
+    'append', folder,
+    '--speaker', 'Reviewer',
+    '--content-file', contentFile,
+    '--idempotency-key', 'task|gate|1|cross-provider|sha256:123',
+  ];
+
+  const results = await Promise.all([
+    spawnHelper(root, args),
+    spawnHelper(root, args),
+  ]);
+
+  for (const result of results) assertSuccess(result);
+  assert.deepEqual(results.map(({ stdout }) => Number(stdout.trim())), [1, 1]);
+  const db = new DatabaseSync(join(root, folder, 'history.sqlite'), { readOnly: true });
+  assert.equal(db.prepare('SELECT count(*) AS count FROM messages').get().count, 1);
+  db.close();
+});
+
 test('append rechecks privacy and refuses task data tracked after initialization', () => {
   const root = initRepo();
   const folder = '.joshix/tasks/2026-07-22-recheck';
@@ -564,7 +764,7 @@ test('export preserves ordering and bodies, and check is read-only', () => {
   assert.deepEqual(stdoutJson(run(root, 'check', folder)), {
     ok: true,
     integrity: 'ok',
-    schemaVersion: 1,
+    schemaVersion: 2,
   });
   assert.deepEqual(readFileSync(join(task, 'history.sqlite')), before);
 });

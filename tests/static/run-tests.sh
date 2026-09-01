@@ -13,6 +13,9 @@ tests=(
   "test-review-reception-contract.sh"
   "test-review-response-format-contract.sh"
   "test-review-producer-format-contract.sh"
+  "test-workflow-policy-contract.sh"
+  "test-autonomous-review-contract.sh"
+  "test-readiness-hold-contract.sh"
 )
 
 passed=0
@@ -31,6 +34,27 @@ done
 echo "Running: task-context.test.mjs"
 if node --disable-warning=ExperimentalWarning --test \
   "$ROOT/tests/task-context/task-context.test.mjs"; then
+  passed=$((passed + 1))
+else
+  failed=$((failed + 1))
+fi
+
+echo "Running: reviewer-runner.test.mjs"
+if node --test "$ROOT/tests/reviewer-runner/reviewer-runner.test.mjs"; then
+  passed=$((passed + 1))
+else
+  failed=$((failed + 1))
+fi
+
+echo "Running: provider-help-contract.test.mjs"
+if node --test "$ROOT/tests/reviewer-runner/provider-help-contract.test.mjs"; then
+  passed=$((passed + 1))
+else
+  failed=$((failed + 1))
+fi
+
+echo "Running: autonomous-review-flow.test.mjs"
+if node --test "$ROOT/tests/autonomous-review/autonomous-review-flow.test.mjs"; then
   passed=$((passed + 1))
 else
   failed=$((failed + 1))

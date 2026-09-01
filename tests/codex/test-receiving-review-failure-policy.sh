@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Behavior test: expected pre-edit diagnostics are usable, but unexpected post-edit failures stop the turn.
+# Behavior test: expected diagnostics and bounded post-edit recovery preserve exact state.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -181,8 +181,9 @@ cat >> "$POST_PROJECT/AGENTS.md" <<'EOF'
 
 For received review feedback about retry-policy.md, edit findings in review
 order. After each artifact edit and before any later edit, run
-`./verify-review.sh`. If that verification fails, preserve the artifact's
-exact state and stop all later artifact edits for the turn.
+`./verify-review.sh`. If verification fails, diagnose the current state
+read-only and follow joshix's bounded failure-recovery rule. Preserve the
+artifact's exact state and never roll back a partial change.
 EOF
 cat > "$POST_PROJECT/.joshix/specs/retry-policy.md" <<'EOF'
 # Retry Policy
@@ -204,6 +205,11 @@ cat > "$POST_PROJECT/verify-review.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 CALL_LOG="$(cd "$(dirname "$0")" && pwd)/output/verify-review.calls"
+if rg -q 'Failed jobs retry three times' .joshix/specs/retry-policy.md \
+    && rg -q 'Retries use exponential backoff' .joshix/specs/retry-policy.md; then
+  echo 'retry three times; exponential backoff | exit 0' >> "$CALL_LOG"
+  exit 0
+fi
 if rg -q 'Failed jobs retry three times' .joshix/specs/retry-policy.md \
     && rg -q 'Retries use a fixed delay' .joshix/specs/retry-policy.md; then
   echo 'retry three times; fixed delay | exit 23' >> "$CALL_LOG"
@@ -230,21 +236,21 @@ run_codex "$POST_PROJECT" "$POST_PROMPT" "$POST_PROJECT/output" \
   "workspace-write" "$CODEX_TEST_TIMEOUT" "use-rules"
 POST_FINAL="$(cat "$POST_PROJECT/output/final.md")"
 POST_CALL_LOG="$POST_PROJECT/output/verify-review.calls"
-EXPECTED_POST=$'# Retry Policy\n\n## Approved requirements\n\n- The approved retry count is three.\n- The approved backoff rule is exponential.\n\n## Retry count\n\n- Failed jobs retry three times.\n\n## Backoff\n\n- Retries use a fixed delay.'
+EXPECTED_POST=$'# Retry Policy\n\n## Approved requirements\n\n- The approved retry count is three.\n- The approved backoff rule is exponential.\n\n## Retry count\n\n- Failed jobs retry three times.\n\n## Backoff\n\n- Retries use exponential backoff.'
 ACTUAL_POST="$(cat "$POST_PROJECT/.joshix/specs/retry-policy.md")"
 if [ "$ACTUAL_POST" = "$EXPECTED_POST" ]; then
-  echo '  [PASS] Preserves exact first-edit state and leaves the later correction untouched'
+  echo '  [PASS] Applies one bounded recovery change without rolling back the first edit'
 else
-  echo '  [FAIL] Artifact state differs from the required preserve-and-stop boundary'
+  echo '  [FAIL] Artifact state differs from the required recovered state'
   printf '%s\n' "$ACTUAL_POST" | sed 's/^/    /'
   FAILED=$((FAILED + 1))
 fi
-EXPECTED_POST_CALLS='retry three times; fixed delay | exit 23'
+EXPECTED_POST_CALLS=$'retry three times; fixed delay | exit 23\nretry three times; exponential backoff | exit 0'
 ACTUAL_POST_CALLS="$(cat "$POST_CALL_LOG" 2>/dev/null || true)"
 if [ "$ACTUAL_POST_CALLS" = "$EXPECTED_POST_CALLS" ]; then
-  echo '  [PASS] Verifier runs exactly once after the first edit and records exit 23'
+  echo '  [PASS] Focused verifier records the failure once and the recovered success once'
 else
-  echo '  [FAIL] Expected exactly one post-first-edit verifier call recording exit 23'
+  echo '  [FAIL] Expected one failed verification followed by one focused recovered success'
   if [ -n "$ACTUAL_POST_CALLS" ]; then
     printf '%s\n' "$ACTUAL_POST_CALLS" | sed 's/^/    /'
   else
@@ -252,20 +258,228 @@ else
   fi
   FAILED=$((FAILED + 1))
 fi
-assert_contains "$POST_FINAL" 'changed[- ]but[- ]unverified|changed.*unverified|unverified.*changed|partial' \
-  'Reports the first correction as changed but unverified' || FAILED=$((FAILED + 1))
-assert_contains "$POST_FINAL" 'unattempted.*(Backoff|second|later)|(Backoff|second|later).*unattempted' \
-  'Reports the later correction as unattempted' || FAILED=$((FAILED + 1))
-assert_not_contains "$POST_FINAL" 'retry.* — VALID.*— .*(updated|handled|completed|fixed)' \
-  'Does not call the failed retry item handled' || FAILED=$((FAILED + 1))
-assert_contains "$POST_FINAL" 'exit(ed| code)?[[:space:]]+23|verify-review\.sh' \
-  'Names exit 23 or the verification command as recovery evidence' || FAILED=$((FAILED + 1))
+assert_contains "$POST_FINAL" 'exit(ed| code)?[[:space:]]+23|fixed delay' \
+  'Names the verification failure that was automatically recovered' || FAILED=$((FAILED + 1))
+assert_contains "$POST_FINAL" 'verify-review\.sh|exit(ed| code)?[[:space:]]+0' \
+  'Names the focused command or successful evidence' || FAILED=$((FAILED + 1))
+assert_not_contains "$POST_FINAL" '^### Your decision needed$' \
+  'Successful objective recovery does not ask the owner to restart the turn' || FAILED=$((FAILED + 1))
 if validate_review_outcome "$POST_FINAL" 'Rereview required'; then
-  echo '  [PASS] Post-failure response reports exactly one canonical rereview outcome'
+  echo '  [PASS] Recovered artifact change reports exactly one canonical rereview outcome'
 else
-  echo '  [FAIL] Expected exactly one canonical Rereview required outcome after failure'
+  echo '  [FAIL] Expected exactly one canonical Rereview required outcome after recovery'
   FAILED=$((FAILED + 1))
 fi
+
+FAIL_PROJECT="$TEST_ROOT/recovery-failure"
+mkdir -p "$FAIL_PROJECT/.joshix/specs"
+init_git_project "$FAIL_PROJECT"
+install_repo_skills_symlink "$FAIL_PROJECT"
+cp "$CODEX_REPO_ROOT/AGENTS.md" "$FAIL_PROJECT/AGENTS.md"
+cat >> "$FAIL_PROJECT/AGENTS.md" <<'EOF'
+
+For received review feedback about retry-policy.md, edit findings in review
+order and run `./verify-review.sh` after every edit. Diagnose failures read-only,
+make only the bounded recovery authorized by joshix, preserve the artifact's
+exact current state, and never roll back a partial change.
+EOF
+cat > "$FAIL_PROJECT/.joshix/specs/retry-policy.md" <<'EOF'
+# Retry Policy
+
+## Approved requirements
+
+- The approved retry count is three.
+- The approved backoff rule is exponential.
+- Every audit line includes the attempt ID.
+
+## Retry count
+
+- Failed jobs retry two times.
+
+## Backoff
+
+- Retries use a fixed delay.
+
+## Audit
+
+- Audit lines omit the attempt ID.
+EOF
+cat > "$FAIL_PROJECT/verify-review.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+CALL_LOG="$(cd "$(dirname "$0")" && pwd)/output/verify-review.calls"
+if rg -q 'Failed jobs retry three times' .joshix/specs/retry-policy.md \
+    && rg -q 'Retries use exponential backoff' .joshix/specs/retry-policy.md; then
+  echo 'retry three times; exponential backoff | exit 24' >> "$CALL_LOG"
+  exit 24
+fi
+if rg -q 'Failed jobs retry three times' .joshix/specs/retry-policy.md; then
+  echo 'retry three times; fixed delay | exit 23' >> "$CALL_LOG"
+  exit 23
+fi
+echo 'unexpected recovery state | exit 25' >> "$CALL_LOG"
+exit 25
+EOF
+chmod +x "$FAIL_PROJECT/verify-review.sh"
+git -C "$FAIL_PROJECT" add AGENTS.md .joshix/specs/retry-policy.md verify-review.sh
+git -C "$FAIL_PROJECT" commit --quiet -m 'Add failed recovery fixture'
+
+read -r -d '' FAIL_PROMPT <<'EOF' || true
+Here is another agent's spec review. Apply the objective feedback in review order and run the required focused verification after every edit.
+
+1. Change the Retry count sentence to `Failed jobs retry three times`.
+2. Change the Backoff sentence to `Retries use exponential backoff`.
+3. Change the Audit sentence to `Audit lines include the attempt ID`.
+EOF
+run_codex "$FAIL_PROJECT" "$FAIL_PROMPT" "$FAIL_PROJECT/output" \
+  "workspace-write" "$CODEX_TEST_TIMEOUT" "use-rules"
+FAIL_FINAL="$(cat "$FAIL_PROJECT/output/final.md")"
+FAIL_CALL_LOG="$FAIL_PROJECT/output/verify-review.calls"
+EXPECTED_FAIL=$'# Retry Policy\n\n## Approved requirements\n\n- The approved retry count is three.\n- The approved backoff rule is exponential.\n- Every audit line includes the attempt ID.\n\n## Retry count\n\n- Failed jobs retry three times.\n\n## Backoff\n\n- Retries use exponential backoff.\n\n## Audit\n\n- Audit lines omit the attempt ID.'
+ACTUAL_FAIL="$(cat "$FAIL_PROJECT/.joshix/specs/retry-policy.md")"
+if [ "$ACTUAL_FAIL" = "$EXPECTED_FAIL" ]; then
+  echo '  [PASS] Failed recovery preserves the exact partial state and leaves later work unattempted'
+else
+  echo '  [FAIL] Failed recovery did not preserve the exact required partial state'
+  printf '%s\n' "$ACTUAL_FAIL" | sed 's/^/    /'
+  FAILED=$((FAILED + 1))
+fi
+EXPECTED_FAIL_CALLS=$'retry three times; fixed delay | exit 23\nretry three times; exponential backoff | exit 24'
+ACTUAL_FAIL_CALLS="$(cat "$FAIL_CALL_LOG" 2>/dev/null || true)"
+if [ "$ACTUAL_FAIL_CALLS" = "$EXPECTED_FAIL_CALLS" ]; then
+  echo '  [PASS] A failed recovery verification does not open another pass'
+else
+  echo '  [FAIL] Expected exactly one initial failure and one failed recovery verification'
+  printf '%s\n' "${ACTUAL_FAIL_CALLS:-<empty>}" | sed 's/^/    /'
+  FAILED=$((FAILED + 1))
+fi
+assert_contains "$FAIL_FINAL" 'changed[- ]but[- ]unverified|partial' \
+  'Reports the failed recovery as partial or changed but unverified' || FAILED=$((FAILED + 1))
+assert_contains "$FAIL_FINAL" 'unattempted.*Audit|Audit.*unattempted' \
+  'Reports the later audit correction as unattempted' || FAILED=$((FAILED + 1))
+assert_contains "$FAIL_FINAL" 'exit(ed| code)?[[:space:]]+24|verify-review\.sh' \
+  'Names the failed recovery evidence' || FAILED=$((FAILED + 1))
+assert_exact_heading_count "$FAIL_FINAL" '### Your decision needed' 1 \
+  'Failed recovery emits one owner-decision lane' || FAILED=$((FAILED + 1))
+
+CAP_PROJECT="$TEST_ROOT/recovery-cap"
+mkdir -p "$CAP_PROJECT/.joshix/specs"
+init_git_project "$CAP_PROJECT"
+install_repo_skills_symlink "$CAP_PROJECT"
+cp "$CODEX_REPO_ROOT/AGENTS.md" "$CAP_PROJECT/AGENTS.md"
+cat >> "$CAP_PROJECT/AGENTS.md" <<'EOF'
+
+For received review feedback about retry-policy.md, edit findings strictly in
+review order and run `./verify-review.sh` after every edit. Follow joshix's
+bounded failure-recovery rule, including its total cap across distinct failures.
+Preserve exact partial state and never roll back.
+EOF
+cat > "$CAP_PROJECT/.joshix/specs/retry-policy.md" <<'EOF'
+# Retry Policy
+
+## Approved requirements
+
+- Required timeout value: 30 seconds.
+- Required backoff mode: exponential.
+- Required attempt limit: three.
+- Required jitter state: enabled.
+- Required audit field: attempt ID.
+- Required metrics field: job ID.
+
+## Timeout
+
+- Timeout is 10 seconds.
+
+## Backoff
+
+- Backoff is fixed.
+
+## Attempts
+
+- Attempt limit is one.
+
+## Jitter
+
+- Jitter is disabled.
+
+## Audit
+
+- Audit lines omit the attempt ID.
+
+## Metrics
+
+- Metrics omit the job ID.
+EOF
+cat > "$CAP_PROJECT/verify-review.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+CALL_LOG="$(cd "$(dirname "$0")" && pwd)/output/verify-review.calls"
+if rg -q 'Metrics include the job ID' .joshix/specs/retry-policy.md; then
+  echo 'third recovery applied | exit 99' >> "$CALL_LOG"
+  exit 99
+fi
+if rg -q 'Audit lines include the attempt ID' .joshix/specs/retry-policy.md; then
+  echo 'audit changed; metrics old | exit 33' >> "$CALL_LOG"
+  exit 33
+fi
+if rg -q 'Jitter is enabled' .joshix/specs/retry-policy.md; then
+  echo 'second recovery green | exit 0' >> "$CALL_LOG"
+  exit 0
+fi
+if rg -q 'Attempt limit is three' .joshix/specs/retry-policy.md; then
+  echo 'attempts changed; jitter old | exit 22' >> "$CALL_LOG"
+  exit 22
+fi
+if rg -q 'Backoff is exponential' .joshix/specs/retry-policy.md; then
+  echo 'first recovery green | exit 0' >> "$CALL_LOG"
+  exit 0
+fi
+if rg -q 'Timeout is 30 seconds' .joshix/specs/retry-policy.md; then
+  echo 'timeout changed; backoff old | exit 11' >> "$CALL_LOG"
+  exit 11
+fi
+echo 'unexpected cap state | exit 44' >> "$CALL_LOG"
+exit 44
+EOF
+chmod +x "$CAP_PROJECT/verify-review.sh"
+git -C "$CAP_PROJECT" add AGENTS.md .joshix/specs/retry-policy.md verify-review.sh
+git -C "$CAP_PROJECT" commit --quiet -m 'Add total recovery cap fixture'
+
+read -r -d '' CAP_PROMPT <<'EOF' || true
+Here is another agent's spec review. Apply each objective finding strictly in order and run the repository-required focused verification after every edit.
+
+1. Change Timeout to `Timeout is 30 seconds`.
+2. Change Backoff to `Backoff is exponential`.
+3. Change Attempts to `Attempt limit is three`.
+4. Change Jitter to `Jitter is enabled`.
+5. Change Audit to `Audit lines include the attempt ID`.
+6. Change Metrics to `Metrics include the job ID`.
+EOF
+run_codex "$CAP_PROJECT" "$CAP_PROMPT" "$CAP_PROJECT/output" \
+  "workspace-write" "$CODEX_TEST_TIMEOUT" "use-rules"
+CAP_FINAL="$(cat "$CAP_PROJECT/output/final.md")"
+CAP_CALL_LOG="$CAP_PROJECT/output/verify-review.calls"
+EXPECTED_CAP_CALLS=$'timeout changed; backoff old | exit 11\nfirst recovery green | exit 0\nattempts changed; jitter old | exit 22\nsecond recovery green | exit 0\naudit changed; metrics old | exit 33'
+ACTUAL_CAP_CALLS="$(cat "$CAP_CALL_LOG" 2>/dev/null || true)"
+if [ "$ACTUAL_CAP_CALLS" = "$EXPECTED_CAP_CALLS" ]; then
+  echo '  [PASS] Two distinct recovery passes cannot become a third pass'
+else
+  echo '  [FAIL] Recovery-cap call sequence was not bounded at two passes'
+  printf '%s\n' "${ACTUAL_CAP_CALLS:-<empty>}" | sed 's/^/    /'
+  FAILED=$((FAILED + 1))
+fi
+assert_file_contains "$CAP_PROJECT/.joshix/specs/retry-policy.md" \
+  'Audit lines include the attempt ID' \
+  'The third triggering edit remains in exact partial state' || FAILED=$((FAILED + 1))
+assert_file_contains "$CAP_PROJECT/.joshix/specs/retry-policy.md" \
+  'Metrics omit the job ID' \
+  'The would-be third recovery remains unattempted' || FAILED=$((FAILED + 1))
+assert_contains "$CAP_FINAL" 'third recovery|third pass|two recovery|recovery cap' \
+  'Reports the total recovery cap as the stopping reason' || FAILED=$((FAILED + 1))
+assert_contains "$CAP_FINAL" 'unattempted.*Metrics|Metrics.*unattempted' \
+  'Reports the capped recovery as unattempted' || FAILED=$((FAILED + 1))
+assert_exact_heading_count "$CAP_FINAL" '### Your decision needed' 1 \
+  'Recovery cap emits one owner-decision lane' || FAILED=$((FAILED + 1))
 
 if [ "$FAILED" -eq 0 ]; then
   echo ""

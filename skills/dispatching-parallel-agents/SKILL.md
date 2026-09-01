@@ -20,6 +20,16 @@ execution. Parallel dispatch does not broaden the approved scope or authorize
 writes, git operations, external effects, or product decisions that were not
 already authorized.
 
+When a workflow policy is active, the coordinator reads
+`../using-joshix/references/workflow-policy.md` before dispatch. Parallelism
+never bypasses requested scope, active-time alarms, surface-specific test
+depth, task-level review rigor, focused-check budgets, or transition-only
+progress. Workers report results; only the coordinator records shared state.
+Policy-active review lanes also follow
+`../using-joshix/references/autonomous-review.md`; parallel scheduling never
+duplicates a review append, bypasses the pass cap, or lets a reviewer update
+the snapshot.
+
 ## Parallel-Safety Decision
 
 Parallelize only when at least two meaningful tasks have no semantic dependency,
@@ -117,5 +127,7 @@ above; do not restate DAG policy here.
 - Same-worker continuation is preferred when supported; otherwise give a fresh
   worker the full task, scoped change context, findings, and verification
   evidence.
-- After every lane passes its caller-owned reviews, perform serial integration,
-  broad checks, whole-change review, and fresh verification.
+- After every lane passes its caller-owned reviews, serialize integration. With
+  an active policy, perform only the tier-selected whole-change review, then run
+  broad/full completion checks once through fresh verification. Policy absence
+  preserves the caller's existing broad-check and whole-change-review order.

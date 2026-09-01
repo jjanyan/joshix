@@ -65,12 +65,30 @@ require_fixed "$CONTRACT" 'After Josh answers an owner question, apply the answe
   'owner answers continue automatically'
 require_fixed "$CONTRACT" 'When prior shared reasoning or the review supplies exact replacement text, preserve it verbatim rather than restyling or elaborating it.' \
   'owner-answer continuation preserves exact agreed text'
-require_fixed "$CONTRACT" 'After application begins, the first unexpected edit or verification failure stops further edits to that artifact for the turn, preserves its exact current state' \
-  'unexpected failures preserve state'
-require_fixed "$CONTRACT" 'preserves its exact current state, and does not attempt same-turn repair or automatic rollback.' \
-  'unexpected failures stop repair'
-require_fixed "$CONTRACT" 'Do not rerun the failed verification in the same turn unless an external condition changes.' \
-  'unexpected failures are not retried speculatively'
+require_fixed "$CONTRACT" '## Failure recovery' \
+  'failure handling is a bounded recovery protocol'
+require_fixed "$CONTRACT" 'pauses further writes to the affected artifact while Agent 1 diagnoses the failure read-only' \
+  'unexpected failures pause writes for diagnosis'
+require_fixed "$CONTRACT" "Preserve the artifact's exact current state and never automatically roll back a partial change." \
+  'unexpected failures preserve exact partial state'
+require_fixed "$CONTRACT" 'A verification failure is evidence, not by itself a reason to end the turn.' \
+  'verification failure alone does not end the turn'
+require_fixed "$CONTRACT" 'Make one bounded recovery pass for that failure, then run focused verification.' \
+  'known objective failures recover once without owner brokering'
+require_fixed "$CONTRACT" 'Do not rerun a passing focused verification solely to confirm it.' \
+  'passing focused verification is not repeated performatively'
+require_fixed "$CONTRACT" 'A failure while making the recovery change or during its focused verification is the same failure and ends automatic recovery; it does not open another pass.' \
+  'failed recovery cannot recurse'
+require_fixed "$CONTRACT" 'Across one review application, Agent 1 may make at most two recovery passes in total, even for distinct failures.' \
+  'distinct failures share one unconditional recovery cap'
+require_fixed "$CONTRACT" 'Never require an owner message solely to reset a conversational turn boundary.' \
+  'conversational turn boundaries are not recovery gates'
+require_fixed "$CONTRACT" 'The eventual reception report names every successfully recovered failure and the focused command or evidence that established recovery.' \
+  'successful recovery requires focused evidence'
+forbid_fixed "$CONTRACT" 'stops further edits to that artifact for the turn' \
+  'old same-turn edit freeze is removed'
+forbid_fixed "$CONTRACT" 'does not attempt same-turn repair' \
+  'old automatic-repair prohibition is removed'
 require_fixed "$CONTRACT" 'A newly discovered concern from Agent 1 remains unchanged until Agent 2 agrees in a later review.' \
   'Agent 1 concerns wait for Agent 2'
 require_fixed "$CONTRACT" 'Rejected, deferred, unclear, and unverified findings remain unchanged with evidence-backed reasoning in the shared conversation.' \

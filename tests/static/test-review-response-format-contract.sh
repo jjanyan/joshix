@@ -131,6 +131,8 @@ require_fixed "$FORMAT" 'do not repeat the detailed report by default' 'detailed
 require_fixed "$FORMAT" 'readiness line' 'readiness guidance is documented'
 require_fixed "$FORMAT" 'Include a readiness line only when it adds information' 'readiness is included only when informative'
 require_fixed "$FORMAT" 'Automated test failures are evidence' 'test failures require classification'
+require_fixed "$FORMAT" "include each finding's repository tier tag" 'policy-active findings remain visibly tiered'
+require_fixed "$FORMAT" 'deferred observation with its task history ID' 'priced deferrals stay visible and traceable'
 require_fixed "$FORMAT" 'reviewed change, a stale expectation, the environment, or pre-existing behavior' 'test failure sources are investigated completely'
 forbid_fixed "$FORMAT" 'skills/code-review' 'shared contract does not couple to code review producer paths'
 forbid_fixed "$FORMAT" 'skills/reviewing-plans' 'shared contract does not couple to plan review producer paths'
