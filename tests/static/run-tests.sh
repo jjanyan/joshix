@@ -46,6 +46,13 @@ else
   failed=$((failed + 1))
 fi
 
+echo "Running: reviewer-host.test.mjs"
+if node --test "$ROOT/tests/reviewer-host/reviewer-host.test.mjs"; then
+  passed=$((passed + 1))
+else
+  failed=$((failed + 1))
+fi
+
 echo "Running: provider-help-contract.test.mjs"
 if node --test "$ROOT/tests/reviewer-runner/provider-help-contract.test.mjs"; then
   passed=$((passed + 1))
@@ -55,6 +62,20 @@ fi
 
 echo "Running: autonomous-review-flow.test.mjs"
 if node --test "$ROOT/tests/autonomous-review/autonomous-review-flow.test.mjs"; then
+  passed=$((passed + 1))
+else
+  failed=$((failed + 1))
+fi
+
+echo "Running: discussion-review-routing oracle"
+if bash "$ROOT/tests/codex/test-discussion-review-routing-behavior.sh" --oracle-only; then
+  passed=$((passed + 1))
+else
+  failed=$((failed + 1))
+fi
+
+echo "Running: completion-gate-recovery oracle"
+if bash "$ROOT/tests/codex/test-completion-gate-recovery-behavior.sh" --oracle-only; then
   passed=$((passed + 1))
 else
   failed=$((failed + 1))

@@ -8,6 +8,7 @@ import {
   constants as fsConstants,
   existsSync,
   fstatSync,
+  lstatSync,
   mkdtempSync,
   openSync,
   readFileSync,
@@ -16,7 +17,7 @@ import {
   rmSync,
   statSync,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import {
   delimiter,
   dirname,
@@ -32,6 +33,7 @@ import { fileURLToPath } from 'node:url';
 
 const FAILURE_MESSAGES = {
   unavailable: 'reviewer executable is unavailable',
+  sandboxed: 'reviewer process was blocked by the sandbox',
   unauthorized: 'reviewer authorization failed',
   timeout: 'reviewer exceeded the wall-clock limit',
   oversized: 'reviewer output exceeded the configured limit',
@@ -82,6 +84,8 @@ const CLAUDE_HELP_FLAGS = [
 const PROVIDER_HELP_TIMEOUT_MS = 5000;
 const PROVIDER_HELP_MAX_BYTES = 64 * 1024;
 const PROVIDER_CANDIDATE_LIMIT = 32;
+const RUNTIME_MODEL_MAX_BYTES = 512;
+const RUNTIME_EFFORT_MAX_BYTES = 64;
 
 function executableNames(command, platform, pathExt) {
   if (platform !== 'win32' || extname(command)) return [command];
@@ -313,6 +317,29 @@ function sameJsonStructure(left, right) {
   return JSON.stringify(normalizeJson(left)) === JSON.stringify(normalizeJson(right));
 }
 
+function boundedProviderString(value, maxBytes) {
+  return typeof value === 'string'
+    && value.length > 0
+    && Buffer.byteLength(value) <= maxBytes;
+}
+
+function claudeRuntimeFromEvent(event) {
+  const model = event?.type === 'system' && event?.subtype === 'init'
+    ? event.model
+    : event?.type === 'assistant'
+      ? event?.message?.model
+      : null;
+  if (model === '<synthetic>') return null;
+  const effort = event?.effort;
+  if (!boundedProviderString(model, RUNTIME_MODEL_MAX_BYTES)) return null;
+  return {
+    model,
+    ...(boundedProviderString(effort, RUNTIME_EFFORT_MAX_BYTES) ? { effort } : {}),
+    selection: 'inherited',
+    source: 'provider-event',
+  };
+}
+
 function parseCandidate(value) {
   if (typeof value !== 'string') return value;
   return JSON.parse(value);
@@ -364,7 +391,7 @@ function parseArgs(argv) {
     '--max-output-bytes',
     '--max-review-bytes',
   ];
-  const allowed = new Set([...required, '--session-id']);
+  const allowed = new Set([...required, '--reviewer-binary', '--reviewer-script', '--session-id']);
   const unknown = [...values.keys()].filter((name) => !allowed.has(name));
   if (unknown.length > 0) throw new Error(`Unknown option: ${unknown[0]}`);
   for (const name of required) {
@@ -378,6 +405,8 @@ function parseArgs(argv) {
   const repoRoot = values.get('--repo-root');
   const promptFile = values.get('--prompt-file');
   const schemaFile = values.get('--schema-file');
+  const reviewerBinary = values.get('--reviewer-binary') ?? null;
+  const reviewerScript = values.get('--reviewer-script') ?? null;
   const sessionId = values.get('--session-id') ?? null;
   if (sessionId !== null && !UUID_PATTERN.test(sessionId)) {
     throw new Error('--session-id requires a UUID.');
@@ -393,6 +422,28 @@ function parseArgs(argv) {
   if (!statSync(repoRoot).isDirectory()) {
     throw new Error('--repo-root requires a directory.');
   }
+  if (reviewerBinary !== null) {
+    if (!isAbsolute(reviewerBinary)) {
+      throw new Error('--reviewer-binary requires an absolute path.');
+    }
+    const stats = lstatSync(reviewerBinary);
+    if (stats.isSymbolicLink() || !stats.isFile()) {
+      throw new Error('--reviewer-binary requires a non-symlink regular file.');
+    }
+    accessSync(reviewerBinary, fsConstants.X_OK);
+  }
+  if (reviewerScript !== null) {
+    if (reviewerBinary === null) {
+      throw new Error('--reviewer-script requires --reviewer-binary.');
+    }
+    if (!isAbsolute(reviewerScript)) {
+      throw new Error('--reviewer-script requires an absolute path.');
+    }
+    const stats = lstatSync(reviewerScript);
+    if (stats.isSymbolicLink() || !stats.isFile() || realpathSync(reviewerScript) !== reviewerScript) {
+      throw new Error('--reviewer-script requires a canonical non-symlink regular file.');
+    }
+  }
   for (const [name, path] of [
     ['--prompt-file', promptFile],
     ['--schema-file', schemaFile],
@@ -404,6 +455,8 @@ function parseArgs(argv) {
     repoRoot,
     promptFile,
     schemaFile,
+    reviewerBinary,
+    reviewerScript,
     sessionId,
     timeoutMs: positiveInteger(values.get('--timeout-ms'), '--timeout-ms'),
     maxEvents: positiveInteger(values.get('--max-events'), '--max-events'),
@@ -412,26 +465,106 @@ function parseArgs(argv) {
   };
 }
 
-function failure(kind, attempts) {
+function failure(kind, attempts, diagnostic = null) {
   return {
     ok: false,
     attempts,
     failure: { kind, message: FAILURE_MESSAGES[kind] },
+    ...(diagnostic ? { diagnostic } : {}),
   };
 }
 
-function classifyNonzero(output, hadSession) {
+function classifyNonzero(output, hadSession, provider) {
   if (
     hadSession
     && /(?:session|conversation|thread).*(?:not found|missing|expired|invalid)|unknown (?:session|conversation|thread)/i.test(output)
   ) {
     return { kind: 'session-unavailable', retryable: true };
   }
-  if (/auth(?:entication|orization)?|unauthorized|permission denied|log in|login/i.test(output)) {
+  const lines = output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.some((line) => /sandbox-exec:.*deny|operation not permitted|seatbelt|sandbox.*denied/i.test(line))) {
+    return { kind: 'sandboxed', retryable: false };
+  }
+  const authPatterns = provider === 'claude'
+    ? [
+        /^Authentication required[.!]?$/i,
+        /^Not logged in(?:\s*[·.-]\s*Please run \/?login)?[.!]?$/i,
+        /^Invalid (?:API key|OAuth token)[.!]?$/i,
+      ]
+    : [
+        /^Authentication required[.!]?$/i,
+        /^Not logged in(?:[.!]|\s+.*)?$/i,
+        /^Unauthorized(?:[.!]|:\s+.*)?$/i,
+      ];
+  if (lines.some((line) => authPatterns.some((pattern) => pattern.test(line)))) {
     return { kind: 'unauthorized', retryable: false };
+  }
+  if (lines.some((line) => /^(?:Network is unreachable|Could not resolve host|Failed to connect(?:\s|:|$))/i.test(line))) {
+    return { kind: 'unavailable', retryable: false };
   }
   const retryable = /temporary|temporarily|overload|rate.?limit|try again|connection reset/i.test(output);
   return { kind: 'nonzero', retryable };
+}
+
+function truncateUtf8(value, maxBytes) {
+  const bytes = Buffer.from(String(value ?? ''), 'utf8');
+  if (bytes.length <= maxBytes) return bytes.toString('utf8');
+  let text = bytes.subarray(0, maxBytes).toString('utf8');
+  while (text.endsWith('\uFFFD')) text = text.slice(0, -1);
+  return text;
+}
+
+function sanitizeExcerpt(text, prompt, maxBytes = 512) {
+  let excerpt = truncateUtf8(text, 2048);
+  if (!excerpt.trim()) return null;
+  if (prompt) {
+    excerpt = excerpt.replaceAll(prompt, '[prompt redacted]');
+    for (const fragment of prompt.split(/\r?\n/).filter((line) => line.length >= 8)) {
+      excerpt = excerpt.replaceAll(fragment, '[prompt redacted]');
+    }
+  }
+  excerpt = excerpt
+    .replace(/\b(?:Bearer\s+)?(?:sk|sess|token)-[A-Za-z0-9._-]+\b/gi, '[credential redacted]')
+    .replace(/\b[A-Z0-9_]*(?:TOKEN|SECRET|KEY|PASSWORD)\s*=\s*\S+/gi, '[credential redacted]')
+    .replaceAll(homedir(), '[home]')
+    .replace(/[\r\n\t]+/g, ' ')
+    .trim();
+  return excerpt ? truncateUtf8(excerpt, maxBytes) : null;
+}
+
+function providerDiagnostic(kind, result, prompt, elapsedMs) {
+  const raw = `${result?.stderr ?? ''}\n${result?.stdout ?? ''}`.trim();
+  const excerpt = ['malformed', 'oversized'].includes(kind)
+    ? null
+    : sanitizeExcerpt(raw, prompt);
+  return {
+    stage: 'provider',
+    classification: kind,
+    exitStatus: Number.isInteger(result?.code) ? result.code : null,
+    signal: typeof result?.signal === 'string' ? result.signal : null,
+    elapsedMs: Math.max(0, Math.round(elapsedMs)),
+    ...(excerpt ? { excerpt } : {}),
+  };
+}
+
+function runnerDiagnostic(kind, error, prompt, startedAt) {
+  const excerpt = sanitizeExcerpt(error instanceof Error ? error.message : String(error ?? ''), prompt);
+  return {
+    stage: 'runner',
+    classification: kind,
+    exitStatus: null,
+    signal: null,
+    elapsedMs: Math.max(0, Math.round(performance.now() - startedAt)),
+    ...(excerpt ? { excerpt } : {}),
+  };
+}
+
+function attemptFailure(kind, retryable, result, prompt, startedAt) {
+  return {
+    kind,
+    retryable,
+    diagnostic: providerDiagnostic(kind, result, prompt, performance.now() - startedAt),
+  };
 }
 
 function parseClaudeReview(stdout) {
@@ -451,6 +584,7 @@ function parseClaudeReview(stdout) {
 }
 
 async function runAttempt(options, prompt, schemaText) {
+  const startedAt = performance.now();
   const { provider } = options;
   let observedSessionId = provider === 'claude'
     ? (options.sessionId ?? randomUUID())
@@ -488,6 +622,8 @@ async function runAttempt(options, prompt, schemaText) {
       let rawBytes = 0;
       let terminalFailure = null;
       let spawnError = null;
+      let observedRuntime = null;
+      let runtimeConflict = false;
       let child;
       const stdoutDecoder = new StringDecoder('utf8');
       const stderrDecoder = new StringDecoder('utf8');
@@ -517,6 +653,26 @@ async function runAttempt(options, prompt, schemaText) {
               return;
             }
             observedSessionId = event.thread_id;
+          }
+          if (provider === 'claude') {
+            const runtime = claudeRuntimeFromEvent(event);
+            if (runtime) {
+              if (
+                observedRuntime
+                && (
+                  observedRuntime.model !== runtime.model
+                  || (
+                    observedRuntime.effort
+                    && runtime.effort
+                    && observedRuntime.effort !== runtime.effort
+                  )
+                )
+              ) {
+                runtimeConflict = true;
+              } else {
+                observedRuntime = { ...observedRuntime, ...runtime };
+              }
+            }
           }
         } catch {
           malformedEventStream = true;
@@ -577,23 +733,32 @@ async function runAttempt(options, prompt, schemaText) {
           terminalFailure,
           spawnError,
           malformedEventStream,
+          runtime: runtimeConflict ? null : observedRuntime,
         });
       });
     });
 
-    if (result.terminalFailure) return result.terminalFailure;
+    if (result.terminalFailure) {
+      return attemptFailure(
+        result.terminalFailure.kind,
+        result.terminalFailure.retryable,
+        result,
+        prompt,
+        startedAt,
+      );
+    }
     if (result.spawnError) {
-      return {
-        kind: result.spawnError.code === 'ENOENT' ? 'unavailable' : 'internal',
-        retryable: false,
-      };
+      const kind = result.spawnError.code === 'ENOENT' ? 'unavailable' : 'internal';
+      return attemptFailure(kind, false, result, prompt, startedAt);
     }
     if (result.signal || !Number.isInteger(result.code)) {
-      return { kind: 'nonzero', retryable: false };
+      return attemptFailure('nonzero', false, result, prompt, startedAt);
     }
     let review;
     if (provider === 'codex') {
-      if (result.malformedEventStream) return { kind: 'malformed', retryable: true };
+      if (result.malformedEventStream) {
+        return attemptFailure('malformed', true, result, prompt, startedAt);
+      }
       let finalFailure = null;
       if (!existsSync(finalFile)) {
         finalFailure = { kind: 'malformed', retryable: true };
@@ -614,28 +779,43 @@ async function runAttempt(options, prompt, schemaText) {
       }
       if (finalFailure) {
         if (result.code !== 0 && finalFailure.kind !== 'oversized') {
-          return classifyNonzero(`${result.stdout}\n${result.stderr}`, Boolean(options.sessionId));
+          const classified = classifyNonzero(
+            `${result.stdout}\n${result.stderr}`,
+            Boolean(options.sessionId),
+            provider,
+          );
+          return attemptFailure(classified.kind, classified.retryable, result, prompt, startedAt);
         }
-        return finalFailure;
+        return attemptFailure(finalFailure.kind, finalFailure.retryable, result, prompt, startedAt);
       }
     } else {
       if (result.code !== 0) {
-        return classifyNonzero(`${result.stdout}\n${result.stderr}`, Boolean(options.sessionId));
+        const classified = classifyNonzero(
+          `${result.stdout}\n${result.stderr}`,
+          Boolean(options.sessionId),
+          provider,
+        );
+        return attemptFailure(classified.kind, classified.retryable, result, prompt, startedAt);
       }
-      if (result.malformedEventStream) return { kind: 'malformed', retryable: true };
+      if (result.malformedEventStream) {
+        return attemptFailure('malformed', true, result, prompt, startedAt);
+      }
       review = parseClaudeReview(result.stdout);
     }
-    if (!isValidReview(review)) return { kind: 'malformed', retryable: true };
+    if (!isValidReview(review)) {
+      return attemptFailure('malformed', true, result, prompt, startedAt);
+    }
     if (!observedSessionId || !UUID_PATTERN.test(observedSessionId)) {
-      return { kind: 'malformed', retryable: true };
+      return attemptFailure('malformed', true, result, prompt, startedAt);
     }
     if (Buffer.byteLength(JSON.stringify(review)) > options.maxReviewBytes) {
-      return { kind: 'oversized', retryable: false };
+      return attemptFailure('oversized', false, result, prompt, startedAt);
     }
     return {
       ok: true,
       sessionId: observedSessionId,
       review,
+      ...(result.runtime ? { runtime: result.runtime } : {}),
       ...(result.code !== 0 ? { diagnostic: { providerExitCode: result.code } } : {}),
     };
   } finally {
@@ -646,6 +826,7 @@ async function runAttempt(options, prompt, schemaText) {
 }
 
 async function main() {
+  const startedAt = performance.now();
   let options;
   let prompt;
   let schemaText;
@@ -655,10 +836,10 @@ async function main() {
     prompt = readFileSync(options.promptFile, 'utf8');
     schemaText = readFileSync(options.schemaFile, 'utf8');
     schema = JSON.parse(schemaText);
-  } catch {
+  } catch (error) {
     process.stdout.write(`${JSON.stringify({
       provider: options?.provider ?? 'unknown',
-      ...failure('configuration', 0),
+      ...failure('configuration', 0, runnerDiagnostic('configuration', error, prompt, startedAt)),
     })}\n`);
     process.exitCode = 1;
     return;
@@ -670,18 +851,19 @@ async function main() {
       new URL('../review-result.schema.json', import.meta.url),
       'utf8',
     ));
-  } catch {
+  } catch (error) {
     process.stdout.write(`${JSON.stringify({
       provider: options.provider,
-      ...failure('internal', 0),
+      ...failure('internal', 0, runnerDiagnostic('internal', error, prompt, startedAt)),
     })}\n`);
     process.exitCode = 1;
     return;
   }
   if (!sameJsonStructure(schema, canonicalSchema)) {
+    const error = new Error('provided review schema does not match the canonical schema');
     process.stdout.write(`${JSON.stringify({
       provider: options.provider,
-      ...failure('configuration', 0),
+      ...failure('configuration', 0, runnerDiagnostic('configuration', error, prompt, startedAt)),
     })}\n`);
     process.exitCode = 1;
     return;
@@ -690,13 +872,22 @@ async function main() {
   const override = options.provider === 'claude'
     ? process.env.JOSHIX_REVIEWER_CLAUDE_BIN
     : process.env.JOSHIX_REVIEWER_CODEX_BIN;
-  const discovery = override
-    ? { launcher: { command: override, prefixArgs: [], source: override } }
-    : discoverDefaultReviewerBinary(options.provider);
+  const discovery = options.reviewerBinary
+    ? {
+        launcher: {
+          command: options.reviewerBinary,
+          prefixArgs: options.reviewerScript ? [options.reviewerScript] : [],
+          source: options.reviewerScript ?? options.reviewerBinary,
+        },
+      }
+    : override
+      ? { launcher: { command: override, prefixArgs: [], source: override } }
+      : discoverDefaultReviewerBinary(options.provider);
   if (!discovery.launcher) {
+    const error = new Error('no compatible reviewer executable was discovered');
     process.stdout.write(`${JSON.stringify({
       provider: options.provider,
-      ...failure('unavailable', 0),
+      ...failure('unavailable', 0, runnerDiagnostic('unavailable', error, prompt, startedAt)),
     })}\n`);
     process.exitCode = 1;
     return;
@@ -713,6 +904,7 @@ async function main() {
           provider: options.provider,
           attempts,
           session: { id: result.sessionId, mode: sessionMode },
+          ...(result.runtime ? { runtime: result.runtime } : {}),
           review: result.review,
           ...(result.diagnostic ? { diagnostic: result.diagnostic } : {}),
         })}\n`);
@@ -726,16 +918,16 @@ async function main() {
       if (!result.retryable || attempts === 2) {
         process.stdout.write(`${JSON.stringify({
           provider: options.provider,
-          ...failure(result.kind, attempts),
+          ...failure(result.kind, attempts, result.diagnostic),
         })}\n`);
         process.exitCode = 1;
         return;
       }
     }
-  } catch {
+  } catch (error) {
     process.stdout.write(`${JSON.stringify({
       provider: options?.provider ?? 'unknown',
-      ...failure('internal', 0),
+      ...failure('internal', 0, runnerDiagnostic('internal', error, prompt, startedAt)),
     })}\n`);
     process.exitCode = 1;
   }

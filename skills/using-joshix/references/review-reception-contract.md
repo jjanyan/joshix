@@ -1,7 +1,9 @@
 # Review Reception Contract
 
 This contract applies only when an artifact-owning agent receives another
-agent's code, plan, or spec review. The roles, not fresh `apply`, `fix`, or
+agent's review of concrete code or diff, a named plan, or a named spec. It is
+inapplicable to task history, `current.md`, product discussion, proposed
+architecture, and general chat. The roles, not fresh `apply`, `fix`, or
 `proceed` wording, determine default edit authority.
 
 Agent 2 is a read-only review producer. Agent 1 is the meta-review receiver and
@@ -26,7 +28,7 @@ acceptance-criteria, or architecture choices remain owner-gated.
 | Agent 1 discovers a concern Agent 2 did not raise | A newly discovered concern from Agent 1 remains unchanged until Agent 2 agrees in a later review. | If Agent 2 approved, approval is disputed; otherwise explain the concern for the next pass. |
 | Later Agent 2 review says a previous automatic change was wrong | If a later Agent 2 pass identifies a previously applied automatic change as wrong, that report is an ordinary new finding. Verify it and apply an objective correction automatically; the prior application does not create a new owner gate. | A changed artifact requires rereview. |
 | Current Agent 2 review approves and Agent 1 concurs | Make no change. | Approved. |
-| Current phase is approved and the next phase lacks explicit authorization | Treat readiness as settled state, not an unresolved choice. | Emit the exact readiness hold from the response format; never manufacture owner options. |
+| The current review approves a spec or plan and that artifact's immediate next phase lacks explicit authorization | Treat artifact-local readiness as settled state, not an unresolved choice. | Emit the exact readiness hold from the response format; never manufacture owner options or borrow readiness from queued work. |
 
 ## Policy-active structured findings
 
@@ -44,8 +46,10 @@ legacy finding classification above:
 Unknown names make the producer result malformed; never guess. Severity remains
 separate from criticality. After one unresolved rebuttal, `dev` instance choices
 inside established policy are coordinator-settled and logged; new or changed
-`policy` and `product` choices bubble up. Approval with no unresolved choice
-uses the readiness hold, never the owner-decision lane.
+`policy` and `product` choices bubble up. An approved spec or plan whose own
+immediate next phase remains unauthorized uses the readiness hold, never the
+owner-decision lane. Other approval reports do not inherit a hold from queued
+work.
 
 Rejected, deferred, unclear, and unverified findings remain unchanged with
 evidence-backed reasoning in the shared conversation. Complete all independent
@@ -66,17 +70,17 @@ reason to end the turn.
 
 Agent 1 continues automatically without an owner message when diagnosis
 establishes the artifact's current state and identifies an objective, in-scope
-recovery that needs no new product, policy, architecture, scope, destructive,
-or irreversible decision. Make one bounded recovery pass for that failure,
-then run focused verification. If it passes, resume ordinary review reception.
-Do not rerun a passing focused verification solely to confirm it. If a final
-completion gate failed, rerun that gate once after the focused repair passes;
-never repeat full gates per review round.
+correction that needs no new product, policy, architecture, scope, destructive,
+or irreversible decision. Apply one correction for that failure and run
+focused verification. If it passes, resume ordinary review reception. Do not
+rerun a passing focused verification solely to confirm it. A failure in that
+correction or its focused check ends automatic correction rather than opening
+another attempt. Across one review application, no more than two such
+corrections may be attempted.
 
-A failure while making the recovery change or during its focused verification
-is the same failure and ends automatic recovery; it does not open another pass.
-Across one review application, Agent 1 may make at most two recovery passes in
-total, even for distinct failures.
+For policy-active completion-gate recovery, follow `autonomous-review.md`.
+Its producer-pass, infrastructure-retry, and recovery-repair budgets supersede
+this general reception rule.
 
 Stop before further writes when the current state is uncertain, recovery risks
 overwriting user changes, recovery requires excluded authority or scope

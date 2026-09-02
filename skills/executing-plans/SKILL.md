@@ -44,7 +44,10 @@ generalized hardening, or future infrastructure. Use focused checks until the
 single final completion gate, and report progress only on `started`, `done`,
 `blocked`, or `bubble-up` transitions. The coordinator owns every bounded
 review pass, fix or rebuttal, local `dev` settlement, history append, and
-snapshot replacement; never ask the owner to broker a routine round.
+snapshot replacement; never ask the owner to broker a routine round. The
+central autonomous-review table also owns post-signoff producer passes,
+mechanical repairs, infrastructure retries, and production recovery; do not
+invent another retry budget here.
 
 For each task:
 1. Mark as in_progress

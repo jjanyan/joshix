@@ -34,6 +34,15 @@ no policy, keep this skill's existing behavior unchanged.
 Never ask the owner to copy a prompt, paste a result, or relay review messages
 unless the owner selects that fallback from the capability memo.
 
+Invoke the installed `joshix-review review` typed operation as the first
+cross-provider action. Do not call the general runner directly in steady state.
+If the launcher reports `sandboxed` or `launcher`, diagnose the local transport
+without claiming the provider was attempted or starting fallback. Record
+`configuration-stale` once and use a persistent same-role fallback. An actual
+terminal provider failure also falls back after its bounded diagnostic is
+recorded. Until host setup succeeds, only a one-off individually reviewed
+runner escalation with binary overrides removed may bootstrap review.
+
 The coordinator validates the review, constructs
 version-2 `review-record.schema.json`, computes the digest and append key exactly
 as defined by the central protocol, and appends the canonical envelope through
@@ -45,6 +54,12 @@ compact `Review:` field while preserving scope, active time, deferred history
 IDs, and every other declaration field. If replacement fails, preserve history,
 report and rebuild the stale snapshot, and do not dispatch again until repaired.
 The invoked reviewer never writes coordinator state.
+
+If no automatic path succeeds, validate one
+`review-failure-record.schema.json` object and append it as
+`ReviewerTransport` with the same deterministic identity before emitting the
+single capability memo. A successful fallback may carry only the bounded
+`requestedProviderDiagnostic`; never append raw transport output.
 
 Before each later gate or pass, consult the snapshot and authoritative review
 history for the saved provider and session. A recorded provider fallback stays
@@ -64,6 +79,13 @@ Do not suppress those defaults or downgrade models to conserve cost. Let native
 reviewers inherit the current platform selection and cross-provider CLIs load
 their normal machine-specific configuration. Override either value only when
 the user explicitly requests a task-specific selection.
+
+Provider-reported runtime metadata is diagnostic-only. When the runner returns
+`runtime`, copy it unchanged into `reviewer.runtime` in the version-2 history
+record. The model is required when that object exists; effort is included only
+when the provider event exposes it. Never ask the reviewer to self-report its
+model or effort, and never fail an otherwise valid review because runtime
+metadata or effort is absent.
 
 ## When to Request Review
 

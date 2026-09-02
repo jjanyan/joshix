@@ -90,6 +90,8 @@ tests=(
     "test-workflow-policy-behavior.sh"
     "test-autonomous-review-loop-behavior.sh"
     "test-readiness-hold-behavior.sh"
+    "test-discussion-review-routing-behavior.sh"
+    "test-completion-gate-recovery-behavior.sh"
 )
 
 if [ -n "$SPECIFIC_TEST" ]; then

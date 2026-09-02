@@ -62,7 +62,9 @@ task context. Slices use focused checks; the coordinator reserves full
 completion gates for the end after review sign-off. A trivial task stops before
 pass two; every gate stops before pass three. `dev` disagreements are settled
 and logged locally after one rebuttal; `policy` and `product` disagreements
-bubble up.
+bubble up. Post-signoff producer passes and recovery attempts use the single
+budget table in `autonomous-review.md`; workers do not create independent retry
+budgets.
 
 1. Read the plan once; extract every task, `Depends on`, file/resource scope,
    verification command, and full task text.
@@ -98,6 +100,9 @@ one task-scoped persistent reviewer peer across every selected plan, spec,
 quality, and whole-change gate. Implementation workers remain lane-scoped.
 Return findings to the same implementer when continuation is supported, then
 resume the reviewer peer for the selected gate within the central cap.
+Coordinator-owned policy-active reviewer calls use the installed
+`joshix-review review` operation and the central fallback/recording rules;
+workers never invoke or write reviewer transport state.
 
 Use these exact descriptions for lane dispatches so coordination and transcript
 evidence do not depend on free-form summaries:

@@ -35,10 +35,17 @@ This is not negotiable. This is not optional. You cannot rationalize your way ou
 If an invoked skill turns out to be wrong for the situation, you don't need to use it.
 
 <EXTREMELY-IMPORTANT>
-If the current user message includes code review feedback, review comments, a
-pasted agent review, or critique of code changes, or if it includes plan or
-spec reviewer feedback, first identify whether the review concerns code, a
-plan, or a spec. Invoke `joshix:receiving-code-review` for code,
+First identify what the reviewer evaluated. Use artifact reception only for a
+concrete code or diff artifact, a named plan, or a named spec. Task history,
+`current.md`, product discussion, proposed architecture, and general chat are
+context, not review artifacts. Feedback about those subjects receives a normal
+conversational response even when the request says “read the shared chat and
+respond to the review.” The phrase `review` alone does not select artifact reception.
+
+For a concrete artifact, if the current user message includes code review
+feedback, review comments, a pasted agent review, or critique of code changes,
+or if it includes plan or spec reviewer feedback, identify whether the review
+concerns code, a plan, or a spec. Invoke `joshix:receiving-code-review` for code,
 `joshix:receiving-plan-review` for plans, and
 `joshix:receiving-spec-review` for specs. Invoke the matching reception skill
 before any implementation skill, TDD step, file edit, or test-writing step.
@@ -64,6 +71,13 @@ Use this exception only when the user semantically says review only, do not
 edit, do not apply, or keep the artifact unchanged. `What do you think?`,
 `Thoughts?`, and `Is this right?` merely request meta-review; they remain
 automatic and must never trigger the no-edit opening.
+
+For non-artifact discussion feedback, use normal prose: state agreement or
+disagreement, the resulting design, and any genuine unresolved decision. Do
+not use artifact validity labels or artifact-response headings. If the
+discussion settles a next phase that still requires the owner's command, end
+with the applicable plain exact readiness hold; never fabricate a decision
+memo.
 </EXTREMELY-IMPORTANT>
 
 ## Instruction Priority
@@ -205,7 +219,13 @@ under the review-feedback rules below.
 
 ## Review Feedback Default
 
-Route received reviewer feedback by what it evaluates:
+First route received feedback by what the reviewer evaluated. Only concrete
+code or diff, a named plan, or a named spec enters artifact reception. Task
+history, `current.md`, product discussion, proposed architecture, and general
+chat receive a normal conversational response; the phrase `review` alone does
+not select artifact reception.
+
+For a concrete artifact:
 
 - Code review feedback invokes `joshix:receiving-code-review`.
 - Plan review feedback invokes `joshix:receiving-plan-review`.

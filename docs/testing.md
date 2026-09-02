@@ -23,18 +23,18 @@ The static runner also executes deterministic shared-task and reviewer
 transport suites. Run these focused model-free checks while narrowing failures:
 
 ```bash
-node --test tests/task-context/task-context.test.mjs
+node --disable-warning=ExperimentalWarning --test tests/task-context/task-context.test.mjs
+node --test tests/reviewer-host/reviewer-host.test.mjs
 node --test tests/reviewer-runner/reviewer-runner.test.mjs
 node --test tests/reviewer-runner/provider-help-contract.test.mjs
 node --test tests/autonomous-review/autonomous-review-flow.test.mjs
-bash tests/static/test-workflow-policy-contract.sh
 bash tests/static/test-autonomous-review-contract.sh
+bash tests/static/test-review-reception-contract.sh
+bash tests/static/test-workflow-policy-contract.sh
 bash tests/static/test-readiness-hold-contract.sh
 ```
 
-These seven commands are deterministic and model-free. The task-context suite may
-also be run with `node --disable-warning=ExperimentalWarning --test` on runtimes
-that do not suppress the experimental SQLite warning themselves.
+These commands are deterministic and model-free.
 
 The reviewer-runner suite proves persistent session start, resume, and
 replacement; literal argv transport; read-only repository and task-history
@@ -73,15 +73,24 @@ Focused policy and autonomous-review behavior checks are:
 
 ```bash
 tests/codex/run-skill-tests.sh --test test-workflow-policy-behavior.sh
+tests/codex/run-skill-tests.sh --test test-discussion-review-routing-behavior.sh
+tests/codex/run-skill-tests.sh --test test-completion-gate-recovery-behavior.sh
 tests/codex/run-skill-tests.sh --test test-autonomous-review-loop-behavior.sh
 bash tests/codex/test-readiness-hold-behavior.sh
 tests/claude-code/run-skill-tests.sh --test test-autonomous-review-loop-behavior.sh
+node tests/reviewer-host/real-codex-claude-smoke.mjs
 ```
 
 These commands invoke models and are intentional cost-bearing coverage. The
 autonomous-review scripts also expose `--oracle-only` for their deterministic
 direction/profile checks. Development slices and review rounds use focused
 checks; full completion gates run once, after whole-change review sign-off.
+The discussion-routing, completion-recovery, reciprocal Claude autonomous-loop,
+and real sandbox-to-Claude smoke tests are release gates, not per-round checks.
+The reciprocal and smoke tests require the installed host launcher plus fresh
+Codex and Claude authentication/permission state. The smoke proves a
+workspace-sandboxed Codex process can start and resume the same read-only Claude
+reviewer without changing the fixture repository or task database.
 
 ### 3. Representative orchestration checks
 

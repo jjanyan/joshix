@@ -113,16 +113,40 @@ Keep only this compact active state in `current.md`:
 - Complexity: `<trivial|routine|complex>`
 - Effort: `<duration>`
 - Outcome/scope: `<one sentence>`
-- Active time: `<total and open/closed state>`
+- Active time: `40m; open; approximate`
 - Review: `<gate>; round <n>; <path>; <provider> session <uuid>; history <id>`
 - Deferred: `<count; history IDs>`
 ```
 
-Full declarations, overrides, timer transitions, reviews, findings, and
+Full declarations, overrides, external-wait records, reviews, findings, and
 deferred observations remain append-only history. The coordinator alone writes
 this history and atomically replaces the snapshot. A declared persistent
 reviewer peer may read the exact supplied task through the commands allowed by
 the stop block; every delegated worker reports results to the coordinator.
+
+Before a policy checkpoint, append the current User message before querying so
+the preceding owner gap is excluded and the current coordinator interval is
+open. Then run:
+
+`<absolute-skill-directory>/scripts/task-context.mjs elapsed .joshix/tasks/example --now 2026-09-02T11:40:00.000Z`
+
+Production calls omit `--now`. Do not query an idle conversation after a final
+response because no coordinator work unit exists then. Record the returned
+duration, state, and `approximate` marker only during an ordinary snapshot
+rewrite; never emit a progress update solely for time bookkeeping.
+
+The only machine-readable exception is an external wait, appended idempotently
+with speaker `TaskMeta` and one exact JSON object:
+
+```json
+{"type":"joshix.external-wait","state":"paused","key":"<stable-key>"}
+{"type":"joshix.external-wait","state":"resumed","key":"<stable-key>"}
+```
+
+Append these only around a genuine owner or external-system wait. Do not start
+a policy checkpoint while the latest pause is still open. Missing metadata
+deliberately overcounts active time. This protocol adds no timer, poller,
+daemon, or routine timing event.
 
 ## Failures and boundaries
 

@@ -21,6 +21,7 @@ const runner = join(joshixRoot, 'skills/requesting-code-review/scripts/reviewer-
 const taskContext = join(joshixRoot, 'skills/task-context/scripts/task-context.mjs');
 const schema = join(joshixRoot, 'skills/requesting-code-review/review-result.schema.json');
 const recordSchemaPath = join(dirname(schema), 'review-record.schema.json');
+const failureRecordSchemaPath = join(dirname(schema), 'review-failure-record.schema.json');
 const FIXED_CODEX_SESSION = '01990f47-3d62-7b22-8f5a-123456789abc';
 const temporaryDirectories = [];
 
@@ -69,6 +70,7 @@ function validateSchema(value, schemaValue, schemaDirectory, path = 'record') {
   }
   if (typeof value === 'string') {
     if (schemaValue.minLength !== undefined) assert.ok(value.length >= schemaValue.minLength, `${path} minLength`);
+    if (schemaValue.maxLength !== undefined) assert.ok(value.length <= schemaValue.maxLength, `${path} maxLength`);
     if (schemaValue.pattern) assert.match(value, new RegExp(schemaValue.pattern), `${path} pattern`);
   }
   if (typeof value === 'number') {
@@ -116,6 +118,12 @@ if (${JSON.stringify(provider)} === 'codex') {
   process.stdout.write(JSON.stringify({ type: 'thread.started', thread_id: sessionId }) + '\\n');
   process.stdout.write(JSON.stringify({ type: 'turn.completed' }) + '\\n');
 } else {
+  process.stdout.write(JSON.stringify({
+    type: 'system', subtype: 'init', model: 'claude-fable-5',
+  }) + '\\n');
+  process.stdout.write(JSON.stringify({
+    type: 'assistant', message: { model: 'claude-fable-5', content: [] },
+  }) + '\\n');
   process.stdout.write(JSON.stringify({ type: 'result', structured_output: review }) + '\\n');
 }
 `);
@@ -146,6 +154,8 @@ function persistDirectReview({
   usedProvider,
   path,
   session,
+  runtime,
+  requestedProviderDiagnostic,
   round = 1,
   fallback = null,
   attempts = { requested: 1, fallback: 0 },
@@ -183,6 +193,8 @@ function persistDirectReview({
       attempts,
       fallback,
       session,
+      ...(runtime ? { runtime } : {}),
+      ...(requestedProviderDiagnostic ? { requestedProviderDiagnostic } : {}),
     },
     promptDigest: `sha256:${promptDigest}`,
     review,
@@ -308,6 +320,14 @@ test('low-trivial flow falls back, records once, snapshots atomically, and runs 
       path: 'same-model-cli',
       attempts: { requested: 1, fallback: 1 },
       fallback: { reason: 'unavailable' },
+      requestedProviderDiagnostic: {
+        stage: 'provider',
+        classification: 'unavailable',
+        exitStatus: null,
+        signal: null,
+        elapsedMs: 3,
+        excerpt: 'configured reviewer executable was unavailable',
+      },
       session: fallbackEnvelope.session,
     },
     promptDigest: `sha256:${promptDigest}`,
@@ -387,8 +407,13 @@ test('fixed provider selection uses the other provider without repository opt-in
   const envelope = JSON.parse(result.stdout);
   assert.equal(envelope.provider, 'claude');
   assert.equal(envelope.session.mode, 'started');
+  assert.deepEqual(envelope.runtime, {
+    model: 'claude-fable-5',
+    selection: 'inherited',
+    source: 'provider-event',
+  });
   assert.equal(existsSync(sameModelMarker), false);
-  persistDirectReview({
+  const persisted = persistDirectReview({
     repo,
     taskName: 'cross-provider-direct',
     gate: 'whole-change',
@@ -398,7 +423,9 @@ test('fixed provider selection uses the other provider without repository opt-in
     usedProvider: 'claude',
     path: 'cross-provider-cli',
     session: envelope.session,
+    runtime: envelope.runtime,
   });
+  assert.deepEqual(persisted.record.reviewer.runtime, envelope.runtime);
 });
 
 test('one persistent reviewer session is reused across task gates', () => {
@@ -517,10 +544,12 @@ process.exit(2);
     usedProvider: 'codex',
     path: 'same-model-cli',
     fallback: { reason: 'unauthorized' },
+    requestedProviderDiagnostic: JSON.parse(failedCross.stdout).diagnostic,
     attempts: { requested: 1, fallback: 1 },
     session: fallbackEnvelope.session,
   });
   assert.equal(first.record.reviewer.fallback.reason, 'unauthorized');
+  assert.equal(first.record.reviewer.requestedProviderDiagnostic.classification, 'unauthorized');
 
   // Later coordinator selection consults the authoritative prior record.
   const priorRows = JSON.parse(run(taskContext, ['recent', first.taskFolder, '--full'], { cwd: repo }).stdout);
@@ -552,6 +581,97 @@ process.exit(2);
   const fallbackInvocations = readFileSync(fallbackLog, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
   assert.deepEqual(fallbackInvocations.map(({ sessionId }) => sessionId), [laterSession, laterSession]);
   assert.deepEqual(fallbackInvocations.map(({ resumed }) => resumed), [false, true]);
+});
+
+test('terminal reviewer transport failures have a bounded canonical history schema', () => {
+  const failureSchema = JSON.parse(readFileSync(failureRecordSchemaPath, 'utf8'));
+  const record = {
+    schemaVersion: 1,
+    gate: 'whole-change',
+    round: 1,
+    requestedProvider: 'claude',
+    diagnostic: {
+      stage: 'launcher',
+      classification: 'configuration-stale',
+      attempts: 0,
+      exitStatus: null,
+      signal: null,
+      elapsedMs: 2,
+      excerpt: 'configured provider executable is missing',
+    },
+  };
+  assert.doesNotThrow(() => validateSchema(record, failureSchema, dirname(schema)));
+  assert.throws(() => validateSchema({
+    ...record,
+    diagnostic: { ...record.diagnostic, excerpt: 'x'.repeat(513) },
+  }, failureSchema, dirname(schema)));
+  assert.throws(() => validateSchema({ ...record, requestedProvider: 'other' }, failureSchema, dirname(schema)));
+
+  const repo = temporaryDirectory();
+  execFileSync('git', ['init', '--quiet'], { cwd: repo });
+  const taskFolder = '.joshix/tasks/terminal-transport-failure';
+  const initialized = run(taskContext, ['init', taskFolder], { cwd: repo });
+  assert.equal(initialized.status, 0, initialized.stderr);
+  const recordFile = join(repo, 'reviewer-transport-failure.json');
+  writeFileSync(recordFile, `${JSON.stringify(record)}\n`);
+  const appendArgs = [
+    'append', taskFolder,
+    '--speaker', 'ReviewerTransport',
+    '--content-file', recordFile,
+    '--idempotency-key', digest(['whole-change', '1', 'claude', 'configuration-stale'].join('\0')),
+  ];
+  const first = run(taskContext, appendArgs, { cwd: repo });
+  const duplicate = run(taskContext, appendArgs, { cwd: repo });
+  assert.equal(first.status, 0, first.stderr);
+  assert.equal(duplicate.stdout, first.stdout);
+  const rows = JSON.parse(run(taskContext, ['recent', taskFolder, '--full'], { cwd: repo }).stdout);
+  assert.equal(rows.filter((row) => row.speaker === 'ReviewerTransport').length, 1);
+});
+
+test('successful review records reject local failures and diagnostics without fallback', () => {
+  const recordSchema = JSON.parse(readFileSync(recordSchemaPath, 'utf8'));
+  const diagnostic = {
+    stage: 'provider',
+    classification: 'unavailable',
+    attempts: 1,
+    exitStatus: 1,
+    signal: null,
+    elapsedMs: 10,
+    excerpt: 'Network is unreachable',
+  };
+  delete diagnostic.attempts;
+  const base = {
+    schemaVersion: 2,
+    gate: 'whole-change',
+    round: 1,
+    reviewer: {
+      requestedProvider: 'claude',
+      usedProvider: 'codex',
+      path: 'same-model-cli',
+      attempts: { requested: 1, fallback: 1 },
+      fallback: { reason: 'unavailable' },
+      session: { id: FIXED_CODEX_SESSION, mode: 'started' },
+      requestedProviderDiagnostic: diagnostic,
+    },
+    promptDigest: `sha256:${digest('fallback review')}`,
+    review: { status: 'approved', findings: [] },
+  };
+  assert.doesNotThrow(() => validateSchema(base, recordSchema, dirname(schema)));
+  assert.throws(() => validateSchema({
+    ...base,
+    reviewer: {
+      ...base.reviewer,
+      fallback: null,
+      attempts: { requested: 1, fallback: 0 },
+    },
+  }, recordSchema, dirname(schema)));
+  assert.throws(() => validateSchema({
+    ...base,
+    reviewer: {
+      ...base.reviewer,
+      requestedProviderDiagnostic: { ...diagnostic, stage: 'launcher', classification: 'sandboxed' },
+    },
+  }, recordSchema, dirname(schema)));
 });
 
 test('version 1 review history starts a fresh session on its recorded provider', () => {

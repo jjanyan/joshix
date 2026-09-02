@@ -37,8 +37,12 @@ Commands:
   since-time <task-folder> <ISO-8601 timestamp> [--full]
   get <task-folder> <id> [id ...]
   search <task-folder> <text>  (literal substring, ASCII case-insensitive)
+  elapsed <task-folder> [--now <ISO-8601 timestamp>]
   export <task-folder> --format markdown
   check <task-folder>
+
+Example:
+  elapsed .joshix/tasks/example --now 2026-09-02T11:40:00.000Z
 `;
 const VERSION_ONE_COLUMNS = [
   { name: 'id', type: 'INTEGER', notnull: 0, pk: 1 },
@@ -557,6 +561,147 @@ function search(folder, args) {
   );
 }
 
+function elapsedDuration(milliseconds) {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const parts = [];
+  if (hours) parts.push(`${hours}h`);
+  if (minutes) parts.push(`${minutes}m`);
+  if (seconds || parts.length === 0) parts.push(`${seconds}s`);
+  return parts.join(' ');
+}
+
+function unknownElapsed(warning) {
+  printJson({
+    activeMs: null,
+    activeDuration: null,
+    state: 'unknown',
+    approximate: true,
+    warning,
+  });
+}
+
+function mergeIntervals(intervals) {
+  const ordered = [...intervals].sort((left, right) => left[0] - right[0]);
+  const merged = [];
+  for (const interval of ordered) {
+    const last = merged.at(-1);
+    if (!last || interval[0] > last[1]) merged.push([...interval]);
+    else last[1] = Math.max(last[1], interval[1]);
+  }
+  return merged;
+}
+
+function intervalOverlap(left, right) {
+  return Math.max(0, Math.min(left[1], right[1]) - Math.max(left[0], right[0]));
+}
+
+function parseWaitRecord(row) {
+  if (row.speaker !== 'TaskMeta') return null;
+  let value;
+  try {
+    value = JSON.parse(row.content);
+  } catch {
+    throw new Error(`Malformed TaskMeta JSON at history ${row.id}.`);
+  }
+  if (
+    !value
+    || typeof value !== 'object'
+    || Array.isArray(value)
+    || JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(['key', 'state', 'type'])
+    || value.type !== 'joshix.external-wait'
+    || !['paused', 'resumed'].includes(value.state)
+    || typeof value.key !== 'string'
+    || value.key.length === 0
+  ) {
+    throw new Error(`Malformed external-wait metadata at history ${row.id}.`);
+  }
+  return value;
+}
+
+function elapsed(folder, args) {
+  const rawNow = option(args, '--now');
+  assertNoArgs(args);
+  const now = rawNow === null ? new Date() : new Date(rawNow);
+  if (Number.isNaN(now.valueOf())) fail('--now requires an ISO 8601 timestamp.');
+
+  const { db } = databaseFor(folder, { readOnly: true });
+  let rows;
+  try {
+    rows = db.prepare('SELECT id, created_at, speaker, content FROM messages ORDER BY id').all();
+  } finally {
+    db.close();
+  }
+
+  const times = rows.map((row) => new Date(row.created_at).valueOf());
+  if (
+    times.some((time) => !Number.isFinite(time))
+    || times.some((time, index) => index > 0 && time < times[index - 1])
+    || times.some((time) => time > now.valueOf())
+  ) {
+    unknownElapsed('History timestamps are malformed or out of order.');
+    return;
+  }
+
+  const activeIntervals = [];
+  for (let index = 0; index < rows.length - 1; index += 1) {
+    if (rows[index + 1].speaker !== 'User') {
+      activeIntervals.push([times[index], times[index + 1]]);
+    }
+  }
+  if (rows.length > 0) activeIntervals.push([times.at(-1), now.valueOf()]);
+
+  const openWaits = new Map();
+  const waits = [];
+  const warnings = [];
+  try {
+    rows.forEach((row, index) => {
+      const wait = parseWaitRecord(row);
+      if (!wait) return;
+      if (wait.state === 'paused') {
+        if (openWaits.has(wait.key)) throw new Error(`Duplicate pause for ${wait.key} at history ${row.id}.`);
+        openWaits.set(wait.key, { index, start: times[index] });
+        return;
+      }
+      const open = openWaits.get(wait.key);
+      if (!open) throw new Error(`Resume without a matching pause for ${wait.key} at history ${row.id}.`);
+      waits.push([open.start, times[index]]);
+      openWaits.delete(wait.key);
+    });
+  } catch (error) {
+    unknownElapsed(error.message);
+    return;
+  }
+
+  let state = 'open';
+  for (const [key, open] of openWaits) {
+    const laterActivity = rows.slice(open.index + 1).some((row) => row.speaker !== 'TaskMeta');
+    if (laterActivity) {
+      warnings.push(`Unmatched external pause was ignored after later activity: ${key}.`);
+    } else {
+      waits.push([open.start, now.valueOf()]);
+      state = 'closed';
+      warnings.push(`External wait remains open: ${key}.`);
+    }
+  }
+
+  const mergedWaits = mergeIntervals(waits);
+  const gross = activeIntervals.reduce((total, [start, end]) => total + (end - start), 0);
+  const excluded = activeIntervals.reduce((total, interval) => (
+    total + mergedWaits.reduce((sum, wait) => sum + intervalOverlap(interval, wait), 0)
+  ), 0);
+  const activeMs = Math.max(0, gross - excluded);
+  printJson({
+    activeMs,
+    activeDuration: elapsedDuration(activeMs),
+    state,
+    approximate: true,
+    warning: warnings.length ? warnings.join(' ') : null,
+  });
+}
+
 function exportMarkdown(folder, args) {
   const format = option(args, '--format');
   assertNoArgs(args);
@@ -618,6 +763,7 @@ function main(argv) {
     'since-time': () => sinceTime(folder, args),
     get: () => getMessages(folder, args),
     search: () => search(folder, args),
+    elapsed: () => elapsed(folder, args),
     export: () => exportMarkdown(folder, args),
     check: () => check(folder, args),
   };

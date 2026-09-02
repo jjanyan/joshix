@@ -29,7 +29,7 @@
           "additionalProperties": false,
           "required": ["reason"],
           "properties": {
-            "reason": {"enum": ["unavailable", "unauthorized", "timeout", "oversized", "nonzero", "malformed"]}
+            "reason": {"enum": ["configuration-stale", "unavailable", "unauthorized", "timeout", "oversized", "nonzero", "malformed"]}
           }
         },
         "session": {
@@ -43,6 +43,30 @@
             },
             "mode": {"enum": ["started", "resumed", "replaced"]}
           }
+        },
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model", "selection", "source"],
+          "properties": {
+            "model": {"type": "string", "minLength": 1, "maxLength": 512},
+            "effort": {"type": "string", "minLength": 1, "maxLength": 64},
+            "selection": {"const": "inherited"},
+            "source": {"const": "provider-event"}
+          }
+        },
+        "requestedProviderDiagnostic": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stage", "classification", "exitStatus", "signal", "elapsedMs"],
+          "properties": {
+            "stage": {"enum": ["launcher", "runner", "provider"]},
+            "classification": {"enum": ["configuration-stale", "unavailable", "unauthorized", "timeout", "oversized", "nonzero", "malformed"]},
+            "exitStatus": {"type": ["integer", "null"]},
+            "signal": {"type": ["string", "null"], "maxLength": 64},
+            "elapsedMs": {"type": "integer", "minimum": 0},
+            "excerpt": {"type": "string", "minLength": 1, "maxLength": 512}
+          }
         }
       },
       "allOf": [
@@ -53,6 +77,10 @@
         {
           "if": {"properties": {"fallback": {"type": "object"}}},
           "then": {"properties": {"attempts": {"properties": {"fallback": {"minimum": 1}}}}}
+        },
+        {
+          "if": {"required": ["requestedProviderDiagnostic"]},
+          "then": {"properties": {"fallback": {"type": "object"}}}
         }
       ]
     },

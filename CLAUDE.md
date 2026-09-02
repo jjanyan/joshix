@@ -27,8 +27,14 @@ is not being shaped as an upstream PR.
 - If the user provides a supplied or referenced spec without explicitly asking
   to edit it or execute implementation, review the spec by default with
   `joshix:reviewing-specs` and remain read-only.
-- Receiving another agent's code, plan, or spec review enters automatic
-  meta-review by role. Use the matching `joshix:receiving-*` skill and follow the
+- First identify what the reviewer evaluated. Use artifact reception only for
+  concrete code or diff, a named plan, or a named spec. Task history,
+  `current.md`, product discussion, proposed architecture, and general chat are
+  context, not review artifacts and receive a normal conversational response.
+  The phrase `review` alone does not select artifact reception.
+- Receiving another agent's concrete code, named plan, or named spec review
+  enters automatic meta-review by role. Use the matching
+  `joshix:receiving-*` skill and follow the
   single decision table in
   `skills/using-joshix/references/review-reception-contract.md` plus the single
   response grammar in

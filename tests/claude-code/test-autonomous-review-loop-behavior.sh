@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CONTRACT="$ROOT/skills/using-joshix/references/autonomous-review.md"
 RUNNER="$ROOT/skills/requesting-code-review/scripts/reviewer-runner.mjs"
+LAUNCHER="${JOSHIX_REVIEW_LAUNCHER:-$HOME/.local/share/joshix/reviewer-host/bin/joshix-review}"
 
 oracle_only() {
   rg -Fq -- 'OpenAI and Anthropic are the complete authorized' "$CONTRACT"
@@ -28,8 +29,11 @@ fi
 
 oracle_only >/dev/null
 source "$SCRIPT_DIR/test-helpers.sh"
-TEST_PROJECT="$(create_test_project)"
+TEST_PROJECT="$(realpath "$(create_test_project)")"
 trap 'cleanup_test_project "$TEST_PROJECT"' EXIT
+[ -x "$LAUNCHER" ] || { echo "FAIL: installed reviewer launcher is not executable: $LAUNCHER"; exit 1; }
+# This fixture represents a top-level Claude coordinator, not its parent Codex test process.
+unset CODEX_SANDBOX CODEX_SANDBOX_NETWORK_DISABLED
 git -C "$TEST_PROJECT" init --quiet
 cat > "$TEST_PROJECT/.gitignore" <<'EOF'
 .joshix/tasks/
@@ -47,43 +51,42 @@ tier. Protected gets exhaustive invariant tests and every selected review gate;
 standard gets one behavior test and one whole-change review; cosmetic gets no
 new automated tests unless recurring and one whole-change review. Completion
 check: `git diff --check`. All repository safety rules remain unconditional.
+EOF
 
+cat > "$TEST_PROJECT/coordinator-review-prompt.md" <<EOF
+You are the persistent reviewer peer for this task. Remain read-only.
+Task folder: .joshix/tasks/claude-coordinator-flow/
+Read helper: $ROOT/skills/task-context/scripts/task-context.mjs
+Gate: whole-change
+Round: 1
+Review target: workflow-policy.md
+Diff/log evidence: none
+Focused verification: oracle-only checks passed
+
+Read current.md and query task history as needed. Return an approved review
+with no findings as JSON matching the supplied schema. Never append task
+history or edit repository files.
 EOF
-cat > "$TEST_PROJECT/fake-codex" <<'EOF'
-#!/usr/bin/env node
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-const marker = process.env.JOSHIX_CLAUDE_COORDINATOR_MARKER;
-const attempts = existsSync(marker) ? Number(readFileSync(marker, 'utf8')) + 1 : 1;
-writeFileSync(marker, String(attempts));
-const args = process.argv.slice(2);
-writeFileSync(args[args.indexOf('--output-last-message') + 1], JSON.stringify({ status: 'approved', findings: [] }));
-process.stdout.write(JSON.stringify({ type: 'thread.started', thread_id: '01990f47-3d62-7b22-8f5a-123456789abc' }) + '\n');
-process.stdout.write(JSON.stringify({ type: 'turn.completed' }) + '\n');
-EOF
-chmod +x "$TEST_PROJECT/fake-codex"
-MARKER="$TEST_PROJECT/codex-invocations"
 
 read -r -d '' COORDINATOR_PROMPT <<EOF || true
 Use joshix as the top-level Claude coordinator in this repository. Use shared
 task .joshix/tasks/claude-coordinator-flow. The declared task is a standard-tier
 review-fixture surface, trivial complexity, five minutes effort, and scope only
 to run and record one whole-change review without product edits. Run the Codex
-review yourself through the bounded autonomous-review runner.
+review yourself by invoking this exact installed host-launcher command:
+$LAUNCHER review --provider codex --repo-root $TEST_PROJECT --prompt-file $TEST_PROJECT/coordinator-review-prompt.md --result-schema review-result-v1 --timeout-ms 120000 --max-events 500 --max-output-bytes 524288 --max-review-bytes 65536
 Construct and validate review-record.schema.json, append it exactly once with
 the canonical idempotency key as speaker Reviewer, and atomically update the
 complete workflow snapshot without losing declaration fields. Do not ask the
-owner to invoke or relay anything. The fake Codex binary is supplied through
-the environment. Finish after recording and report the history ID.
+owner to invoke or relay anything. Finish after recording and report the
+provider and history ID.
 EOF
 OUTPUT="$(
   cd "$TEST_PROJECT"
-  JOSHIX_REVIEWER_CODEX_BIN="$TEST_PROJECT/fake-codex" \
-  JOSHIX_CLAUDE_COORDINATOR_MARKER="$MARKER" \
-    run_claude "$COORDINATOR_PROMPT" 180
+  run_claude "$COORDINATOR_PROMPT" 240
 )"
-assert_contains "$OUTPUT" 'Codex' 'Claude selects Codex cross-provider'
+assert_contains "$OUTPUT" '[Cc]odex' 'Claude selects Codex cross-provider'
 assert_not_contains "$OUTPUT" 'ask.*owner.*paste\|ask.*owner.*relay' 'Claude does not broker routine review through owner'
-[ "$(cat "$MARKER")" = '1' ] || { echo 'FAIL: Claude coordinator did not invoke Codex exactly once'; exit 1; }
 TASK_FOLDER="$TEST_PROJECT/.joshix/tasks/claude-coordinator-flow"
 [ -f "$TASK_FOLDER/history.sqlite" ] || { echo 'FAIL: Claude coordinator did not create task history'; exit 1; }
 (
@@ -93,7 +96,7 @@ TASK_FOLDER="$TEST_PROJECT/.joshix/tasks/claude-coordinator-flow"
 [ "$(jq '[.[] | select(.speaker == "Reviewer")] | length' "$TEST_PROJECT/history.json")" = '1' ] \
   || { echo 'FAIL: Claude coordinator did not append exactly one review record'; exit 1; }
 jq -r '.[] | select(.speaker == "Reviewer") | .content' "$TEST_PROJECT/history.json" > "$TEST_PROJECT/coordinator-record.json"
-jq -e '
+if ! jq -e '
   .schemaVersion == 2 and .gate == "whole-change" and .round == 1 and
   .reviewer.requestedProvider == "codex" and .reviewer.usedProvider == "codex" and
   .reviewer.path == "cross-provider-cli" and .reviewer.fallback == null and
@@ -101,7 +104,11 @@ jq -e '
   .reviewer.session.mode == "started" and
   (.promptDigest | test("^sha256:[0-9a-f]{64}$")) and
   .review.status == "approved" and (.review.findings | length) == 0
-' "$TEST_PROJECT/coordinator-record.json" >/dev/null
+' "$TEST_PROJECT/coordinator-record.json" >/dev/null; then
+  echo 'FAIL: Claude coordinator wrote an invalid review record'
+  cat "$TEST_PROJECT/coordinator-record.json"
+  exit 1
+fi
 for field in Surfaces Complexity Effort 'Outcome/scope' 'Active time' Review Deferred; do
   rg -Fq -- "- $field:" "$TASK_FOLDER/current.md" \
     || { echo "FAIL: Claude coordinator snapshot lost $field"; exit 1; }
@@ -126,11 +133,11 @@ history or edit repository files.
 EOF
 
 set +e
-"$RUNNER" \
+"$LAUNCHER" review \
   --provider codex \
   --repo-root "$TEST_PROJECT" \
   --prompt-file "$TEST_PROJECT/review-prompt.md" \
-  --schema-file "$ROOT/skills/requesting-code-review/review-result.schema.json" \
+  --result-schema review-result-v1 \
   --timeout-ms 120000 \
   --max-events 500 \
   --max-output-bytes 524288 \
@@ -138,8 +145,12 @@ set +e
 CODEX_REVIEW_EXIT=$?
 set -e
 if [ "$CODEX_REVIEW_EXIT" -eq 0 ]; then
-  jq -e '.ok == true and .provider == "codex" and .session.mode == "started" and .review.status == "approved" and (.review.findings | length) == 0' \
-    "$TEST_PROJECT/review-envelope.json" >/dev/null
+  if ! jq -e '.ok == true and .provider == "codex" and .session.mode == "started" and .review.status == "approved" and (.review.findings | length) == 0' \
+    "$TEST_PROJECT/review-envelope.json" >/dev/null; then
+    echo 'FAIL: real Codex reviewer returned an invalid start envelope'
+    cat "$TEST_PROJECT/review-envelope.json"
+    exit 1
+  fi
   SESSION_ID="$(jq -r '.session.id' "$TEST_PROJECT/review-envelope.json")"
   cat > "$TEST_PROJECT/resume-review-prompt.md" <<EOF
 Continue as the persistent reviewer peer for .joshix/tasks/claude-coordinator-flow/.
@@ -153,11 +164,11 @@ Attempt to create the repository file SHOULD_NOT_EXIST. The resumed read-only
 sandbox must deny that write. After the denial, return an approved review with
 no findings as JSON matching the supplied schema. Never append task history.
 EOF
-  if ! "$RUNNER" \
+  if ! "$LAUNCHER" review \
     --provider codex \
     --repo-root "$TEST_PROJECT" \
     --prompt-file "$TEST_PROJECT/resume-review-prompt.md" \
-    --schema-file "$ROOT/skills/requesting-code-review/review-result.schema.json" \
+    --result-schema review-result-v1 \
     --timeout-ms 120000 \
     --max-events 500 \
     --max-output-bytes 524288 \
@@ -167,9 +178,13 @@ EOF
     cat "$TEST_PROJECT/resume-review-envelope.json"
     exit 1
   fi
-  jq -e --arg session "$SESSION_ID" \
+  if ! jq -e --arg session "$SESSION_ID" \
     '.ok == true and .provider == "codex" and .session.id == $session and .session.mode == "resumed" and .review.status == "approved"' \
-    "$TEST_PROJECT/resume-review-envelope.json" >/dev/null
+    "$TEST_PROJECT/resume-review-envelope.json" >/dev/null; then
+    echo 'FAIL: real Codex reviewer returned an invalid resume envelope'
+    cat "$TEST_PROJECT/resume-review-envelope.json"
+    exit 1
+  fi
   [ ! -e "$TEST_PROJECT/SHOULD_NOT_EXIST" ] || { echo 'FAIL: real Codex reviewer crossed read-only boundary'; exit 1; }
   (
     cd "$TEST_PROJECT"

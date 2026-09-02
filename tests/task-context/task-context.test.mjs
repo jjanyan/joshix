@@ -225,12 +225,17 @@ test('help lists the complete command surface without requiring a task folder', 
     'since-time',
     'get',
     'search',
+    'elapsed',
     'export',
     'check',
   ]) {
     assert.match(result.stdout, new RegExp(`\\b${command}\\b`));
   }
   assert.match(result.stdout, /literal substring, ASCII case-insensitive/);
+  assert.match(
+    result.stdout,
+    /elapsed \.joshix\/tasks\/example --now 2026-09-02T11:40:00\.000Z/,
+  );
   assert.equal(existsSync(join(cwd, '.agents')), false);
   assert.equal(existsSync(join(cwd, '.joshix')), false);
 });
@@ -746,6 +751,119 @@ test('since-time normalizes offsets and search is literal and ASCII case-insensi
     stdoutJson(run(root, 'search', folder, '%_')).map(({ id }) => id),
     [],
   );
+});
+
+function seedTimedMessages(root, folder, rows) {
+  assertSuccess(run(root, 'init', folder));
+  const db = new DatabaseSync(join(root, folder, 'history.sqlite'));
+  try {
+    const insert = db.prepare('INSERT INTO messages (created_at, speaker, content) VALUES (?, ?, ?)');
+    for (const row of rows) insert.run(row.createdAt, row.speaker, row.content ?? row.speaker);
+  } finally {
+    db.close();
+  }
+}
+
+test('elapsed derives active time from adjacent history while excluding owner gaps', () => {
+  const root = initRepo();
+  const folder = '.joshix/tasks/2026-09-02-elapsed-basic';
+  seedTimedMessages(root, folder, [
+    { createdAt: '2026-09-02T10:00:00.000Z', speaker: 'User' },
+    { createdAt: '2026-09-02T10:05:00.000Z', speaker: 'Codex' },
+    { createdAt: '2026-09-02T10:35:00.000Z', speaker: 'Reviewer' },
+    { createdAt: '2026-09-02T11:35:00.000Z', speaker: 'User' },
+  ]);
+
+  assert.deepEqual(stdoutJson(run(
+    root,
+    'elapsed', folder,
+    '--now', '2026-09-02T11:40:00.000Z',
+  )), {
+    activeMs: 2_400_000,
+    activeDuration: '40m',
+    state: 'open',
+    approximate: true,
+    warning: null,
+  });
+});
+
+test('elapsed subtracts matched and genuinely open external waits', () => {
+  const root = initRepo();
+  const matched = '.joshix/tasks/2026-09-02-elapsed-matched';
+  seedTimedMessages(root, matched, [
+    { createdAt: '2026-09-02T10:00:00.000Z', speaker: 'User' },
+    { createdAt: '2026-09-02T10:05:00.000Z', speaker: 'Codex' },
+    { createdAt: '2026-09-02T10:10:00.000Z', speaker: 'TaskMeta', content: '{"type":"joshix.external-wait","state":"paused","key":"db"}' },
+    { createdAt: '2026-09-02T10:25:00.000Z', speaker: 'TaskMeta', content: '{"type":"joshix.external-wait","state":"resumed","key":"db"}' },
+    { createdAt: '2026-09-02T10:35:00.000Z', speaker: 'Codex' },
+  ]);
+  const matchedResult = stdoutJson(run(root, 'elapsed', matched, '--now', '2026-09-02T10:40:00.000Z'));
+  assert.equal(matchedResult.activeMs, 1_500_000);
+  assert.equal(matchedResult.state, 'open');
+  assert.equal(matchedResult.warning, null);
+
+  const open = '.joshix/tasks/2026-09-02-elapsed-open-wait';
+  seedTimedMessages(root, open, [
+    { createdAt: '2026-09-02T10:00:00.000Z', speaker: 'User' },
+    { createdAt: '2026-09-02T10:05:00.000Z', speaker: 'Codex' },
+    { createdAt: '2026-09-02T10:10:00.000Z', speaker: 'TaskMeta', content: '{"type":"joshix.external-wait","state":"paused","key":"db"}' },
+  ]);
+  const openResult = stdoutJson(run(root, 'elapsed', open, '--now', '2026-09-02T10:40:00.000Z'));
+  assert.equal(openResult.activeMs, 600_000);
+  assert.equal(openResult.state, 'closed');
+  assert.match(openResult.warning, /external wait remains open/i);
+});
+
+test('elapsed ignores a forgotten pause after later activity and fails unknown on malformed metadata', () => {
+  const root = initRepo();
+  const stale = '.joshix/tasks/2026-09-02-elapsed-stale-wait';
+  seedTimedMessages(root, stale, [
+    { createdAt: '2026-09-02T10:00:00.000Z', speaker: 'User' },
+    { createdAt: '2026-09-02T10:05:00.000Z', speaker: 'TaskMeta', content: '{"type":"joshix.external-wait","state":"paused","key":"db"}' },
+    { createdAt: '2026-09-02T10:20:00.000Z', speaker: 'Codex' },
+    { createdAt: '2026-09-02T11:20:00.000Z', speaker: 'Reviewer' },
+  ]);
+  const staleResult = stdoutJson(run(root, 'elapsed', stale, '--now', '2026-09-02T11:25:00.000Z'));
+  assert.equal(staleResult.activeMs, 5_100_000);
+  assert.equal(staleResult.state, 'open');
+  assert.match(staleResult.warning, /unmatched external pause was ignored after later activity/i);
+
+  const malformed = '.joshix/tasks/2026-09-02-elapsed-malformed';
+  seedTimedMessages(root, malformed, [
+    { createdAt: '2026-09-02T10:00:00.000Z', speaker: 'User' },
+    { createdAt: '2026-09-02T10:05:00.000Z', speaker: 'TaskMeta', content: '{"type":"joshix.external-wait","state":"resumed","key":"missing"}' },
+  ]);
+  const malformedResult = stdoutJson(run(root, 'elapsed', malformed, '--now', '2026-09-02T10:10:00.000Z'));
+  assert.equal(malformedResult.activeMs, null);
+  assert.equal(malformedResult.state, 'unknown');
+  assert.match(malformedResult.warning, /resume/i);
+});
+
+test('elapsed is read-only and reports malformed history instead of false precision', () => {
+  const root = initRepo();
+  const folder = '.joshix/tasks/2026-09-02-elapsed-integrity';
+  seedTimedMessages(root, folder, [
+    { createdAt: '2026-09-02T10:00:00.000Z', speaker: 'User' },
+    { createdAt: '2026-09-02T10:05:00.000Z', speaker: 'TaskMeta', content: '{"type":"joshix.external-wait","state":"paused","key":"db"}' },
+    { createdAt: '2026-09-02T10:06:00.000Z', speaker: 'TaskMeta', content: '{"type":"joshix.external-wait","state":"paused","key":"db"}' },
+  ]);
+  const databasePath = join(root, folder, 'history.sqlite');
+  const before = readFileSync(databasePath);
+
+  const duplicatePause = stdoutJson(run(root, 'elapsed', folder, '--now', '2026-09-02T10:10:00.000Z'));
+  assert.equal(duplicatePause.activeMs, null);
+  assert.equal(duplicatePause.state, 'unknown');
+  assert.match(duplicatePause.warning, /duplicate pause/i);
+  assert.deepEqual(readFileSync(databasePath), before);
+
+  const malformedFolder = '.joshix/tasks/2026-09-02-elapsed-malformed-time';
+  seedTimedMessages(root, malformedFolder, [
+    { createdAt: 'not-a-time', speaker: 'User' },
+  ]);
+  const malformedTime = stdoutJson(run(root, 'elapsed', malformedFolder, '--now', '2026-09-02T10:10:00.000Z'));
+  assert.equal(malformedTime.activeMs, null);
+  assert.equal(malformedTime.state, 'unknown');
+  assert.match(malformedTime.warning, /timestamps/i);
 });
 
 test('export preserves ordering and bodies, and check is read-only', () => {

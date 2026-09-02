@@ -1,8 +1,11 @@
 # Review Response Format
 
-This contract applies to agents responding to reviewer reports. Reviewer
-reports stay detailed: fresh and delegated plan, spec, and code reviewers keep
-their existing evidence, severity, recommendation, and readiness formats.
+This contract applies to agents responding to reviewer reports about concrete
+code or diff, a named plan, or a named spec. It does not apply to task history,
+`current.md`, product discussion, proposed architecture, or general chat.
+Reviewer reports stay detailed: fresh and delegated plan, spec, and code
+reviewers keep their existing evidence, severity, recommendation, and readiness
+formats.
 
 ## Response grammar
 
@@ -146,9 +149,14 @@ environment, or pre-existing behavior before classifying them.
 
 ### Readiness hold
 
-Approval is not authorization for the next phase. When no genuine unresolved
-choice remains and the next phase requires an explicit owner command, never
-emit `### Your decision needed`, invent options, or ask a question. Report the
+Approval is not authorization for the next phase. A readiness hold is local to
+the reviewed artifact and its immediate next phase. Use it only when the
+current review just approved a spec whose next phase is planning or a plan
+whose next phase is execution, and that phase requires an explicit owner
+command. Never infer a readiness hold from another queued task, plan, or
+artifact. Never append one after implementation or code-review completion.
+When no genuine unresolved choice remains, never emit `### Your decision
+needed`, invent options, or ask a question. When a hold applies, report the
 settled state and end with exactly one applicable line:
 
 `Ready to plan; waiting for your command.`

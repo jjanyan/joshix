@@ -82,9 +82,10 @@ are additive; they never substitute for required automated coverage or the
 repository's completion checks.
 
 Slices and review rounds use focused checks. Run full completion gates once,
-after review sign-off, at the end. If a final gate fails, diagnose and correct
-with focused checks, re-review changed work, then rerun only the failed required
-gate.
+after review sign-off, at the end. If a final gate fails, diagnose with focused
+checks and follow the producer-pass and completion-recovery budget in
+`autonomous-review.md`; rerun only the failed required subgate when that
+contract authorizes it.
 
 Before implementing work beyond the requested outcome and authorized scope—new
 subsystems, invariants, dependencies, generalized hardening, or future-feature
@@ -113,15 +114,16 @@ Unknown tier or surface names make reviewer output malformed; never guess.
 ## Active-time alarm
 
 Effort accepts minutes, hours, days, or weeks. One active day is eight hours;
-one active week is forty hours. History records `active-start`, `active-stop`,
-`blocked-owner`, and `blocked-external`. Owner and external blocked time does
-not count.
+one active week is forty hours. Run the task-context `elapsed` query only before
+a new work unit, review dispatch, or recovery. It derives approximate active
+time from adjacent history timestamps. Owner gaps represented by exact
+external-wait metadata are excluded; long provider and test intervals remain
+active.
 
-At every coordinator turn, state transition, review dispatch, and next step,
-sum completed intervals plus any open active interval. At or above twice the
-declared estimate, stop before more work and emit a one-paragraph status
-decision memo. If transitions are missing, report uncertainty instead of false
-precision. A trivial task also stops before a second producer pass.
+At or above twice the declared estimate, stop before the next unit and emit a
+one-paragraph status decision memo. If the query reports unknown, report that
+uncertainty instead of false precision. There is no timer, poller, daemon, or
+routine timing event. A trivial task also stops before a second producer pass.
 
 ## Bubble-up line
 

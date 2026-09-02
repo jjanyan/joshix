@@ -7,7 +7,9 @@ import {
   mkdtempSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -76,6 +78,27 @@ if (scenario === 'unauthorized-with-stdout') {
   await new Promise((resolvePromise) => setTimeout(resolvePromise, 10));
   process.exit(2);
 }
+if (scenario === 'sandboxed') {
+  process.stderr.write('sandbox-exec: deny(1) mach-lookup');
+  process.exit(1);
+}
+if (scenario === 'sandboxed-with-auth') {
+  process.stderr.write('Authentication required\\nsandbox-exec: deny(1) mach-lookup');
+  process.exit(1);
+}
+if (scenario === 'network-denied') {
+  process.stderr.write('Network is unreachable');
+  process.exit(1);
+}
+if (scenario === 'generic-auth-text') {
+  process.stderr.write('Repository fixture says authentication parsing failed');
+  process.exit(3);
+}
+if (scenario === 'zero-byte-failure') process.exit(3);
+if (scenario === 'redacted-diagnostic') {
+  process.stderr.write('TOKEN=sk-secret-value Bearer token-another-secret ' + process.env.HOME + '/private ' + args[args.indexOf('-p') + 1]);
+  process.exit(3);
+}
 if (scenario === 'missing-session-then-success' && attempt === 1 && resumed) {
   process.stderr.write('Session not found');
   process.exit(1);
@@ -92,6 +115,39 @@ if (scenario === 'timeout') {
   writeFileSync(args[index + 1], '{');
   truncateSync(args[index + 1], 1024 * 1024 * 1024);
   process.stdout.write(JSON.stringify({ type: 'turn.completed' }) + '\\n');
+} else if (scenario === 'runtime-metadata') {
+  process.stdout.write(JSON.stringify({
+    type: 'assistant',
+    effort: 'xhigh',
+    message: { model: 'claude-fable-5', content: [] },
+  }) + '\\n');
+  emit(review);
+} else if (scenario === 'runtime-model-only') {
+  process.stdout.write(JSON.stringify({
+    type: 'system', subtype: 'init', model: 'claude-fable-5',
+  }) + '\\n');
+  process.stdout.write(JSON.stringify({
+    type: 'assistant', message: { model: 'claude-fable-5', content: [] },
+  }) + '\\n');
+  emit(review);
+} else if (scenario === 'runtime-synthetic') {
+  process.stdout.write(JSON.stringify({
+    type: 'assistant', effort: 'xhigh', message: { model: '<synthetic>', content: [] },
+  }) + '\\n');
+  emit(review);
+} else if (scenario === 'runtime-conflict') {
+  process.stdout.write(JSON.stringify({
+    type: 'system', subtype: 'init', model: 'claude-fable-5',
+  }) + '\\n');
+  process.stdout.write(JSON.stringify({
+    type: 'assistant', message: { model: 'claude-other-5', content: [] },
+  }) + '\\n');
+  emit(review);
+} else if (scenario === 'runtime-overlength') {
+  process.stdout.write(JSON.stringify({
+    type: 'assistant', effort: 'xhigh', message: { model: 'm'.repeat(513), content: [] },
+  }) + '\\n');
+  emit(review);
 } else if (scenario === 'task-context-command') {
   process.stdout.write(JSON.stringify({ type: 'tool', command: 'task-context.mjs append .joshix/tasks/example' }) + '\\n');
   emit(review);
@@ -258,6 +314,8 @@ function runFixture(fix, overrides = {}) {
     '--max-events', String(overrides.maxEvents ?? 20),
     '--max-output-bytes', String(overrides.maxOutputBytes ?? 2048),
     '--max-review-bytes', String(overrides.maxReviewBytes ?? 1024),
+    ...(overrides.reviewerBinary ? ['--reviewer-binary', overrides.reviewerBinary] : []),
+    ...(overrides.reviewerScript ? ['--reviewer-script', overrides.reviewerScript] : []),
     ...(overrides.sessionId ? ['--session-id', overrides.sessionId] : []),
   ], {
     cwd: repoRoot,
@@ -453,6 +511,72 @@ test('explicit Codex override bypasses PATH discovery and remains authoritative'
   assert.equal(Number(readFileSync(fix.stateFile, 'utf8')), 1);
 });
 
+test('explicit reviewer binary takes precedence over environment override and PATH discovery', () => {
+  const root = tempDir();
+  const pathCandidate = discoveryProvider(join(root, 'path-candidate'), 'claude', 'working');
+  const override = discoveryProvider(join(root, 'override'), 'claude', 'working');
+  const fix = fixture('claude', 'success');
+  const { result, envelope } = runFixture(fix, {
+    binary: override.binary,
+    path: `${dirname(pathCandidate.binary)}${delimiter}${process.env.PATH ?? ''}`,
+    reviewerBinary: fix.binary,
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(envelope.ok, true);
+  assert.deepEqual(readCalls(pathCandidate), []);
+  assert.deepEqual(readCalls(override), []);
+  assert.equal(Number(readFileSync(fix.stateFile, 'utf8')), 1);
+});
+
+test('explicit reviewer script is invoked through the pinned interpreter', () => {
+  const fix = fixture('claude', 'success');
+  const { result, envelope } = runFixture(fix, {
+    reviewerBinary: process.execPath,
+    reviewerScript: realpathSync(fix.binary),
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(envelope.ok, true);
+  assert.equal(Number(readFileSync(fix.stateFile, 'utf8')), 1);
+});
+
+test('explicit reviewer binary rejects relative, missing, directory, and symlink paths', () => {
+  const fix = fixture('claude', 'success');
+  const directory = tempDir();
+  const link = join(directory, 'provider-link');
+  symlinkSync(fix.binary, link);
+  for (const reviewerBinary of ['relative-provider', join(directory, 'missing'), directory, link]) {
+    const { result, envelope } = runFixture(fix, { reviewerBinary });
+    assert.equal(result.status, 1, reviewerBinary);
+    assert.equal(envelope.failure.kind, 'configuration', reviewerBinary);
+    assert.equal(envelope.attempts, 0, reviewerBinary);
+    assert.equal(envelope.diagnostic.stage, 'runner', reviewerBinary);
+    assert.equal(envelope.diagnostic.classification, 'configuration', reviewerBinary);
+    assert.equal(envelope.diagnostic.exitStatus, null, reviewerBinary);
+    assert.equal(envelope.diagnostic.signal, null, reviewerBinary);
+    assert.equal(typeof envelope.diagnostic.elapsedMs, 'number', reviewerBinary);
+  }
+});
+
+test('explicit reviewer script requires an explicit binary and a canonical regular file', () => {
+  const fix = fixture('claude', 'success');
+  const directory = tempDir();
+  const link = join(directory, 'provider-link');
+  symlinkSync(fix.binary, link);
+  for (const options of [
+    { reviewerScript: fix.binary },
+    { reviewerBinary: process.execPath, reviewerScript: 'relative-provider' },
+    { reviewerBinary: process.execPath, reviewerScript: join(directory, 'missing') },
+    { reviewerBinary: process.execPath, reviewerScript: directory },
+    { reviewerBinary: process.execPath, reviewerScript: link },
+  ]) {
+    const { result, envelope } = runFixture(fix, options);
+    assert.equal(result.status, 1, JSON.stringify(options));
+    assert.equal(envelope.failure.kind, 'configuration');
+    assert.equal(envelope.attempts, 0);
+  }
+});
+
 for (const provider of ['claude', 'codex']) {
   test(`default ${provider} discovery reports unavailable when every PATH candidate is unusable`, () => {
     const root = tempDir();
@@ -467,6 +591,9 @@ for (const provider of ['claude', 'codex']) {
     assert.equal(envelope.ok, false);
     assert.equal(envelope.attempts, 0);
     assert.equal(envelope.failure.kind, 'unavailable');
+    assert.equal(envelope.diagnostic.stage, 'runner');
+    assert.equal(envelope.diagnostic.classification, 'unavailable');
+    assert.equal(typeof envelope.diagnostic.elapsedMs, 'number');
     assert.deepEqual(readCalls(broken), [provider === 'codex' ? 'help-exec' : 'help']);
     assert.deepEqual(readCalls(incomplete), [provider === 'codex' ? 'help-exec' : 'help']);
   });
@@ -474,6 +601,11 @@ for (const provider of ['claude', 'codex']) {
 
 const cases = [
   ['success', 1, true],
+  ['runtime-metadata', 1, true],
+  ['runtime-model-only', 1, true],
+  ['runtime-synthetic', 1, true],
+  ['runtime-conflict', 1, true],
+  ['runtime-overlength', 1, true],
   ['transient-nonzero-then-success', 2, true],
   ['malformed-then-success', 2, true],
   ['task-context-command', 1, true],
@@ -498,6 +630,12 @@ const cases = [
   ['missing-binary', 1, false],
   ['unauthorized', 1, false],
   ['unauthorized-with-stdout', 1, false],
+  ['sandboxed', 1, false],
+  ['sandboxed-with-auth', 1, false],
+  ['network-denied', 1, false],
+  ['generic-auth-text', 1, false],
+  ['zero-byte-failure', 1, false],
+  ['redacted-diagnostic', 1, false],
   ['timeout', 1, false],
   ['raw-output-limit', 1, false],
   ['final-review-limit', 1, false],
@@ -544,6 +682,22 @@ for (const [scenario, attempts, success] of cases) {
       } else {
         assert.deepEqual(envelope.review, { status: 'approved', findings: [] });
       }
+      if (scenario === 'runtime-metadata') {
+        assert.deepEqual(envelope.runtime, {
+          model: 'claude-fable-5',
+          effort: 'xhigh',
+          selection: 'inherited',
+          source: 'provider-event',
+        });
+      } else if (scenario === 'runtime-model-only') {
+        assert.deepEqual(envelope.runtime, {
+          model: 'claude-fable-5',
+          selection: 'inherited',
+          source: 'provider-event',
+        });
+      } else {
+        assert.equal(envelope.runtime, undefined);
+      }
       assert.equal(envelope.failure, undefined);
       if (scenario === 'codex-valid-final-nonzero') {
         assert.deepEqual(envelope.diagnostic, { providerExitCode: 1 });
@@ -555,13 +709,29 @@ for (const [scenario, attempts, success] of cases) {
       if (scenario.includes('unauthorized')) {
         assert.equal(envelope.failure.kind, 'unauthorized');
       }
+      if (['sandboxed', 'sandboxed-with-auth'].includes(scenario)) {
+        assert.equal(envelope.failure.kind, 'sandboxed');
+      }
+      if (scenario === 'network-denied') assert.equal(envelope.failure.kind, 'unavailable');
+      if (scenario === 'generic-auth-text') assert.equal(envelope.failure.kind, 'nonzero');
       if (scenario === 'codex-valid-final-signal') {
         assert.equal(envelope.failure.kind, 'nonzero');
       }
       if (scenario === 'codex-schema-invalid-transient') {
         assert.equal(envelope.failure.kind, 'nonzero');
       }
-      assert.doesNotMatch(result.stdout, /Temporary provider|Authentication required|not json/);
+      assert.doesNotMatch(result.stdout, /not json/);
+      assert.equal(envelope.diagnostic.stage, 'provider');
+      assert.equal(envelope.diagnostic.classification, envelope.failure.kind);
+      assert.equal(typeof envelope.diagnostic.elapsedMs, 'number');
+      assert.ok(envelope.diagnostic.elapsedMs >= 0);
+      if (scenario === 'zero-byte-failure') assert.equal(envelope.diagnostic.excerpt, undefined);
+      if (scenario === 'redacted-diagnostic') {
+        assert.match(envelope.diagnostic.excerpt, /\[credential redacted\]/);
+        assert.match(envelope.diagnostic.excerpt, /\[home\]/);
+        assert.match(envelope.diagnostic.excerpt, /\[prompt redacted\]/);
+        assert.doesNotMatch(result.stdout, /sk-secret|another-secret|SHOULD_NOT_EXIST/);
+      }
     }
   });
 }
@@ -575,6 +745,8 @@ for (const provider of ['claude', 'codex']) {
     const prompt = readFileSync(fix.promptFile, 'utf8');
 
     assert.equal(argv.filter((argument) => argument === prompt).length, 1);
+    assert.equal(argv.includes('--model'), false);
+    assert.equal(argv.includes('--effort'), false);
     assert.equal(existsSync(fix.marker), false);
     if (provider === 'claude') {
       assert.deepEqual(argv.slice(0, 2), ['-p', prompt]);

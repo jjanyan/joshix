@@ -6,6 +6,47 @@ This fork is not intended as an upstream contribution target. It is customized f
 
 ## Installation
 
+### Policy-active autonomous review host
+
+Install the narrowly privileged reviewer launcher once from this checkout:
+
+```bash
+node skills/requesting-code-review/scripts/install-reviewer-host.mjs
+```
+
+The default installation is
+`$XDG_DATA_HOME/joshix/reviewer-host` when `XDG_DATA_HOME` is absolute, or
+`~/.local/share/joshix/reviewer-host` otherwise. Use
+`--install-dir <absolute-path>` to choose another non-Git, non-plugin-cache
+location. Setup resolves and records the real Node, Claude, and Codex
+executables; copies the runner, schema, and task-context helper into an
+owner-only host directory; checks `claude auth status` and `codex login status`;
+and prints the exact machine-specific permission entries.
+
+Put the printed Codex `prefix_rule` in a user `.rules` file and the printed
+Claude `Bash(<absolute-launcher> review:*)` entry in the user-level
+`permissions.allow` list. The Codex rule matches only the exact absolute
+`joshix-review review` argv prefix; the launcher itself accepts one typed
+operation, validates repository-local prompt data and hard bounds, and calls
+only setup-recorded provider executables. Coordinators pass the canonical
+realpath of the Git top level; setup pins PATH-resolved Node shebangs to the
+recorded Node executable. Codex [rules use exact argv-prefix
+matching](https://developers.openai.com/codex/rules), while Claude's
+[CLI and tool permission controls](https://docs.anthropic.com/en/docs/claude-code/cli-usage)
+provide the corresponding host allow entry.
+
+If setup reports `approvals_reviewer = "guardian_subagent"`, migrate it to
+`"auto_review"` when automatic escalation review is desired. Leave a missing
+setting missing. Restart Codex and Claude after changing permissions or plugin
+installations; existing sessions may retain loaded policy.
+
+Do not put credentials in Codex configuration, widen the whole sandbox's
+network or write access, select reviewer executables through PATH at launch
+time, or create a persistent allow rule for Node, either provider CLI, the
+general runner, or a plugin/cache path. Re-run setup after Node or provider
+executables move; stale configuration fails closed and the coordinator uses
+the recorded same-role fallback when available.
+
 ### Codex
 
 The local Codex plugin is defined in `.codex-plugin/plugin.json`. For local development, point Codex at this checkout through your local plugin marketplace/configuration.

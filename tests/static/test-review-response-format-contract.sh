@@ -30,6 +30,11 @@ forbid_fixed() {
 }
 
 require_fixed "$FORMAT" 'applies to agents responding to reviewer reports' 'scope is receiver-only'
+require_fixed "$FORMAT" 'concrete code or diff' 'format requires a concrete code artifact'
+require_fixed "$FORMAT" 'named plan' 'format requires a named plan artifact'
+require_fixed "$FORMAT" 'named spec' 'format requires a named spec artifact'
+require_fixed "$FORMAT" 'does not apply to task history, `current.md`, product discussion, proposed architecture, or general chat' \
+  'format excludes discussion context from artifact grammar'
 require_fixed "$FORMAT" 'Reviewer reports stay detailed' 'reviewer reports keep their existing format'
 require_fixed "$FORMAT" 'fresh and delegated plan, spec, and code reviewers' 'producer reviews remain detailed'
 require_fixed "$FORMAT" '## Response grammar' 'one canonical response grammar exists'

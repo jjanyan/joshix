@@ -39,6 +39,12 @@ forbid_fixed() {
 
 require_fixed "$CONTRACT" 'The roles, not fresh `apply`, `fix`, or `proceed` wording, determine default edit authority.' \
   'receiver role owns default authority'
+require_fixed "$CONTRACT" 'concrete code or diff' \
+  'receiver contract requires a concrete code artifact'
+require_fixed "$CONTRACT" 'named plan' \
+  'receiver contract requires a named plan artifact'
+require_fixed "$CONTRACT" 'named spec' \
+  'receiver contract requires a named spec artifact'
 require_fixed "$CONTRACT" '## Decision table' \
   'receiver behavior is consolidated in one decision table'
 require_fixed "$CONTRACT" '| Situation | Required action | Result |' \
@@ -73,14 +79,10 @@ require_fixed "$CONTRACT" "Preserve the artifact's exact current state and never
   'unexpected failures preserve exact partial state'
 require_fixed "$CONTRACT" 'A verification failure is evidence, not by itself a reason to end the turn.' \
   'verification failure alone does not end the turn'
-require_fixed "$CONTRACT" 'Make one bounded recovery pass for that failure, then run focused verification.' \
-  'known objective failures recover once without owner brokering'
 require_fixed "$CONTRACT" 'Do not rerun a passing focused verification solely to confirm it.' \
   'passing focused verification is not repeated performatively'
-require_fixed "$CONTRACT" 'A failure while making the recovery change or during its focused verification is the same failure and ends automatic recovery; it does not open another pass.' \
-  'failed recovery cannot recurse'
-require_fixed "$CONTRACT" 'Across one review application, Agent 1 may make at most two recovery passes in total, even for distinct failures.' \
-  'distinct failures share one unconditional recovery cap'
+require_fixed "$CONTRACT" 'For policy-active completion-gate recovery, follow `autonomous-review.md`' \
+  'completion recovery delegates to the central autonomous contract'
 require_fixed "$CONTRACT" 'Never require an owner message solely to reset a conversational turn boundary.' \
   'conversational turn boundaries are not recovery gates'
 require_fixed "$CONTRACT" 'The eventual reception report names every successfully recovered failure and the focused command or evidence that established recovery.' \
@@ -89,6 +91,10 @@ forbid_fixed "$CONTRACT" 'stops further edits to that artifact for the turn' \
   'old same-turn edit freeze is removed'
 forbid_fixed "$CONTRACT" 'does not attempt same-turn repair' \
   'old automatic-repair prohibition is removed'
+forbid_fixed "$CONTRACT" 'Make one bounded recovery pass for that failure' \
+  'artifact reception does not duplicate completion recovery policy'
+forbid_fixed "$CONTRACT" 'Across one review application, Agent 1 may make at most two recovery passes' \
+  'artifact reception does not own the recovery ceiling'
 require_fixed "$CONTRACT" 'A newly discovered concern from Agent 1 remains unchanged until Agent 2 agrees in a later review.' \
   'Agent 1 concerns wait for Agent 2'
 require_fixed "$CONTRACT" 'Rejected, deferred, unclear, and unverified findings remain unchanged with evidence-backed reasoning in the shared conversation.' \
@@ -124,7 +130,29 @@ for skill in "${RECEIVERS[@]}"; do
 done
 require_fixed "$USING" 'merely asks for meta-review' \
   'bootstrap honest-question rule has the meta-review carve-out'
+require_fixed "$USING" 'product discussion' \
+  'bootstrap excludes product discussion from artifact reception'
+require_fixed "$USING" 'proposed architecture' \
+  'bootstrap excludes proposed architecture from artifact reception'
+require_fixed "$USING" 'normal conversational response' \
+  'bootstrap routes discussion feedback to ordinary prose'
+require_fixed "$USING" 'phrase `review` alone does not select artifact reception' \
+  'bootstrap does not route on the word review alone'
 for file in "${GUIDANCE[@]}"; do
+  require_fixed "$file" 'concrete code or diff' \
+    "$(basename "$file") requires a concrete code artifact"
+  require_fixed "$file" 'named plan' \
+    "$(basename "$file") requires a named plan artifact"
+  require_fixed "$file" 'named spec' \
+    "$(basename "$file") requires a named spec artifact"
+  require_fixed "$file" 'product discussion' \
+    "$(basename "$file") excludes product discussion from artifact reception"
+  require_fixed "$file" 'proposed architecture' \
+    "$(basename "$file") excludes proposed architecture from artifact reception"
+  require_fixed "$file" 'normal conversational response' \
+    "$(basename "$file") routes discussion feedback to ordinary prose"
+  require_fixed "$file" 'phrase `review` alone does not select artifact reception' \
+    "$(basename "$file") does not route on the word review alone"
   require_fixed "$file" 'automatic meta-review' \
     "$(basename "$file") enables action by default"
   require_fixed "$file" 'explicit no-edit' \
@@ -135,6 +163,15 @@ for file in "${GUIDANCE[@]}"; do
     "$(basename "$file") distinguishes meta-review questions before tool loading"
   forbid_fixed "$file" 'without edit authorization' \
     "$(basename "$file") does not use the old unconditional opening trigger"
+done
+
+for file in "$USING" "${GUIDANCE[@]}"; do
+  forbid_fixed "$file" 'Every occurrence of `review` enters artifact reception' \
+    "$(basename "$file") does not route every use of review"
+  forbid_fixed "$file" 'Every shared-chat response enters artifact reception' \
+    "$(basename "$file") does not route every shared-chat response"
+  forbid_fixed "$file" 'Every task-history critique enters artifact reception' \
+    "$(basename "$file") does not route every task-history critique"
 done
 require_fixed "$USING" 'remain automatic and must never trigger the no-edit opening' \
   'bootstrap distinguishes meta-review questions before tool loading'
