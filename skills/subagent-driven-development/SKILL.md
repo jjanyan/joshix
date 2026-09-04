@@ -55,16 +55,14 @@ digraph when_to_use {
 
 If a workflow policy is active, the coordinator reads
 `../using-joshix/references/workflow-policy.md` and
-`../using-joshix/references/autonomous-review.md`, and owns scope, active-time,
-review-rigor, bounded passes, recording, and progress-transition checks.
+`../using-joshix/references/autonomous-review.md`, and owns scope, evidence,
+review rigor, and progress-transition checks.
 Workers receive the declaration needed for their lane but never write shared
 task context. Slices use focused checks; the coordinator reserves full
-completion gates for the end after review sign-off. A trivial task stops before
-pass two; every gate stops before pass three. `dev` disagreements are settled
-and logged locally after one rebuttal; `policy` and `product` disagreements
-bubble up. Post-signoff producer passes and recovery attempts use the single
-budget table in `autonomous-review.md`; workers do not create independent retry
-budgets.
+completion gates for the end after review sign-off. A fresh review runs only
+after material artifact change or new evidence. The coordinator stops on an
+owner decision, repeated disagreement without new evidence, an unchanged
+concrete defect, or the absence of an objective authorized correction.
 
 1. Read the plan once; extract every task, `Depends on`, file/resource scope,
    verification command, and full task text.
@@ -96,13 +94,12 @@ user explicitly requested a git operation.
 
 Under policy absence, use a fresh role-specific worker for each lane's initial
 implementation, spec review, and quality review. Under an active policy, keep
-one task-scoped persistent reviewer peer across every selected plan, spec,
-quality, and whole-change gate. Implementation workers remain lane-scoped.
-Return findings to the same implementer when continuation is supported, then
-resume the reviewer peer for the selected gate within the central cap.
-Coordinator-owned policy-active reviewer calls use the installed
-`joshix-review review` operation and the central fallback/recording rules;
-workers never invoke or write reviewer transport state.
+each selected plan, spec, quality, and whole-change review fresh.
+Implementation workers remain lane-scoped. Return findings to the same
+implementer when continuation is supported, then make a new explicit review
+call only after the work materially changes. Coordinator-owned policy-active
+reviewer calls use the installed `joshix-review review` operation; workers
+never invoke the bridge.
 
 Use these exact descriptions for lane dispatches so coordination and transcript
 evidence do not depend on free-form summaries:
@@ -189,8 +186,9 @@ whole-change review, and fresh completion verification.
 
 - Policy absent: keep spec-compliance review before code-quality review in every
   lane, and re-review until each gate passes.
-- Active policy: run only tier-selected gates and use the central two-pass cap
-  and disagreement protocol.
+- Active policy: run only tier-selected gates. Start a new review only after a
+  material change or new evidence, and stop under the disagreement protocol in
+  `../using-joshix/references/autonomous-review.md`.
 - Self-review never replaces a required independent review.
 - Do not advance the same lane or its dependents while a selected review has
   open issues; unrelated lanes may proceed.

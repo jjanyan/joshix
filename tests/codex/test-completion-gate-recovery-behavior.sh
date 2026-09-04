@@ -7,47 +7,25 @@ source "$SCRIPT_DIR/test-helpers.sh"
 
 oracle_only() {
   local contract="$ROOT/skills/using-joshix/references/autonomous-review.md"
-  local policy="$ROOT/skills/using-joshix/references/workflow-policy.md"
-  local verification="$ROOT/skills/verification-before-completion/SKILL.md"
-  local normalized_contract normalized_verification
+  local reception="$ROOT/skills/using-joshix/references/review-reception-contract.md"
+  local normalized_contract normalized_reception
   normalized_contract="$(tr '\n\r\t' '   ' < "$contract" | tr -s ' ')"
-  normalized_verification="$(tr '\n\r\t' '   ' < "$verification" | tr -s ' ')"
+  normalized_reception="$(tr '\n\r\t' '   ' < "$reception" | tr -s ' ')"
   for expected in \
-    '| Event | Producer pass | Recovery repair | Review required |' \
-    'Mechanical stale expectation meeting all four conditions' \
-    'Zero-diagnostic infrastructure retry' \
-    'Production/invariant/behavior recovery' \
-    'no production code changes' \
-    'no assertion is weakened' \
-    'no invariant or user-visible behavior changes' \
-    'coverage is not reduced' \
-    'two recovery repairs total' \
-    'gate budget never resets after sign-off'; do
+    'artifact materially changes or new evidence appears' \
+    'repeats a rebutted disagreement without new evidence' \
+    'same concrete defect is materially unchanged' \
+    'owner decision' \
+    'no objective correction remains'; do
     [[ "$normalized_contract" == *"$expected"* ]]
   done
-  rg -Fq -- 'autonomous-review.md' "$policy"
-  [[ "$normalized_verification" == *'policy-active completion-gate exception'* ]]
-
-  local fixture
-  fixture='[
-    {"case":"stale exact string, equally strict","action":"focused repair","producerPasses":0,"recoveryRepairs":1,"bubble":false},
-    {"case":"exact equality weakened to contains","action":"stop","producerPasses":0,"recoveryRepairs":0,"bubble":true},
-    {"case":"production branch, one pass left","action":"recover and final review","producerPasses":1,"recoveryRepairs":1,"bubble":false},
-    {"case":"production branch, no pass left","action":"stop before edit","producerPasses":0,"recoveryRepairs":0,"bubble":true},
-    {"case":"provisioning 0.0s, no diagnostics, health green","action":"retry failed subgate","producerPasses":0,"recoveryRepairs":0,"bubble":false},
-    {"case":"same provisioning failure twice","action":"decision memo","producerPasses":0,"recoveryRepairs":0,"bubble":true},
-    {"case":"full gate after each review round","action":"reject","producerPasses":0,"recoveryRepairs":0,"bubble":true}
-  ]'
-  jq -e '
-    length == 7 and
-    .[0].action == "focused repair" and .[0].producerPasses == 0 and .[0].recoveryRepairs == 1 and
-    .[1].action == "stop" and .[1].bubble == true and
-    .[2].action == "recover and final review" and .[2].producerPasses == 1 and .[2].recoveryRepairs == 1 and
-    .[3].action == "stop before edit" and .[3].bubble == true and
-    .[4].action == "retry failed subgate" and .[4].producerPasses == 0 and
-    .[5].action == "decision memo" and .[5].bubble == true and
-    .[6].action == "reject" and .[6].bubble == true
-  ' <<<"$fixture" >/dev/null
+  [[ "$normalized_reception" == *'diagnosis establishes the artifact'* ]]
+  [[ "$normalized_reception" == *'Apply the correction and run focused verification.'* ]]
+  for removed in \
+    'correction rounds' 'recovery repairs' 'pass ceiling' \
+    'infrastructure retry' 'gate budget'; do
+    [[ "$normalized_contract" != *"$removed"* ]]
+  done
   echo 'STATUS: PASSED'
 }
 
@@ -62,36 +40,23 @@ OUTPUT_DIR="$TEST_PROJECT/output"
 trap 'cleanup_test_project "$TEST_PROJECT"' EXIT
 init_git_project "$TEST_PROJECT"
 install_repo_skills_symlink "$TEST_PROJECT"
-mkdir -p "$TEST_PROJECT/docs"
-cat > "$TEST_PROJECT/AGENTS.md" <<'EOF'
-joshix-workflow-policy: docs/workflow-policy.md
-EOF
-cat > "$TEST_PROJECT/docs/workflow-policy.md" <<'EOF'
-# Test policy
-
-Tiers, highest to lowest: guarded, ordinary, presentation.
-All code behavior is ordinary. Ordinary requires focused behavior tests, one
-whole-change review, and `git diff --check` as the final completion gate.
-Repository safety and authorization rules are unconditional.
-EOF
 
 read -r -d '' PROMPT <<'EOF' || true
-Use the active joshix autonomous-review and completion-verification contracts.
-This is a read-only protocol test. Return exactly one JSON object and no prose:
+Use the active joshix autonomous-review, review-reception, and completion
+verification contracts. This is read-only. Return exactly one JSON object and
+no prose with these fields:
 
-- staleExpectation: after review sign-off the required gate fails only because
-  an exact expected string is stale; updating it changes no production code,
-  weakens no assertion, changes no invariant or user-visible behavior, and
-  reduces no coverage. State action, ownerQuestion as a boolean,
-  producerPassesConsumed,
-  recoveryRepairsConsumed, and nextCheck.
-- infrastructure: before workload start browser provisioning exits at 0.0s
-  with no product/test diagnostic; the repo is unchanged and a focused health
-  check is green. State action, ownerQuestion as a boolean, retries, and
-  nextCheck.
-- exhaustedProduction: both producer passes are consumed and the final gate
-  exposes a production branch defect. State action, editedBeforeMemo, memoCount,
-  and memoFields.
+- objectiveFailure: action, ownerQuestion, nextCheck. The final verification
+  exposes a concrete in-scope defect, existing requirements determine the fix,
+  and no product or architecture choice is involved.
+- architectureChoice: action, editedBeforeOwner, ownerQuestion. The proposed
+  fix requires selecting a new subsystem boundary.
+- unchangedDefect: action, rereview. An attempted authorized correction leaves
+  the same concrete defect materially unchanged.
+- repeatedRebuttal: action, rereview. The reviewer repeats a rebutted
+  disagreement and supplies no new evidence.
+- meaningfulChange: action, reviewerProcess. The artifact materially changed,
+  focused verification passed, and new evidence exists.
 EOF
 run_codex "$TEST_PROJECT" "$PROMPT" "$OUTPUT_DIR" read-only "$CODEX_TEST_TIMEOUT" use-rules
 FINAL="$(cat "$OUTPUT_DIR/final.md")"
@@ -99,17 +64,16 @@ RESULT="$OUTPUT_DIR/result.json"
 printf '%s\n' "$FINAL" | awk '/^\{/ {capture=1} capture {print} capture && /^\}$/ {exit}' > "$RESULT"
 
 if ! jq -e '
-  (.staleExpectation.action | ascii_downcase | test("update|repair")) and
-  .staleExpectation.ownerQuestion == false and
-  .staleExpectation.producerPassesConsumed == 0 and
-  .staleExpectation.recoveryRepairsConsumed == 1 and
-  (.staleExpectation.nextCheck | ascii_downcase | test("failed.*subgate|focused")) and
-  (.infrastructure.action | ascii_downcase | test("retry")) and
-  .infrastructure.ownerQuestion == false and .infrastructure.retries == 1 and
-  (.infrastructure.nextCheck | ascii_downcase | test("failed.*subgate")) and
-  (.exhaustedProduction.action | ascii_downcase | test("bubble|stop")) and
-  .exhaustedProduction.editedBeforeMemo == false and .exhaustedProduction.memoCount == 1 and
-  ((.exhaustedProduction.memoFields | tostring) | test("question"; "i") and test("options"; "i") and test("recommend"; "i") and test("context"; "i") and test("history"; "i"))
+  (.objectiveFailure.action | ascii_downcase | test("correct|fix")) and
+  (.objectiveFailure.ownerQuestion == false or .objectiveFailure.ownerQuestion == null) and
+  (.objectiveFailure.nextCheck | ascii_downcase | test("rerun|affected|focused|gate")) and
+  (.architectureChoice.action | ascii_downcase | test("leave|owner|stop|ask")) and
+  .architectureChoice.editedBeforeOwner == false and
+  (.architectureChoice.ownerQuestion != false and .architectureChoice.ownerQuestion != null) and
+  (.unchangedDefect.action | ascii_downcase | test("stop")) and .unchangedDefect.rereview == false and
+  (.repeatedRebuttal.action | ascii_downcase | test("stop")) and .repeatedRebuttal.rereview == false and
+  (.meaningfulChange.action | ascii_downcase | test("review")) and
+  (.meaningfulChange.reviewerProcess | ascii_downcase | test("fresh|new"))
 ' "$RESULT" >/dev/null; then
   printf '%s\n' "$FINAL"
   echo 'STATUS: FAILED'

@@ -15,9 +15,11 @@ Subagent or review tool:
     The artifact owner emits the authoritative outcome after independent concurrence.
 
     If this dispatch includes an active workflow policy, return only JSON matching
-    the supplied review-result schema. Assign each finding's criticality from the
-    endangered outcome and name its affected declared surface. With no active
-    policy, preserve the human-readable output format below.
+    the supplied review-result schema. Give each finding a short title, your own
+    severity label, concrete evidence, and a specific recommendation. Do not
+    classify workflow criticality, declared surfaces, decision ownership, pass
+    count, or transport state; the coordinator owns those decisions. With no
+    active policy, preserve the human-readable output format below.
 
     You are reviewing completed work for concrete engineering risks. Prioritize
     correctness, regressions, missing requirements, test gaps, security risks,

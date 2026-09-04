@@ -4,7 +4,7 @@ description: Use when starting any conversation - establishes how to find and us
 ---
 
 <SUBAGENT-STOP>
-If the prompt declares a persistent reviewer peer, skip top-level task-context
+If the prompt declares a reviewer peer, skip top-level task-context
 initialization and follow the read-only reviewer branch in `joshix:task-context`.
 Other delegated workers never read or write top-level shared task context.
 </SUBAGENT-STOP>

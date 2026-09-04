@@ -39,15 +39,13 @@ If a workflow policy is active, read
 `../using-joshix/references/workflow-policy.md` and
 `../using-joshix/references/autonomous-review.md`. Before each edit, next
 planned step, reviewer dispatch, and state transition, check authorized scope
-and the active-time alarm. Stop before new subsystems, invariants, dependencies,
+and evidence. Stop before new subsystems, invariants, dependencies,
 generalized hardening, or future infrastructure. Use focused checks until the
 single final completion gate, and report progress only on `started`, `done`,
-`blocked`, or `bubble-up` transitions. The coordinator owns every bounded
-review pass, fix or rebuttal, local `dev` settlement, history append, and
-snapshot replacement; never ask the owner to broker a routine round. The
-central autonomous-review table also owns post-signoff producer passes,
-mechanical repairs, infrastructure retries, and production recovery; do not
-invent another retry budget here.
+`blocked`, or `bubble-up` transitions. The coordinator verifies review evidence,
+owns fixes and rebuttals, and asks the owner only for genuine product, policy,
+architecture, or scope decisions. A new review runs only after material change
+or new evidence; do not add pass counters or transport state.
 
 For each task:
 1. Mark as in_progress
@@ -67,8 +65,8 @@ canonical trigger, rendering, state, topology, and update rules in
 
 After all tasks complete and verified:
 - With an active workflow policy, invoke `joshix:requesting-code-review` for
-  each task-level tier-selected whole-change gate and complete its autonomous
-  bounded loop. Do not start full completion verification before review
+  each task-level tier-selected whole-change gate and complete its semantic
+  review loop. Do not start full completion verification before review
   sign-off. Policy absence preserves the existing completion sequence.
 - Announce: "I'm using the verification-before-completion skill to verify this work before reporting completion."
 - **REQUIRED SUB-SKILL:** Use joshix:verification-before-completion

@@ -8,7 +8,7 @@ This fork is not intended as an upstream contribution target. It is customized f
 
 ### Policy-active autonomous review host
 
-Install the narrowly privileged reviewer launcher once from this checkout:
+Install the review bridge once from this checkout:
 
 ```bash
 node skills/requesting-code-review/scripts/install-reviewer-host.mjs
@@ -18,34 +18,32 @@ The default installation is
 `$XDG_DATA_HOME/joshix/reviewer-host` when `XDG_DATA_HOME` is absolute, or
 `~/.local/share/joshix/reviewer-host` otherwise. Use
 `--install-dir <absolute-path>` to choose another non-Git, non-plugin-cache
-location. Setup resolves and records the real Node, Claude, and Codex
-executables; copies the runner, schema, and task-context helper into an
-owner-only host directory; checks `claude auth status` and `codex login status`;
-and prints the exact machine-specific permission entries.
+location. Setup resolves the real Node, Claude, Codex, and Git executables,
+generates one owner-only `bin/joshix-review` executable, and prints the exact
+machine-specific permission entries. It installs no runner, schema copy, task
+helper copy, manifest, or authentication probe.
+
+Each Codex review is ephemeral and ignores ambient user tooling configuration,
+so unrelated plugins or MCP authentication cannot expand or block the narrow
+read-only review surface. Codex account authentication remains available.
 
 Put the printed Codex `prefix_rule` in a user `.rules` file and the printed
 Claude `Bash(<absolute-launcher> review:*)` entry in the user-level
 `permissions.allow` list. The Codex rule matches only the exact absolute
-`joshix-review review` argv prefix; the launcher itself accepts one typed
-operation, validates repository-local prompt data and hard bounds, and calls
-only setup-recorded provider executables. Coordinators pass the canonical
-realpath of the Git top level; setup pins PATH-resolved Node shebangs to the
-recorded Node executable. Codex [rules use exact argv-prefix
+`joshix-review review` argv prefix. The operation accepts only provider,
+canonical repository root, and exact task folder. The generated executable
+calls only its embedded provider and Git paths. The installer rejects a launcher
+path containing whitespace or commas, and every operation rejects either
+character class in the repository root or task folder before starting a
+provider. Codex [rules use exact argv-prefix
 matching](https://developers.openai.com/codex/rules), while Claude's
 [CLI and tool permission controls](https://docs.anthropic.com/en/docs/claude-code/cli-usage)
 provide the corresponding host allow entry.
 
-If setup reports `approvals_reviewer = "guardian_subagent"`, migrate it to
-`"auto_review"` when automatic escalation review is desired. Leave a missing
-setting missing. Restart Codex and Claude after changing permissions or plugin
-installations; existing sessions may retain loaded policy.
-
 Do not put credentials in Codex configuration, widen the whole sandbox's
-network or write access, select reviewer executables through PATH at launch
-time, or create a persistent allow rule for Node, either provider CLI, the
-general runner, or a plugin/cache path. Re-run setup after Node or provider
-executables move; stale configuration fails closed and the coordinator uses
-the recorded same-role fallback when available.
+network or write access, or create a broad allow rule for Node or either
+provider CLI. Re-run setup after Node, provider, or Git executables move, then
+run the real transport smoke test.
 
 ### Codex
 
@@ -73,9 +71,9 @@ Expected skill names use the `joshix:` namespace, for example:
 The Claude plugin metadata lives in `.claude-plugin/`. During local testing, the Claude test harness passes this repository as `--plugin-dir`, so tests exercise the skills in this checkout instead of any globally installed plugin.
 
 The user installation comes from the local `joshix-dev` marketplace. Because
-the development manifest remains at version `1.2.0`, `claude plugin update`
-reports that it is current without recopying changed files. Refresh the local
-cache explicitly after workflow changes:
+local workflow edits can occur between manifest-version changes, do not rely on
+`claude plugin update` to recopy changed files. Bump the development plugin
+version and refresh the local cache explicitly after workflow changes:
 
 ```bash
 claude plugin uninstall joshix@joshix-dev --scope user --keep-data --yes
@@ -115,15 +113,19 @@ PNG fallback. Subagents do not emit the DAG, and it is not shared task state.
 Plan, spec, and code review producers remain read-only and return detailed,
 evidence-backed reports. Top-level producers may use prior shared reasoning;
 ordinary delegated producers receive the required context in their dispatch
-and never access shared task context. A policy-active persistent reviewer peer
-is the narrow exception described below.
+and never access shared task context. A policy-active reviewer is a fresh
+read-only process that reads the exact supplied task through the installed
+bridge.
 
 The artifact-owning agent responds through the matching reception skill. It
-independently verifies the review, automatically applies agreed objective
-findings, and reports afterward. Product, scope, ownership, and architecture
-choices remain owner-gated, and an explicit no-edit instruction keeps the
-meta-review read-only. Artifact readiness requires reviewer approval plus the
-owner agent's independent concurrence.
+independently verifies the review and automatically corrects a finding only
+when directly inspectable evidence proves a concrete defect, existing
+requirements determine the correction, and the result stays inside the
+already-authorized outcome and artifact scope. Review severity alone grants no
+edit authority. Product, scope, ownership, and architecture choices remain
+owner-gated, and an explicit no-edit instruction keeps the meta-review
+read-only. Artifact readiness requires reviewer approval plus the owner agent's
+independent concurrence.
 
 ### Proportional workflow policy
 
@@ -136,24 +138,26 @@ joshix-workflow-policy: <repo-relative-path>
 
 Without that declaration, joshix keeps its existing workflow unchanged. With
 it, repository-defined criticality controls verification and review rigor;
-task complexity independently controls planning ceremony; and the effort
-estimate only drives the proportional cost alarm. Repository safety,
-authorization, and completion rules remain unconditional at every level.
+task complexity independently controls planning ceremony. Agents do not
+estimate effort or use elapsed time to control review, pass budgets, or
+authority. Repository safety, authorization, and completion rules remain
+unconditional at every level.
 
-Policy-active reviews use one persistent reviewer peer per task. Codex pairs
-with Claude and Claude pairs with Codex; OpenAI and Anthropic are the complete
-built-in provider boundary, including their current and future models. Adding
-another provider requires a joshix update, not repository configuration.
-Activating a repository workflow policy also activates this pairing, so review
-may send repository content between OpenAI and Anthropic.
+Policy-active reviews pair Codex with Claude and Claude with Codex; OpenAI and
+Anthropic are the complete built-in provider boundary. Every selected review
+starts one fresh opposite-provider process with read-only repository and task
+access. The reviewer receives one exact, artifact-neutral instruction and
+infers whether the active work is a spec, plan, implementation, or cross-layer
+combination from SQLite and the repository.
 
-Both peers may read the repository and shared task history. The coordinator
-alone edits files and appends history. It automatically relays review,
-fix/rebuttal, and rereview turns until approval or a real bubble-up. If the
-other provider is unavailable, a separate same-model reviewer assumes the same
-role for the task. A lost provider session is replaced from SQLite. Review
-turns remain bounded and recorded idempotently; only the absence of every
-automatic reviewer path becomes one capability decision memo.
+The bridge makes one provider attempt. On success it validates the small result
+and appends it as an ordinary SQLite message. There are no provider sessions,
+automatic retries, fallback reviewers, review envelopes, numeric correction or
+recovery budgets, caller output limits, or reviewer deadlines. A failed call is
+reported and stops. A new explicit review is useful only after material artifact
+change or new evidence. Product, policy, architecture, and scope decisions stay
+owner-gated. Explicit SIGINT or SIGTERM is forwarded to the provider and
+appends no review.
 
 Without a workflow-policy declaration, joshix review behaves as before.
 Ordinary subagents remain outside top-level shared task context in both modes.
@@ -172,8 +176,9 @@ uncertain, overlapping, and unsafe shared-state work stays inline or serial.
 Every top-level Git-backed Codex or Claude task creates or connects to a private
 `.joshix/tasks/<task>/` workspace before substantive work, including one-turn
 questions. The workspace gives both agents the same compact current state,
-visible-message history, and accessible files. The top-level coordinator owns
-writes; only a declared policy-active reviewer peer may read the supplied task.
+visible-message history, and accessible files. The provider reviewer is
+read-only; the installed bridge alone appends its validated result as an
+ordinary reviewer message.
 
 ## Agent Artifacts
 

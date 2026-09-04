@@ -10,18 +10,21 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "title", "severity", "criticality", "surface", "decisionLevel", "evidence", "recommendation"],
+        "required": ["title", "severity", "evidence", "recommendation"],
         "properties": {
-          "id": {"type": "string", "minLength": 1},
           "title": {"type": "string", "minLength": 1},
-          "severity": {"enum": ["critical", "important", "minor"]},
-          "criticality": {"type": "string", "minLength": 1},
-          "surface": {"type": "string", "minLength": 1},
-          "decisionLevel": {"enum": ["dev", "policy", "product"]},
+          "severity": {"type": "string", "minLength": 1},
           "evidence": {"type": "string", "minLength": 1},
           "recommendation": {"type": "string", "minLength": 1}
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "approved"}}},
+      "then": {"properties": {"findings": {"type": "array", "maxItems": 0}}},
+      "else": {"properties": {"findings": {"type": "array", "minItems": 1}}}
+    }
+  ]
 }

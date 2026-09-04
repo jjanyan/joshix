@@ -55,12 +55,20 @@ require_fixed "$CONTRACT" 'Agent 1 is the meta-review receiver and artifact owne
   'Agent 1 owns review reception and the artifact'
 require_fixed "$CONTRACT" 'Agent 1 independently verifies every finding before classifying or editing.' \
   'Agent 1 verifies before editing'
-require_fixed "$CONTRACT" 'Automatic authority covers only objective findings raised by Agent 2 and accepted by Agent 1.' \
-  'automatic authority is reviewer-scoped'
+require_fixed "$CONTRACT" 'Automatic authority covers only verified, concrete defects or violated requirements raised by Agent 2.' \
+  'automatic authority is evidence-scoped'
+require_fixed "$CONTRACT" 'reproducible or directly inspectable evidence' \
+  'automatic correction requires inspectable evidence'
+require_fixed "$CONTRACT" 'determined by existing requirements or repository policy' \
+  'automatic correction is requirement-determined'
+require_fixed "$CONTRACT" "owner's already-authorized outcome and artifact scope" \
+  'automatic correction stays in authorized scope'
+require_fixed "$CONTRACT" 'generalized hardening' \
+  'automatic correction excludes generalized hardening'
 require_fixed "$CONTRACT" 'New product, scope, ownership, acceptance-criteria, or architecture choices remain owner-gated.' \
   'new product and architecture choices remain owner-gated'
-require_fixed "$CONTRACT" 'Apply every independent accepted objective finding raised by Agent 2.' \
-  'required order applies accepted reviewer findings'
+require_fixed "$CONTRACT" 'Apply every independently verified finding that satisfies all automatic-correction conditions.' \
+  'required order applies only evidence-bounded findings'
 require_fixed "$CONTRACT" 'A semantic explicit no-edit instruction or a substantive question about whether work should occur does pause edits.' \
   'semantic no-edit override exists'
 require_fixed "$CONTRACT" 'a substantive question about whether work should occur does pause edits.' \
@@ -81,8 +89,8 @@ require_fixed "$CONTRACT" 'A verification failure is evidence, not by itself a r
   'verification failure alone does not end the turn'
 require_fixed "$CONTRACT" 'Do not rerun a passing focused verification solely to confirm it.' \
   'passing focused verification is not repeated performatively'
-require_fixed "$CONTRACT" 'For policy-active completion-gate recovery, follow `autonomous-review.md`' \
-  'completion recovery delegates to the central autonomous contract'
+require_fixed "$CONTRACT" 'If it passes, resume ordinary review reception.' \
+  'objective focused recovery returns to ordinary review'
 require_fixed "$CONTRACT" 'Never require an owner message solely to reset a conversational turn boundary.' \
   'conversational turn boundaries are not recovery gates'
 require_fixed "$CONTRACT" 'The eventual reception report names every successfully recovered failure and the focused command or evidence that established recovery.' \
@@ -95,8 +103,8 @@ forbid_fixed "$CONTRACT" 'Make one bounded recovery pass for that failure' \
   'artifact reception does not duplicate completion recovery policy'
 forbid_fixed "$CONTRACT" 'Across one review application, Agent 1 may make at most two recovery passes' \
   'artifact reception does not own the recovery ceiling'
-require_fixed "$CONTRACT" 'A newly discovered concern from Agent 1 remains unchanged until Agent 2 agrees in a later review.' \
-  'Agent 1 concerns wait for Agent 2'
+require_fixed "$CONTRACT" 'Independently verify it and apply the same authority rules used for reviewer findings.' \
+  'Agent 1 concerns use the same evidence and authority rules'
 require_fixed "$CONTRACT" 'Rejected, deferred, unclear, and unverified findings remain unchanged with evidence-backed reasoning in the shared conversation.' \
   'disagreement handoff stays conversational'
 require_fixed "$CONTRACT" 'If a later Agent 2 pass identifies a previously applied automatic change as wrong, that report is an ordinary new finding.' \
@@ -107,6 +115,22 @@ require_fixed "$CONTRACT" 'Do not classify these failure-state entries as `VALID
   'failure reporting cannot overstate partial work'
 require_fixed "$CONTRACT" 'Automatic reception never authorizes unrelated refactoring, new product scope, new architecture, staging, commits, other Git operations, or deployment.' \
   'automatic authority excludes Git'
+require_fixed "$CONTRACT" 'Severity never creates edit authority.' \
+  'severity cannot widen automatic authority'
+require_fixed "$CONTRACT" 'The reviewer supplies evidence and a recommendation.' \
+  'reviewer supplies evidence rather than governance'
+require_fixed "$CONTRACT" 'The coordinator verifies the evidence and classifies scope, policy, product, and architecture impact.' \
+  'coordinator owns governance classification'
+require_fixed "$CONTRACT" 'A new review is useful only after the artifact changes or new evidence appears.' \
+  'rereview requires progress or new evidence'
+require_fixed "$CONTRACT" 'repeats a rebutted disagreement without new evidence' \
+  'rebutted repetition stops convergence'
+require_fixed "$CONTRACT" 'same concrete defect is materially unchanged' \
+  'unchanged defects stop convergence'
+for removed in 'correction round' 'recovery repair' 'pass ceiling'; do
+  forbid_fixed "$CONTRACT" "$removed" \
+    "receiver has no numeric review-engine concept: $removed"
+done
 
 require_fixed "$FORMAT" 'Use the exact `### Review outcome` lane whenever an outcome is emitted; never substitute an inline `Outcome:` label.' \
   'response contract owns exact outcome presentation'
@@ -184,8 +208,8 @@ for file in "$README" "${GUIDANCE[@]}"; do
 done
 require_fixed "$README" 'artifact-owning agent' \
   'README names the receiver role'
-require_fixed "$README" 'automatically applies agreed objective findings' \
-  'README documents automatic objective application'
+require_fixed "$README" 'automatically corrects a finding only' \
+  'README documents evidence-bounded automatic correction'
 require_fixed "$README" 'explicit no-edit instruction' \
   'README documents the read-only override'
 require_fixed "$README" 'architecture choices remain owner-gated' \

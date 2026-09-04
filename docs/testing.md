@@ -24,10 +24,7 @@ transport suites. Run these focused model-free checks while narrowing failures:
 
 ```bash
 node --disable-warning=ExperimentalWarning --test tests/task-context/task-context.test.mjs
-node --test tests/reviewer-host/reviewer-host.test.mjs
-node --test tests/reviewer-runner/reviewer-runner.test.mjs
-node --test tests/reviewer-runner/provider-help-contract.test.mjs
-node --test tests/autonomous-review/autonomous-review-flow.test.mjs
+node --disable-warning=ExperimentalWarning --test tests/reviewer-host/reviewer-host.test.mjs
 bash tests/static/test-autonomous-review-contract.sh
 bash tests/static/test-review-reception-contract.sh
 bash tests/static/test-workflow-policy-contract.sh
@@ -36,13 +33,14 @@ bash tests/static/test-readiness-hold-contract.sh
 
 These commands are deterministic and model-free.
 
-The reviewer-runner suite proves persistent session start, resume, and
-replacement; literal argv transport; read-only repository and task-history
-access; explicit read-only Codex resume arguments; safe Claude evidence
-transport; bounded failure handling; portable provider discovery; and
-machine-default model inheritance. The autonomous flow suite proves one
-coordinator writer and one reviewer identity across gates, including version-1
-history tolerance.
+The host suite proves one provider spawn, fresh-process profiles, literal argv
+transport, command-token-bounded Claude permissions, confined task and Git
+reads, ordinary SQLite append, fresh-process rereview continuity, completed-
+result validation, rolling diagnostics, signal propagation, direct failure
+results, permission-unsafe path rejection before provider spawn, and a one-file
+owner-only install. Static and focused contract oracles cover the semantic stop
+conditions for owner decisions, repeated rebuttal without evidence, unchanged
+defects, transport failures, and cancellation.
 
 The static runner also aggregates the model-free transcript and decision
 oracles used before paying for live model execution. Run an individual oracle
@@ -83,14 +81,29 @@ node tests/reviewer-host/real-codex-claude-smoke.mjs
 
 These commands invoke models and are intentional cost-bearing coverage. The
 autonomous-review scripts also expose `--oracle-only` for their deterministic
-direction/profile checks. Development slices and review rounds use focused
-checks; full completion gates run once, after whole-change review sign-off.
+direction/profile checks. Development slices use focused checks; full
+completion gates run once, after whole-change review sign-off.
 The discussion-routing, completion-recovery, reciprocal Claude autonomous-loop,
 and real sandbox-to-Claude smoke tests are release gates, not per-round checks.
-The reciprocal and smoke tests require the installed host launcher plus fresh
-Codex and Claude authentication/permission state. The smoke proves a
-workspace-sandboxed Codex process can start and resume the same read-only Claude
-reviewer without changing the fixture repository or task database.
+The reciprocal and smoke tests require the newly installed bridge plus valid
+Codex and Claude authentication/permission state. The smoke proves both fresh
+provider directions can read ordinary SQLite history, append one ordinary
+review message, and leave artifacts plus `current.md` unchanged. Run
+`node tests/reviewer-host/real-codex-claude-smoke.mjs --permission-only` to
+exercise Claude denial of chained and redirected commands beyond the exact
+task-read prefix. That probe is a direct operator prompt using the installed
+bridge's pinned Claude executable and exported production permission profile;
+the
+adversarial commands are not smuggled through the read-only review artifact or
+SQLite history.
+
+The reciprocal model sample intentionally covers spec, plan, and code
+inference collectively, including a cross-layer defect that contradicts an
+approved plan. Each inference assertion comes from an actual read-only reviewer
+launched with the canonical artifact-neutral instruction against shared task
+history; a coordinator questionnaire that maps described states is not
+acceptance evidence. Do not recreate a provider-by-artifact matrix of live
+calls; the deterministic layer owns exact transport and profile coverage.
 
 ### 3. Representative orchestration checks
 
@@ -195,6 +208,8 @@ working directory encoded in the directory name. The integration tests create
 unique temporary projects and run Claude from those projects, which keeps
 session lookup isolated from concurrent runs.
 
-Use `--verbose` to stream output, and raise the per-test timeout with
-`--timeout 1800` for orchestration cases. `analyze-token-usage.py` can inspect a
-session JSONL when token and cost details are needed.
+Use `--verbose` to stream output, and raise the outer test-harness process
+timeout with `--timeout 1800` for orchestration cases. That bound protects CI;
+it is not a reviewer-quality deadline or workflow-control signal.
+`analyze-token-usage.py` can inspect a session JSONL when token and cost details
+are needed.

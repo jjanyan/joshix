@@ -24,25 +24,20 @@ const SQLITE_WARNING =
   'SQLite is an experimental feature and might change at any time';
 let DatabaseSync;
 
-const SCHEMA_VERSION = 2;
 const PREVIEW_LENGTH = 240;
 const DEFAULT_RECENT_LIMIT = 20;
 const HELP = `Usage: task-context <command> <task-folder> [options]
 
 Commands:
   init <task-folder>
-  append <task-folder> --speaker <name> --content-file <path> [--idempotency-key <key>]
+  append <task-folder> --speaker <name> --content-file <path>
   recent <task-folder> [--limit <1-1000>] [--full]
   since-id <task-folder> <id> [--full]
   since-time <task-folder> <ISO-8601 timestamp> [--full]
   get <task-folder> <id> [id ...]
   search <task-folder> <text>  (literal substring, ASCII case-insensitive)
-  elapsed <task-folder> [--now <ISO-8601 timestamp>]
   export <task-folder> --format markdown
   check <task-folder>
-
-Example:
-  elapsed .joshix/tasks/example --now 2026-09-02T11:40:00.000Z
 `;
 const VERSION_ONE_COLUMNS = [
   { name: 'id', type: 'INTEGER', notnull: 0, pk: 1 },
@@ -50,7 +45,7 @@ const VERSION_ONE_COLUMNS = [
   { name: 'speaker', type: 'TEXT', notnull: 1, pk: 0 },
   { name: 'content', type: 'TEXT', notnull: 1, pk: 0 },
 ];
-const EXPECTED_COLUMNS = [
+const VERSION_TWO_COLUMNS = [
   ...VERSION_ONE_COLUMNS,
   { name: 'idempotency_key', type: 'TEXT', notnull: 0, pk: 0 },
 ];
@@ -60,14 +55,10 @@ CREATE TABLE messages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   speaker TEXT NOT NULL,
-  content TEXT NOT NULL,
-  idempotency_key TEXT
+  content TEXT NOT NULL
 );
 CREATE INDEX messages_created_at_idx ON messages(created_at);
-CREATE UNIQUE INDEX messages_idempotency_key_idx
-  ON messages(idempotency_key)
-  WHERE idempotency_key IS NOT NULL;
-PRAGMA user_version = 2;
+PRAGMA user_version = 1;
 `;
 
 function nodeVersionParts(version) {
@@ -257,28 +248,21 @@ function readSchemaState(db) {
   const tableSql = db
     .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'messages'")
     .get()?.sql ?? '';
-  const idempotencyIndexSql = db
-    .prepare("SELECT sql FROM sqlite_master WHERE type = 'index' AND name = 'messages_idempotency_key_idx'")
-    .get()?.sql ?? '';
-
   return {
     integrity,
     version,
     columns,
     hasIndex: JSON.stringify(indexColumns) === JSON.stringify(['created_at']),
     hasAutomaticTimestamp: tableSql.includes(TIMESTAMP_DEFAULT),
-    idempotencyIndexSql,
   };
 }
 
-function isExpectedSchema(state) {
+function isExpectedVersionTwoSchema(state) {
   return state.integrity === 'ok'
-    && state.version === SCHEMA_VERSION
+    && state.version === 2
     && state.hasIndex
     && state.hasAutomaticTimestamp
-    && state.idempotencyIndexSql.includes('CREATE UNIQUE INDEX messages_idempotency_key_idx')
-    && state.idempotencyIndexSql.includes('WHERE idempotency_key IS NOT NULL')
-    && JSON.stringify(state.columns) === JSON.stringify(EXPECTED_COLUMNS);
+    && JSON.stringify(state.columns) === JSON.stringify(VERSION_TWO_COLUMNS);
 }
 
 function isExpectedVersionOneSchema(state) {
@@ -286,44 +270,15 @@ function isExpectedVersionOneSchema(state) {
     && state.version === 1
     && state.hasIndex
     && state.hasAutomaticTimestamp
-    && state.idempotencyIndexSql === ''
     && JSON.stringify(state.columns) === JSON.stringify(VERSION_ONE_COLUMNS);
 }
 
 function validateExistingDatabase(databasePath) {
-  const db = new DatabaseSync(databasePath);
+  const db = new DatabaseSync(databasePath, { readOnly: true });
   try {
-    db.exec('PRAGMA busy_timeout = 5000');
-    const initialState = readSchemaState(db);
-    if (isExpectedSchema(initialState)) return;
-    if (!isExpectedVersionOneSchema(initialState)) {
+    const state = readSchemaState(db);
+    if (!isExpectedVersionOneSchema(state) && !isExpectedVersionTwoSchema(state)) {
       fail('Existing task database failed integrity or schema validation.');
-    }
-
-    db.exec('BEGIN IMMEDIATE');
-    try {
-      const lockedState = readSchemaState(db);
-      if (isExpectedSchema(lockedState)) {
-        db.exec('COMMIT');
-        return;
-      }
-      if (!isExpectedVersionOneSchema(lockedState)) {
-        fail('Existing task database changed during migration.');
-      }
-      db.exec(`
-        ALTER TABLE messages ADD COLUMN idempotency_key TEXT;
-        CREATE UNIQUE INDEX messages_idempotency_key_idx
-          ON messages(idempotency_key)
-          WHERE idempotency_key IS NOT NULL;
-        PRAGMA user_version = 2;
-      `);
-      if (!isExpectedSchema(readSchemaState(db))) {
-        fail('Migrated task database failed integrity or schema validation.');
-      }
-      db.exec('COMMIT');
-    } catch (error) {
-      db.exec('ROLLBACK');
-      throw error;
     }
   } finally {
     db.close();
@@ -399,6 +354,7 @@ function flag(args, name) {
 
 function assertNoArgs(args) {
   if (args.length > 0) {
+    if (args[0].startsWith('--')) fail(`Unknown option: ${args[0]}`);
     fail(`Unexpected arguments: ${args.join(' ')}`);
   }
 }
@@ -425,47 +381,17 @@ function printJson(value) {
 function append(folder, args) {
   const speaker = option(args, '--speaker');
   const contentFile = option(args, '--content-file');
-  const idempotencyKey = option(args, '--idempotency-key');
   assertNoArgs(args);
   if (!speaker || !contentFile) {
     fail('append requires --speaker and --content-file.');
   }
-  if (idempotencyKey !== null && idempotencyKey.length === 0) {
-    fail('--idempotency-key requires a non-empty value.');
-  }
-
   const content = readFileSync(resolve(contentFile), 'utf8');
   const { db } = databaseFor(folder, { verifyPrivacy: true });
   try {
-    if (idempotencyKey === null) {
-      const result = db
-        .prepare('INSERT INTO messages (speaker, content) VALUES (?, ?)')
-        .run(speaker, content);
-      process.stdout.write(`${result.lastInsertRowid}\n`);
-      return;
-    }
-
-    db.exec('PRAGMA busy_timeout = 5000');
-    db.exec('BEGIN IMMEDIATE');
-    try {
-      db.prepare(`
-        INSERT OR IGNORE INTO messages (speaker, content, idempotency_key)
-        VALUES (?, ?, ?)
-      `).run(speaker, content, idempotencyKey);
-      const row = db.prepare(`
-        SELECT id, speaker, content
-        FROM messages
-        WHERE idempotency_key = ?
-      `).get(idempotencyKey);
-      if (!row || row.speaker !== speaker || row.content !== content) {
-        fail('Idempotency key already belongs to different content.');
-      }
-      db.exec('COMMIT');
-      process.stdout.write(`${row.id}\n`);
-    } catch (error) {
-      db.exec('ROLLBACK');
-      throw error;
-    }
+    const result = db
+      .prepare('INSERT INTO messages (speaker, content) VALUES (?, ?)')
+      .run(speaker, content);
+    process.stdout.write(`${result.lastInsertRowid}\n`);
   } finally {
     db.close();
   }
@@ -561,147 +487,6 @@ function search(folder, args) {
   );
 }
 
-function elapsedDuration(milliseconds) {
-  const totalSeconds = Math.floor(milliseconds / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const parts = [];
-  if (hours) parts.push(`${hours}h`);
-  if (minutes) parts.push(`${minutes}m`);
-  if (seconds || parts.length === 0) parts.push(`${seconds}s`);
-  return parts.join(' ');
-}
-
-function unknownElapsed(warning) {
-  printJson({
-    activeMs: null,
-    activeDuration: null,
-    state: 'unknown',
-    approximate: true,
-    warning,
-  });
-}
-
-function mergeIntervals(intervals) {
-  const ordered = [...intervals].sort((left, right) => left[0] - right[0]);
-  const merged = [];
-  for (const interval of ordered) {
-    const last = merged.at(-1);
-    if (!last || interval[0] > last[1]) merged.push([...interval]);
-    else last[1] = Math.max(last[1], interval[1]);
-  }
-  return merged;
-}
-
-function intervalOverlap(left, right) {
-  return Math.max(0, Math.min(left[1], right[1]) - Math.max(left[0], right[0]));
-}
-
-function parseWaitRecord(row) {
-  if (row.speaker !== 'TaskMeta') return null;
-  let value;
-  try {
-    value = JSON.parse(row.content);
-  } catch {
-    throw new Error(`Malformed TaskMeta JSON at history ${row.id}.`);
-  }
-  if (
-    !value
-    || typeof value !== 'object'
-    || Array.isArray(value)
-    || JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(['key', 'state', 'type'])
-    || value.type !== 'joshix.external-wait'
-    || !['paused', 'resumed'].includes(value.state)
-    || typeof value.key !== 'string'
-    || value.key.length === 0
-  ) {
-    throw new Error(`Malformed external-wait metadata at history ${row.id}.`);
-  }
-  return value;
-}
-
-function elapsed(folder, args) {
-  const rawNow = option(args, '--now');
-  assertNoArgs(args);
-  const now = rawNow === null ? new Date() : new Date(rawNow);
-  if (Number.isNaN(now.valueOf())) fail('--now requires an ISO 8601 timestamp.');
-
-  const { db } = databaseFor(folder, { readOnly: true });
-  let rows;
-  try {
-    rows = db.prepare('SELECT id, created_at, speaker, content FROM messages ORDER BY id').all();
-  } finally {
-    db.close();
-  }
-
-  const times = rows.map((row) => new Date(row.created_at).valueOf());
-  if (
-    times.some((time) => !Number.isFinite(time))
-    || times.some((time, index) => index > 0 && time < times[index - 1])
-    || times.some((time) => time > now.valueOf())
-  ) {
-    unknownElapsed('History timestamps are malformed or out of order.');
-    return;
-  }
-
-  const activeIntervals = [];
-  for (let index = 0; index < rows.length - 1; index += 1) {
-    if (rows[index + 1].speaker !== 'User') {
-      activeIntervals.push([times[index], times[index + 1]]);
-    }
-  }
-  if (rows.length > 0) activeIntervals.push([times.at(-1), now.valueOf()]);
-
-  const openWaits = new Map();
-  const waits = [];
-  const warnings = [];
-  try {
-    rows.forEach((row, index) => {
-      const wait = parseWaitRecord(row);
-      if (!wait) return;
-      if (wait.state === 'paused') {
-        if (openWaits.has(wait.key)) throw new Error(`Duplicate pause for ${wait.key} at history ${row.id}.`);
-        openWaits.set(wait.key, { index, start: times[index] });
-        return;
-      }
-      const open = openWaits.get(wait.key);
-      if (!open) throw new Error(`Resume without a matching pause for ${wait.key} at history ${row.id}.`);
-      waits.push([open.start, times[index]]);
-      openWaits.delete(wait.key);
-    });
-  } catch (error) {
-    unknownElapsed(error.message);
-    return;
-  }
-
-  let state = 'open';
-  for (const [key, open] of openWaits) {
-    const laterActivity = rows.slice(open.index + 1).some((row) => row.speaker !== 'TaskMeta');
-    if (laterActivity) {
-      warnings.push(`Unmatched external pause was ignored after later activity: ${key}.`);
-    } else {
-      waits.push([open.start, now.valueOf()]);
-      state = 'closed';
-      warnings.push(`External wait remains open: ${key}.`);
-    }
-  }
-
-  const mergedWaits = mergeIntervals(waits);
-  const gross = activeIntervals.reduce((total, [start, end]) => total + (end - start), 0);
-  const excluded = activeIntervals.reduce((total, interval) => (
-    total + mergedWaits.reduce((sum, wait) => sum + intervalOverlap(interval, wait), 0)
-  ), 0);
-  const activeMs = Math.max(0, gross - excluded);
-  printJson({
-    activeMs,
-    activeDuration: elapsedDuration(activeMs),
-    state,
-    approximate: true,
-    warning: warnings.length ? warnings.join(' ') : null,
-  });
-}
-
 function exportMarkdown(folder, args) {
   const format = option(args, '--format');
   assertNoArgs(args);
@@ -732,7 +517,7 @@ function check(folder, args) {
   } finally {
     db.close();
   }
-  const ok = isExpectedSchema(state);
+  const ok = isExpectedVersionOneSchema(state) || isExpectedVersionTwoSchema(state);
   printJson({
     ok,
     integrity: state.integrity,
@@ -763,7 +548,6 @@ function main(argv) {
     'since-time': () => sinceTime(folder, args),
     get: () => getMessages(folder, args),
     search: () => search(folder, args),
-    elapsed: () => elapsed(folder, args),
     export: () => exportMarkdown(folder, args),
     check: () => check(folder, args),
   };

@@ -23,69 +23,31 @@ When repository guidance declares `joshix-workflow-policy:`, read
 protocol replaces the manual dispatch and unbounded feedback rules below. With
 no policy, keep this skill's existing behavior unchanged.
 
-| Task reviewer state | Action |
-|---|---|
-| Saved reviewer session exists | Resume it for the next selected gate or pass. |
-| No reviewer session exists | Start the other provider and record its returned session ID. |
-| Saved session cannot resume | Replace it on the same provider; continue from shared history. |
-| Other provider is unavailable | Start one persistent same-model reviewer in the same role. |
-| No automatic reviewer path exists | Emit one capability decision memo. |
+Invoke the installed `joshix-review review` operation with only the opposite
+provider, canonical repository root, and exact task folder. Every invocation
+starts one fresh reviewer process. The reviewer reads prior reasoning from
+SQLite and discovers the relevant artifact and Git scope through the bridge's
+narrow read-only commands.
 
-Never ask the owner to copy a prompt, paste a result, or relay review messages
-unless the owner selects that fallback from the capability memo.
+The bridge performs one provider attempt. On success it validates the small
+review result, appends it as an ordinary SQLite message, and returns the review
+plus its history ID. On cancellation or failure it appends nothing, starts no
+retry or fallback, and returns one direct result for the coordinator to report.
 
-Invoke the installed `joshix-review review` typed operation as the first
-cross-provider action. Do not call the general runner directly in steady state.
-If the launcher reports `sandboxed` or `launcher`, diagnose the local transport
-without claiming the provider was attempted or starting fallback. Record
-`configuration-stale` once and use a persistent same-role fallback. An actual
-terminal provider failure also falls back after its bounded diagnostic is
-recorded. Until host setup succeeds, only a one-off individually reviewed
-runner escalation with binary overrides removed may bootstrap review.
-
-The coordinator validates the review, constructs
-version-2 `review-record.schema.json`, computes the digest and append key exactly
-as defined by the central protocol, and appends the canonical envelope through
-task-context `--idempotency-key`. Keep version 1 history unchanged and readable;
-a version-1 latest row starts a fresh session on its recorded provider. Retain
-the returned history ID whether new or duplicate, then atomically replace the
-snapshot with gate, round, path, provider, session ID, and history ID in its
-compact `Review:` field while preserving scope, active time, deferred history
-IDs, and every other declaration field. If replacement fails, preserve history,
-report and rebuild the stale snapshot, and do not dispatch again until repaired.
-The invoked reviewer never writes coordinator state.
-
-If no automatic path succeeds, validate one
-`review-failure-record.schema.json` object and append it as
-`ReviewerTransport` with the same deterministic identity before emitting the
-single capability memo. A successful fallback may carry only the bounded
-`requestedProviderDiagnostic`; never append raw transport output.
-
-Before each later gate or pass, consult the snapshot and authoritative review
-history for the saved provider and session. A recorded provider fallback stays
-in the same reviewer role for the rest of the task; do not probe the unavailable
-provider again.
-
-Build active-policy prompts from the compact payload in the central contract;
-the peer reads prior reasoning from the supplied task instead of receiving a
-reconstructed transcript. For Claude code review, capture a bounded scoped
-diff/log into the mode-`0444` OS-temporary scratch file defined there. Remove it
-after the call and never grant the reviewer Git-capable Bash.
+Independently verify every finding. Apply only concrete,
+requirement-determined corrections within the owner's authorized outcome and
+scope. Start a new explicit review with another fresh process only after the
+artifact materially changes or new evidence appears. Stop for an owner
+decision, repeated rebutted disagreement without new evidence, a materially
+unchanged defect, or the absence of an objective correction.
 
 ## Model Selection
 
-Personal provider configuration supplies reviewer model and reasoning-effort defaults.
-Do not suppress those defaults or downgrade models to conserve cost. Let native
-reviewers inherit the current platform selection and cross-provider CLIs load
-their normal machine-specific configuration. Override either value only when
-the user explicitly requests a task-specific selection.
-
-Provider-reported runtime metadata is diagnostic-only. When the runner returns
-`runtime`, copy it unchanged into `reviewer.runtime` in the version-2 history
-record. The model is required when that object exists; effort is included only
-when the provider event exposes it. Never ask the reviewer to self-report its
-model or effort, and never fail an otherwise valid review because runtime
-metadata or effort is absent.
+The bridge does not choose or pin reviewer models or reasoning effort. Each
+isolated native CLI uses the provider/account defaults available without
+loading unrelated user tool configuration. Do not add downgrade flags to
+conserve cost. A task-specific model or effort override requires an explicit
+user request.
 
 ## When to Request Review
 
@@ -133,10 +95,8 @@ Use the platform's subagent, review, or task tool with the template at
 - Consider Minor issues, but do not let taste-only feedback churn the work
 - Push back if reviewer is wrong (with reasoning)
 
-Under an active policy, the implementer fixes or rebuts once. Before a second
-producer pass, settle `dev` disagreements locally and bubble `policy` or
-`product` disagreements. Never request pass two for a trivial task or pass
-three for any task; emit the central decision memo instead.
+Under an active policy, follow the semantic continuation and stop conditions in
+`autonomous-review.md`; do not add pass counters or transport state.
 
 ## Example
 

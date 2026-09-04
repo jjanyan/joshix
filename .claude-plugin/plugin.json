@@ -1,7 +1,7 @@
 {
   "name": "joshix",
   "description": "joshix skills for Claude Code: planning, TDD, debugging, code review, and delivery workflows",
-  "version": "1.3.0",
+  "version": "1.3.2",
   "author": {
     "name": "Josh",
     "url": "https://github.com/jjanyan"

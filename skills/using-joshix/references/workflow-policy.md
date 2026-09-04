@@ -43,7 +43,6 @@ exists and before planning or the first edit:
 - every materially changed surface, its repository tier, the changed effect,
   and a one-line justification;
 - one task complexity (`trivial`, `routine`, or `complex`) and justification;
-- one active-work effort estimate and justification; and
 - the requested outcome and authorized scope.
 
 Read-only investigation needs no declaration. If changes become likely during
@@ -52,17 +51,17 @@ change what it computes, stores, authorizes, or guarantees and does not make it
 materially changed.
 
 Criticality and complexity are independent. Criticality controls verification
-and review rigor. Complexity alone controls planning ceremony. Effort is only
-an observation for the cost alarm; never use it to derive either other axis.
+and review rigor. Complexity alone controls planning ceremony. Neither axis is
+derived from predicted or elapsed duration.
 
 The highest-criticality changed surface sets task-level review rigor. Test
 depth and finding comparisons stay surface-specific.
 
-A bare tier, complexity, or duration replaces the currently discussed value.
-An explicit assignment such as `complexity: trivial` does the same. Ordinary
-sentences containing a value do not override it. If the field is ambiguous,
-keep the current declaration and ask one clarification. Echo accepted overrides
-at the next state transition.
+A bare tier or complexity replaces the currently discussed value. An explicit
+assignment such as `complexity: trivial` does the same. Ordinary sentences
+containing a value do not override it. If the field is ambiguous, keep the
+current declaration and ask one clarification. Echo accepted overrides at the
+next state transition.
 
 ## Planning ceremony
 
@@ -81,11 +80,9 @@ Apply each surface's policy-defined test depth. Manual execution and inspection
 are additive; they never substitute for required automated coverage or the
 repository's completion checks.
 
-Slices and review rounds use focused checks. Run full completion gates once,
-after review sign-off, at the end. If a final gate fails, diagnose with focused
-checks and follow the producer-pass and completion-recovery budget in
-`autonomous-review.md`; rerun only the failed required subgate when that
-contract authorizes it.
+Slices use focused checks. Run full completion gates once, after review
+sign-off, at the end. If a final gate fails, diagnose with focused checks,
+correct objective in-scope defects, and rerun the relevant required check.
 
 Before implementing work beyond the requested outcome and authorized scope—new
 subsystems, invariants, dependencies, generalized hardening, or future-feature
@@ -97,33 +94,25 @@ transitions. Never repost an unchanged graph on a timer.
 
 ## Finding pricing
 
-Severity and criticality are separate. Assign a finding the repository tier of
-the outcome or invariant it endangers, independently of the surface hosting the
-defect. Validate every tier and surface name against the policy and declaration.
+The reviewer supplies evidence and a recommendation. The coordinator verifies
+the evidence and classifies scope, policy, product, and architecture impact.
+Severity and criticality are separate. The coordinator maps a verified finding
+to the repository tier of the outcome or invariant it endangers, independently
+of the surface hosting the defect.
 
 | Finding comparison | Action |
 |---|---|
-| Lower than its affected changed surface | Append an idempotent deferred observation, visibly reference it in the snapshot, and do not implement it without owner authorization. |
-| Equal to its affected changed surface | Fix or rebut once within authorized scope. |
+| Lower than its affected changed surface | Leave it unchanged unless the owner authorizes that additional scope. |
+| Equal to its affected changed surface | Apply the evidence-bounded correction rule or rebut within authorized scope. |
 | Higher than its affected changed surface | Stop and bubble up immediately. |
 | `task-wide` | Compare with the task-level tier. |
-| Unchanged surface | Compare with the task-level tier; bubble if higher, otherwise append an out-of-scope deferred observation. |
+| Unchanged surface | Compare with the task-level tier; bubble if higher, otherwise leave it outside the current scope. |
 
-Unknown tier or surface names make reviewer output malformed; never guess.
-
-## Active-time alarm
-
-Effort accepts minutes, hours, days, or weeks. One active day is eight hours;
-one active week is forty hours. Run the task-context `elapsed` query only before
-a new work unit, review dispatch, or recovery. It derives approximate active
-time from adjacent history timestamps. Owner gaps represented by exact
-external-wait metadata are excluded; long provider and test intervals remain
-active.
-
-At or above twice the declared estimate, stop before the next unit and emit a
-one-paragraph status decision memo. If the query reports unknown, report that
-uncertainty instead of false precision. There is no timer, poller, daemon, or
-routine timing event. A trivial task also stops before a second producer pass.
+A new review is useful only after the artifact materially changes or new
+evidence appears. The coordinator stops on an owner decision, repeated
+disagreement without new evidence, an unchanged concrete defect, or the absence
+of an objective authorized correction. See `autonomous-review.md` for the thin
+review transport.
 
 ## Bubble-up line
 

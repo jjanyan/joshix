@@ -14,6 +14,9 @@ SPEC_TEMPLATE="$ROOT/skills/reviewing-specs/spec-document-reviewer-prompt.md"
 QUALITY_TEMPLATE="$ROOT/skills/subagent-driven-development/code-quality-reviewer-prompt.md"
 PRODUCER_CONTRACT="$ROOT/skills/using-joshix/references/review-producer-contract.md"
 AUTONOMOUS_CONTRACT="$ROOT/skills/using-joshix/references/autonomous-review.md"
+RESULT_SCHEMA="$ROOT/skills/requesting-code-review/review-result.schema.json"
+RECORD_SCHEMA="$ROOT/skills/requesting-code-review/review-record.schema.json"
+FAILURE_SCHEMA="$ROOT/skills/requesting-code-review/review-failure-record.schema.json"
 DELEGATED_BOUNDARY='You are a delegated producer. Use only the artifacts and reasoning supplied in this dispatch; do not seek outside conversation state.'
 DELEGATED_ISOLATION='Never initialize, read, write, or mention coordinator conversation state.'
 PROVISIONAL_VERDICT='Every producer status, approval, or readiness verdict is provisional.'
@@ -157,14 +160,14 @@ require_fixed "$PRODUCER_CONTRACT" 'delegated producer receives every required a
 require_fixed "$PRODUCER_CONTRACT" 'never reads, writes, or mentions top-level shared task context' \
   'delegated producers stay outside shared context'
 require_fixed "$PRODUCER_CONTRACT" \
-  'A policy-active persistent reviewer peer reads the exact shared task folder supplied by the coordinator' \
-  'persistent peer reads shared history'
+  'A policy-active reviewer peer is a fresh process that reads the exact shared task folder supplied by the coordinator' \
+  'fresh peer reads shared history'
 require_fixed "$PRODUCER_CONTRACT" \
   'never initializes, appends, or replaces shared task state' \
   'persistent peer stays read-only'
 require_fixed "$AUTONOMOUS_CONTRACT" \
-  'The coordinator is the only writer' \
-  'automatic loop preserves one writer'
+  'The provider process may read repository files and the exact task but may not edit repository or task state.' \
+  'automatic loop preserves the reviewer read-only boundary'
 require_fixed "$PRODUCER_CONTRACT" 'Keep artifact-specific evidence, severity, recommendations, and existing status, approval, or readiness fields.' \
   'producer contract preserves artifact-specific verdict fields'
 require_fixed "$PRODUCER_CONTRACT" 'Every producer status, approval, or readiness verdict is provisional.' \
@@ -257,5 +260,25 @@ for producer in "${PRODUCERS[@]}"; do
   forbid_fixed "$producer" 'using-joshix/references/review-response-format.md' \
     "$(basename "$(dirname "$producer")") is not wired to receiver formatting"
 done
+
+require_fixed "$RESULT_SCHEMA" '"required": ["status", "findings"]' \
+  'structured reviewer result has the exact root protocol fields'
+for field in title severity evidence recommendation; do
+  require_fixed "$RESULT_SCHEMA" "\"$field\"" \
+    "structured findings keep $field"
+done
+for removed in criticality surface decisionLevel; do
+  forbid_fixed "$RESULT_SCHEMA" "$removed" \
+    "structured findings do not delegate $removed governance"
+done
+for producer in \
+  "$CODE_TEMPLATE" "$PLAN_TEMPLATE" "$SPEC_TEMPLATE" "$QUALITY_TEMPLATE"
+do
+  require_fixed "$producer" \
+    'Do not classify workflow criticality, declared surfaces, decision ownership, pass count, or transport state' \
+    "$(basename "$producer") leaves governance classification to the coordinator"
+done
+test ! -e "$RECORD_SCHEMA" || { echo 'FAIL: review record envelope still exists'; exit 1; }
+test ! -e "$FAILURE_SCHEMA" || { echo 'FAIL: failure record envelope still exists'; exit 1; }
 
 echo 'STATUS: PASSED'

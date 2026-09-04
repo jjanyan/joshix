@@ -21,10 +21,9 @@ When loaded repository guidance declares `joshix-workflow-policy:`, read
 changed surface, keep manual verification additive, and use focused checks for
 slices and review rounds. Run the repository's full completion gates once,
 after review sign-off, at the end. Policy absence preserves the existing gate.
-If a policy-active completion gate fails, use the policy-active completion-gate
-exception in `../using-joshix/references/autonomous-review.md`: diagnose with
-focused evidence, obey its remaining producer and recovery budgets, and rerun
-only an authorized failed subgate.
+If a policy-active completion gate fails, diagnose it with focused evidence and
+rerun the affected gate after correction. Review transport adds no retry loop,
+numeric work budget, or special recovery allowance.
 
 ```
 NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE

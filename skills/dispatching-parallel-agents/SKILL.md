@@ -22,13 +22,13 @@ already authorized.
 
 When a workflow policy is active, the coordinator reads
 `../using-joshix/references/workflow-policy.md` before dispatch. Parallelism
-never bypasses requested scope, active-time alarms, surface-specific test
+never bypasses requested scope, evidence requirements, surface-specific test
 depth, task-level review rigor, focused-check budgets, or transition-only
 progress. Workers report results; only the coordinator records shared state.
 Policy-active review lanes also follow
 `../using-joshix/references/autonomous-review.md`; parallel scheduling never
-duplicates a review append, bypasses the pass cap, or lets a reviewer update
-the snapshot.
+duplicates a review call or lets a reviewer process write task or repository
+state.
 
 ## Parallel-Safety Decision
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawn, spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
   chmodSync,
   copyFileSync,
@@ -109,36 +109,6 @@ function appendMessage(root, folder, speaker, content) {
   return Number(result.stdout.trim());
 }
 
-function appendKeyed(root, folder, speaker, content, idempotencyKey) {
-  const contentFile = join(tempDir(), 'keyed-message.md');
-  writeFileSync(contentFile, content);
-  const result = run(
-    root,
-    'append',
-    folder,
-    '--speaker',
-    speaker,
-    '--content-file',
-    contentFile,
-    '--idempotency-key',
-    idempotencyKey,
-  );
-  return { result, id: Number(result.stdout.trim()) };
-}
-
-function spawnHelper(cwd, args) {
-  return new Promise((resolvePromise) => {
-    const child = spawn(helper, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
-    let stdout = '';
-    let stderr = '';
-    child.stdout.setEncoding('utf8');
-    child.stderr.setEncoding('utf8');
-    child.stdout.on('data', (chunk) => { stdout += chunk; });
-    child.stderr.on('data', (chunk) => { stderr += chunk; });
-    child.on('close', (status) => resolvePromise({ status, stdout, stderr }));
-  });
-}
-
 test('the task-context command is executable in the working tree', () => {
   assert.notEqual(statSync(helper).mode & 0o111, 0);
 });
@@ -225,17 +195,13 @@ test('help lists the complete command surface without requiring a task folder', 
     'since-time',
     'get',
     'search',
-    'elapsed',
     'export',
     'check',
   ]) {
     assert.match(result.stdout, new RegExp(`\\b${command}\\b`));
   }
   assert.match(result.stdout, /literal substring, ASCII case-insensitive/);
-  assert.match(
-    result.stdout,
-    /elapsed \.joshix\/tasks\/example --now 2026-09-02T11:40:00\.000Z/,
-  );
+  assert.doesNotMatch(result.stdout, /\belapsed\b/);
   assert.equal(existsSync(join(cwd, '.agents')), false);
   assert.equal(existsSync(join(cwd, '.joshix')), false);
 });
@@ -266,7 +232,11 @@ test('init resolves relative paths from the Git root and protects them before us
   );
 
   const db = new DatabaseSync(join(task, 'history.sqlite'), { readOnly: true });
-  assert.equal(db.prepare('PRAGMA user_version').get().user_version, 2);
+  assert.equal(db.prepare('PRAGMA user_version').get().user_version, 1);
+  assert.deepEqual(
+    db.prepare('PRAGMA table_info(messages)').all().map(({ name }) => name),
+    ['id', 'created_at', 'speaker', 'content'],
+  );
   assert.deepEqual(
     db.prepare(
       "SELECT name FROM sqlite_master WHERE type IN ('table', 'index') AND name IN ('messages', 'messages_created_at_idx') ORDER BY name",
@@ -493,66 +463,54 @@ test('append preserves arbitrary Markdown and assigns ordered IDs and UTC timest
   );
 });
 
-test('append without an idempotency key remains backward compatible', () => {
+test('ordinary appends do not deduplicate identical messages', () => {
   const root = initRepo();
-  const folder = '.joshix/tasks/2026-08-31-unkeyed-idempotency';
+  const folder = '.joshix/tasks/2026-09-04-ordinary-appends';
   assertSuccess(run(root, 'init', folder));
 
   assert.equal(appendMessage(root, folder, 'Reviewer', 'same review'), 1);
   assert.equal(appendMessage(root, folder, 'Reviewer', 'same review'), 2);
 });
 
-test('a repeated identical idempotency key returns the original message id', () => {
+test('append rejects the removed idempotency option', () => {
   const root = initRepo();
-  const folder = '.joshix/tasks/2026-08-31-keyed-idempotency';
+  const folder = '.joshix/tasks/2026-09-04-no-idempotency-option';
   assertSuccess(run(root, 'init', folder));
-  const key = 'task|gate|1|same-model|sha256:abc';
+  const contentFile = join(tempDir(), 'review.json');
+  writeFileSync(contentFile, '{"status":"approved","findings":[]}');
+  const result = run(
+    root,
+    'append', folder,
+    '--speaker', 'Reviewer',
+    '--content-file', contentFile,
+    '--idempotency-key', 'removed',
+  );
 
-  const first = appendKeyed(root, folder, 'Reviewer', '{"status":"approved"}', key);
-  const second = appendKeyed(root, folder, 'Reviewer', '{"status":"approved"}', key);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Unknown option: --idempotency-key/);
+});
 
-  assertSuccess(first.result);
-  assertSuccess(second.result);
-  assert.equal(first.id, 1);
-  assert.equal(second.id, 1);
-  const db = new DatabaseSync(join(root, folder, 'history.sqlite'), { readOnly: true });
-  assert.equal(db.prepare('SELECT count(*) AS count FROM messages').get().count, 1);
+function schemaState(databasePath) {
+  const db = new DatabaseSync(databasePath, { readOnly: true });
+  const state = {
+    version: db.prepare('PRAGMA user_version').get().user_version,
+    columns: db.prepare('PRAGMA table_info(messages)').all().map(({ name }) => name),
+    indexes: db.prepare(
+      "SELECT name, sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'messages' ORDER BY name",
+    ).all(),
+  };
   db.close();
-});
+  return state;
+}
 
-test('different content cannot reuse an idempotency key', () => {
+test('an existing version 1 database stays version 1 across reads and an ordinary append', () => {
   const root = initRepo();
-  const folder = '.joshix/tasks/2026-08-31-key-collision';
-  assertSuccess(run(root, 'init', folder));
-  const key = 'task|gate|1|same-model|sha256:def';
-  assertSuccess(appendKeyed(root, folder, 'Reviewer', 'first', key).result);
-
-  const collision = appendKeyed(root, folder, 'Reviewer', 'different', key).result;
-
-  assert.notEqual(collision.status, 0);
-  assert.match(collision.stderr, /Idempotency key already belongs to different content\./);
-});
-
-test('distinct idempotency keys append distinct messages', () => {
-  const root = initRepo();
-  const folder = '.joshix/tasks/2026-08-31-distinct-idempotency';
-  assertSuccess(run(root, 'init', folder));
-
-  const first = appendKeyed(root, folder, 'Reviewer', 'review', 'key-one');
-  const second = appendKeyed(root, folder, 'Reviewer', 'review', 'key-two');
-
-  assertSuccess(first.result);
-  assertSuccess(second.result);
-  assert.deepEqual([first.id, second.id], [1, 2]);
-});
-
-test('init migrates a valid version 1 database to version 2 without data loss', () => {
-  const root = initRepo();
-  const folder = '.joshix/tasks/2026-08-31-version-1';
+  const folder = '.joshix/tasks/2026-09-04-version-1';
   const task = join(root, folder);
   mkdirSync(task, { recursive: true });
   writeFileSync(join(root, '.joshix/tasks/.gitignore'), '*\n');
-  const db = new DatabaseSync(join(task, 'history.sqlite'));
+  const databasePath = join(task, 'history.sqlite');
+  const db = new DatabaseSync(databasePath);
   db.exec(`
     CREATE TABLE messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -565,102 +523,52 @@ test('init migrates a valid version 1 database to version 2 without data loss', 
     PRAGMA user_version = 1;
   `);
   db.close();
+  const before = schemaState(databasePath);
 
-  assertSuccess(run(root, 'init', folder));
+  assert.equal(stdoutJson(run(root, 'recent', folder, '--limit', '1', '--full'))[0].content, 'preserve me');
+  assert.equal(appendMessage(root, folder, 'Reviewer', '{"status":"approved","findings":[]}'), 2);
 
-  const migrated = new DatabaseSync(join(task, 'history.sqlite'), { readOnly: true });
-  assert.equal(migrated.prepare('PRAGMA user_version').get().user_version, 2);
-  assert.equal(
-    migrated.prepare('SELECT content FROM messages WHERE id = 1').get().content,
-    'preserve me',
-  );
+  assert.deepEqual(schemaState(databasePath), before);
+  const check = new DatabaseSync(databasePath, { readOnly: true });
   assert.deepEqual(
-    migrated.prepare('PRAGMA table_info(messages)').all().map(({ name }) => name),
-    ['id', 'created_at', 'speaker', 'content', 'idempotency_key'],
+    check.prepare('SELECT speaker FROM messages ORDER BY id').all().map(({ speaker }) => speaker),
+    ['User', 'Reviewer'],
   );
-  assert.equal(
-    migrated.prepare("SELECT sql FROM sqlite_master WHERE name = 'messages_idempotency_key_idx'").get().sql.includes('WHERE idempotency_key IS NOT NULL'),
-    true,
-  );
-  migrated.close();
+  check.close();
 });
 
-test('concurrent init serializes and rechecks a version 1 migration', async () => {
+test('a known legacy version 2 database accepts ordinary appends without migration', () => {
   const root = initRepo();
-  const folder = '.joshix/tasks/2026-08-31-concurrent-version-1';
+  const folder = '.joshix/tasks/2026-09-04-version-2';
   const task = join(root, folder);
   mkdirSync(task, { recursive: true });
   writeFileSync(join(root, '.joshix/tasks/.gitignore'), '*\n');
   const databasePath = join(task, 'history.sqlite');
-  const setup = new DatabaseSync(databasePath);
-  setup.exec(`
+  const db = new DatabaseSync(databasePath);
+  db.exec(`
     CREATE TABLE messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
       speaker TEXT NOT NULL,
-      content TEXT NOT NULL
+      content TEXT NOT NULL,
+      idempotency_key TEXT
     );
     CREATE INDEX messages_created_at_idx ON messages(created_at);
-    INSERT INTO messages (speaker, content) VALUES ('User', 'preserve concurrently');
-    PRAGMA user_version = 1;
+    CREATE UNIQUE INDEX any_legacy_key_index ON messages(idempotency_key) WHERE idempotency_key IS NOT NULL;
+    PRAGMA user_version = 2;
   `);
-  setup.close();
-
-  const blocker = new DatabaseSync(databasePath);
-  blocker.exec('BEGIN IMMEDIATE');
-  const first = spawnHelper(root, ['init', folder]);
-  const second = spawnHelper(root, ['init', folder]);
-  await new Promise((resolvePromise) => setTimeout(resolvePromise, 100));
-  blocker.exec('COMMIT');
-  blocker.close();
-
-  const results = await Promise.all([first, second]);
-  for (const result of results) assertSuccess(result);
-  const migrated = new DatabaseSync(databasePath, { readOnly: true });
-  assert.equal(migrated.prepare('PRAGMA user_version').get().user_version, 2);
-  assert.equal(
-    migrated.prepare('SELECT content FROM messages WHERE id = 1').get().content,
-    'preserve concurrently',
-  );
-  migrated.close();
-});
-
-test('repeated init leaves a valid version 2 database unchanged', () => {
-  const root = initRepo();
-  const folder = '.joshix/tasks/2026-08-31-version-2';
-  assertSuccess(run(root, 'init', folder));
-  appendKeyed(root, folder, 'Reviewer', 'preserve', 'stable-key');
-  const databasePath = join(root, folder, 'history.sqlite');
-  const before = readFileSync(databasePath);
-
-  assertSuccess(run(root, 'init', folder));
-
-  assert.deepEqual(readFileSync(databasePath), before);
-});
-
-test('concurrent duplicate appends leave one keyed row', async () => {
-  const root = initRepo();
-  const folder = '.joshix/tasks/2026-08-31-concurrent-duplicate';
-  assertSuccess(run(root, 'init', folder));
-  const contentFile = join(tempDir(), 'concurrent-review.json');
-  writeFileSync(contentFile, '{"status":"approved","findings":[]}');
-  const args = [
-    'append', folder,
-    '--speaker', 'Reviewer',
-    '--content-file', contentFile,
-    '--idempotency-key', 'task|gate|1|cross-provider|sha256:123',
-  ];
-
-  const results = await Promise.all([
-    spawnHelper(root, args),
-    spawnHelper(root, args),
-  ]);
-
-  for (const result of results) assertSuccess(result);
-  assert.deepEqual(results.map(({ stdout }) => Number(stdout.trim())), [1, 1]);
-  const db = new DatabaseSync(join(root, folder, 'history.sqlite'), { readOnly: true });
-  assert.equal(db.prepare('SELECT count(*) AS count FROM messages').get().count, 1);
   db.close();
+  const before = schemaState(databasePath);
+
+  assert.equal(appendMessage(root, folder, 'Reviewer', '{"status":"approved","findings":[]}'), 1);
+
+  assert.deepEqual(schemaState(databasePath), before);
+  const check = new DatabaseSync(databasePath, { readOnly: true });
+  assert.deepEqual(
+    { ...check.prepare('SELECT speaker, content, idempotency_key FROM messages').get() },
+    { speaker: 'Reviewer', content: '{"status":"approved","findings":[]}', idempotency_key: null },
+  );
+  check.close();
 });
 
 test('append rechecks privacy and refuses task data tracked after initialization', () => {
@@ -753,117 +661,22 @@ test('since-time normalizes offsets and search is literal and ASCII case-insensi
   );
 });
 
-function seedTimedMessages(root, folder, rows) {
+test('legacy external-wait rows remain readable as ordinary append-only history', () => {
+  const root = initRepo();
+  const folder = '.joshix/tasks/2026-09-02-legacy-wait-row';
   assertSuccess(run(root, 'init', folder));
-  const db = new DatabaseSync(join(root, folder, 'history.sqlite'));
-  try {
-    const insert = db.prepare('INSERT INTO messages (created_at, speaker, content) VALUES (?, ?, ?)');
-    for (const row of rows) insert.run(row.createdAt, row.speaker, row.content ?? row.speaker);
-  } finally {
-    db.close();
-  }
-}
+  const legacy = '{"type":"joshix.external-wait","state":"paused","key":"db"}';
+  appendMessage(root, folder, 'TaskMeta', legacy);
 
-test('elapsed derives active time from adjacent history while excluding owner gaps', () => {
-  const root = initRepo();
-  const folder = '.joshix/tasks/2026-09-02-elapsed-basic';
-  seedTimedMessages(root, folder, [
-    { createdAt: '2026-09-02T10:00:00.000Z', speaker: 'User' },
-    { createdAt: '2026-09-02T10:05:00.000Z', speaker: 'Codex' },
-    { createdAt: '2026-09-02T10:35:00.000Z', speaker: 'Reviewer' },
-    { createdAt: '2026-09-02T11:35:00.000Z', speaker: 'User' },
-  ]);
-
-  assert.deepEqual(stdoutJson(run(
-    root,
-    'elapsed', folder,
-    '--now', '2026-09-02T11:40:00.000Z',
-  )), {
-    activeMs: 2_400_000,
-    activeDuration: '40m',
-    state: 'open',
-    approximate: true,
-    warning: null,
+  assert.equal(stdoutJson(run(root, 'recent', folder, '--full'))[0].content, legacy);
+  assert.equal(stdoutJson(run(root, 'get', folder, '1'))[0].content, legacy);
+  assert.equal(stdoutJson(run(root, 'search', folder, 'external-wait'))[0].preview, legacy);
+  assert.match(run(root, 'export', folder, '--format', 'markdown').stdout, /joshix\.external-wait/);
+  assert.deepEqual(stdoutJson(run(root, 'check', folder)), {
+    ok: true,
+    integrity: 'ok',
+    schemaVersion: 1,
   });
-});
-
-test('elapsed subtracts matched and genuinely open external waits', () => {
-  const root = initRepo();
-  const matched = '.joshix/tasks/2026-09-02-elapsed-matched';
-  seedTimedMessages(root, matched, [
-    { createdAt: '2026-09-02T10:00:00.000Z', speaker: 'User' },
-    { createdAt: '2026-09-02T10:05:00.000Z', speaker: 'Codex' },
-    { createdAt: '2026-09-02T10:10:00.000Z', speaker: 'TaskMeta', content: '{"type":"joshix.external-wait","state":"paused","key":"db"}' },
-    { createdAt: '2026-09-02T10:25:00.000Z', speaker: 'TaskMeta', content: '{"type":"joshix.external-wait","state":"resumed","key":"db"}' },
-    { createdAt: '2026-09-02T10:35:00.000Z', speaker: 'Codex' },
-  ]);
-  const matchedResult = stdoutJson(run(root, 'elapsed', matched, '--now', '2026-09-02T10:40:00.000Z'));
-  assert.equal(matchedResult.activeMs, 1_500_000);
-  assert.equal(matchedResult.state, 'open');
-  assert.equal(matchedResult.warning, null);
-
-  const open = '.joshix/tasks/2026-09-02-elapsed-open-wait';
-  seedTimedMessages(root, open, [
-    { createdAt: '2026-09-02T10:00:00.000Z', speaker: 'User' },
-    { createdAt: '2026-09-02T10:05:00.000Z', speaker: 'Codex' },
-    { createdAt: '2026-09-02T10:10:00.000Z', speaker: 'TaskMeta', content: '{"type":"joshix.external-wait","state":"paused","key":"db"}' },
-  ]);
-  const openResult = stdoutJson(run(root, 'elapsed', open, '--now', '2026-09-02T10:40:00.000Z'));
-  assert.equal(openResult.activeMs, 600_000);
-  assert.equal(openResult.state, 'closed');
-  assert.match(openResult.warning, /external wait remains open/i);
-});
-
-test('elapsed ignores a forgotten pause after later activity and fails unknown on malformed metadata', () => {
-  const root = initRepo();
-  const stale = '.joshix/tasks/2026-09-02-elapsed-stale-wait';
-  seedTimedMessages(root, stale, [
-    { createdAt: '2026-09-02T10:00:00.000Z', speaker: 'User' },
-    { createdAt: '2026-09-02T10:05:00.000Z', speaker: 'TaskMeta', content: '{"type":"joshix.external-wait","state":"paused","key":"db"}' },
-    { createdAt: '2026-09-02T10:20:00.000Z', speaker: 'Codex' },
-    { createdAt: '2026-09-02T11:20:00.000Z', speaker: 'Reviewer' },
-  ]);
-  const staleResult = stdoutJson(run(root, 'elapsed', stale, '--now', '2026-09-02T11:25:00.000Z'));
-  assert.equal(staleResult.activeMs, 5_100_000);
-  assert.equal(staleResult.state, 'open');
-  assert.match(staleResult.warning, /unmatched external pause was ignored after later activity/i);
-
-  const malformed = '.joshix/tasks/2026-09-02-elapsed-malformed';
-  seedTimedMessages(root, malformed, [
-    { createdAt: '2026-09-02T10:00:00.000Z', speaker: 'User' },
-    { createdAt: '2026-09-02T10:05:00.000Z', speaker: 'TaskMeta', content: '{"type":"joshix.external-wait","state":"resumed","key":"missing"}' },
-  ]);
-  const malformedResult = stdoutJson(run(root, 'elapsed', malformed, '--now', '2026-09-02T10:10:00.000Z'));
-  assert.equal(malformedResult.activeMs, null);
-  assert.equal(malformedResult.state, 'unknown');
-  assert.match(malformedResult.warning, /resume/i);
-});
-
-test('elapsed is read-only and reports malformed history instead of false precision', () => {
-  const root = initRepo();
-  const folder = '.joshix/tasks/2026-09-02-elapsed-integrity';
-  seedTimedMessages(root, folder, [
-    { createdAt: '2026-09-02T10:00:00.000Z', speaker: 'User' },
-    { createdAt: '2026-09-02T10:05:00.000Z', speaker: 'TaskMeta', content: '{"type":"joshix.external-wait","state":"paused","key":"db"}' },
-    { createdAt: '2026-09-02T10:06:00.000Z', speaker: 'TaskMeta', content: '{"type":"joshix.external-wait","state":"paused","key":"db"}' },
-  ]);
-  const databasePath = join(root, folder, 'history.sqlite');
-  const before = readFileSync(databasePath);
-
-  const duplicatePause = stdoutJson(run(root, 'elapsed', folder, '--now', '2026-09-02T10:10:00.000Z'));
-  assert.equal(duplicatePause.activeMs, null);
-  assert.equal(duplicatePause.state, 'unknown');
-  assert.match(duplicatePause.warning, /duplicate pause/i);
-  assert.deepEqual(readFileSync(databasePath), before);
-
-  const malformedFolder = '.joshix/tasks/2026-09-02-elapsed-malformed-time';
-  seedTimedMessages(root, malformedFolder, [
-    { createdAt: 'not-a-time', speaker: 'User' },
-  ]);
-  const malformedTime = stdoutJson(run(root, 'elapsed', malformedFolder, '--now', '2026-09-02T10:10:00.000Z'));
-  assert.equal(malformedTime.activeMs, null);
-  assert.equal(malformedTime.state, 'unknown');
-  assert.match(malformedTime.warning, /timestamps/i);
 });
 
 test('export preserves ordering and bodies, and check is read-only', () => {
@@ -882,7 +695,7 @@ test('export preserves ordering and bodies, and check is read-only', () => {
   assert.deepEqual(stdoutJson(run(root, 'check', folder)), {
     ok: true,
     integrity: 'ok',
-    schemaVersion: 2,
+    schemaVersion: 1,
   });
   assert.deepEqual(readFileSync(join(task, 'history.sqlite')), before);
 });

@@ -16,9 +16,11 @@ Task tool (general-purpose):
     The artifact owner emits the authoritative outcome after independent concurrence.
 
     If this dispatch includes an active workflow policy, return only JSON matching
-    the supplied review-result schema. Assign each finding's criticality from the
-    endangered outcome and name its affected declared surface. With no active
-    policy, preserve the human-readable output format below.
+    the supplied review-result schema. Give each finding a short title, your own
+    severity label, concrete evidence, and a specific recommendation. Do not
+    classify workflow criticality, declared surfaces, decision ownership, pass
+    count, or transport state; the coordinator owns those decisions. With no
+    active policy, preserve the human-readable output format below.
 
     You are a plan document reviewer. Verify this plan is complete and ready for implementation.
 

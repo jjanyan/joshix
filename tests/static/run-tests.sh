@@ -4,8 +4,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 tests=(
-  "test-claude-runner-timeout-contract.sh"
-  "test-codex-runner-retry-contract.sh"
   "test-parallel-oracles.sh"
   "test-parallel-first-contract.sh"
   "test-task-context-contract.sh"
@@ -39,29 +37,9 @@ else
   failed=$((failed + 1))
 fi
 
-echo "Running: reviewer-runner.test.mjs"
-if node --test "$ROOT/tests/reviewer-runner/reviewer-runner.test.mjs"; then
-  passed=$((passed + 1))
-else
-  failed=$((failed + 1))
-fi
-
 echo "Running: reviewer-host.test.mjs"
-if node --test "$ROOT/tests/reviewer-host/reviewer-host.test.mjs"; then
-  passed=$((passed + 1))
-else
-  failed=$((failed + 1))
-fi
-
-echo "Running: provider-help-contract.test.mjs"
-if node --test "$ROOT/tests/reviewer-runner/provider-help-contract.test.mjs"; then
-  passed=$((passed + 1))
-else
-  failed=$((failed + 1))
-fi
-
-echo "Running: autonomous-review-flow.test.mjs"
-if node --test "$ROOT/tests/autonomous-review/autonomous-review-flow.test.mjs"; then
+if node --disable-warning=ExperimentalWarning --test \
+  "$ROOT/tests/reviewer-host/reviewer-host.test.mjs"; then
   passed=$((passed + 1))
 else
   failed=$((failed + 1))
@@ -76,6 +54,20 @@ fi
 
 echo "Running: completion-gate-recovery oracle"
 if bash "$ROOT/tests/codex/test-completion-gate-recovery-behavior.sh" --oracle-only; then
+  passed=$((passed + 1))
+else
+  failed=$((failed + 1))
+fi
+
+echo "Running: Codex-to-Claude review-loop oracle"
+if bash "$ROOT/tests/codex/test-autonomous-review-loop-behavior.sh" --oracle-only; then
+  passed=$((passed + 1))
+else
+  failed=$((failed + 1))
+fi
+
+echo "Running: Claude-to-Codex review-loop oracle"
+if bash "$ROOT/tests/claude-code/test-autonomous-review-loop-behavior.sh" --oracle-only; then
   passed=$((passed + 1))
 else
   failed=$((failed + 1))

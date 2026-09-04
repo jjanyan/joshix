@@ -58,8 +58,8 @@ The settled item grammar is:
   or actual outcome in no more than 40 words. Preserve natural review order
   except for urgent valid findings. Omit empty sections and repetitive summaries.
 - Under an active workflow policy, include each finding's repository tier tag.
-  A priced lower-tier finding is shown as a deferred observation with its task
-  history ID; do not imply it was implemented or still needs routine brokering.
+  A priced lower-tier finding is reported as out of authorized scope; do not
+  imply it was implemented or that it needs routine brokering.
 - On `Expand <shorthand>`, return full evidence, affected files or plan steps,
   and the proposed action.
 - Never use `REJECT` or `DEFER` to silently choose product behavior, scope, or
