@@ -137,8 +137,11 @@ joshix-workflow-policy: <repo-relative-path>
 ```
 
 Without that declaration, joshix keeps its existing workflow unchanged. With
-it, repository-defined criticality controls verification and review rigor;
-task complexity independently controls planning ceremony. Agents do not
+it, repository-defined criticality controls verification and additional review
+rigor; task complexity independently controls planning ceremony. Review follows
+the phase artifacts that exist: spec before plan, plan before execution, and
+completed implementation before completion. Tiers may add review gates but do
+not implicitly remove these core boundaries. Agents do not
 estimate effort or use elapsed time to control review, pass budgets, or
 authority. Repository safety, authorization, and completion rules remain
 unconditional at every level.

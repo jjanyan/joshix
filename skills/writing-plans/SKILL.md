@@ -19,16 +19,35 @@ skill. For `routine`, continue only when the plan is the task's one selected
 planning artifact; never add a brainstorm or spec. For `complex`, continue
 below. Policy absence preserves this skill unchanged.
 
+Before authoring a plan from an owner-supplied named spec under an active
+workflow policy, check ordinary task history for opposite-provider approval of
+the unchanged spec or an explicit owner or repository instruction naming the
+spec boundary. If neither exists and no opposite-provider review of the
+unchanged spec is recorded, review that spec through
+`../using-joshix/references/autonomous-review.md`. If approval or the named
+override is still absent, report `Spec boundary blocked: opposite-provider
+approval is absent and no explicit owner or repository instruction names the
+spec boundary.` and stop before plan authoring. This is an entry backstop, not
+a second review of an artifact that just completed the `brainstorming`
+boundary.
+
 ### Routine short-plan terminal
 
 When an active declaration says `routine` and selects a plan as the one planning
 artifact, write one short plan containing the requested outcome and authorized
 scope, exact files, ordered implementation steps, focused checks, and the
-repository's final completion checks. Apply the policy's tier-defined review
-rigor; do not add a brainstorm, spec, detailed task boilerplate, or a legacy
-plan-review gate. Self-review for ambiguity, missing coverage, and scope growth,
-save it in the configured plan location, then stop before the detailed legacy
-sections below. If execution is not already authorized, end exactly:
+repository's final completion checks. Do not add a brainstorm, spec, or
+detailed task boilerplate. Self-review for ambiguity, missing coverage, and
+scope growth, save it in the configured plan location, then review the written
+implementation plan through `../using-joshix/references/autonomous-review.md`.
+Skip that core review only when an explicit owner or repository instruction
+names the plan boundary. Continue to handoff only after the core plan review is
+approved or an explicit owner or repository instruction names the plan
+boundary. Otherwise report `Plan boundary blocked: opposite-provider approval
+is absent and no explicit owner or repository instruction names the plan
+boundary.` and stop. Apply any tier-added review rigor after the core boundary.
+Then stop before the detailed
+legacy sections below. If execution is not already authorized, end exactly:
 
 `Ready to execute; waiting for your command.`
 
@@ -183,10 +202,29 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 ## Plan Review Decision
 
-With an active workflow policy, request independent plan review only when the
-task-level tier selects that existing gate. The tier-defined review rigor is
-authoritative; do not add the policy-absent heuristic gate below. Record a
-tier-selected skip in the execution handoff.
+With an active workflow policy, unless an explicit owner or repository
+instruction names the plan boundary, review the written implementation plan
+through `../using-joshix/references/autonomous-review.md` after self-review and
+before owner handoff or execution. The task-level tier may add review rigor,
+but it does not suppress this core boundary. Re-review only after a material
+plan correction or new evidence, using the existing reception and semantic
+stopping rules. If the review is not approved and no explicit owner or
+repository instruction names the plan boundary, report the blocked disclosure
+below and stop before the execution handoff.
+
+Use this active-policy execution-handoff disclosure:
+
+```text
+Core plan review approved and accounted for. Issues found: [count]. [Accepted/rejected summary]. No open blocking review items remain.
+```
+
+```text
+Plan boundary blocked: opposite-provider approval is absent and no explicit owner or repository instruction names the plan boundary.
+```
+
+### Policy-absent plan review heuristic
+
+Under an active policy, do not use this heuristic or its skip disclosure.
 
 With policy absent, after self-review decide whether to request an independent plan review using
 `../reviewing-plans/plan-document-reviewer-prompt.md`.
@@ -244,7 +282,8 @@ choice, or re-request approval. End exactly:
 **If Subagent-Driven chosen:**
 - **REQUIRED SUB-SKILL:** Use joshix:subagent-driven-development
 - Policy absent: fresh subagent per task plus two-stage review. Active policy:
-  use only the task-level tier's selected review gates.
+  preserve the reviewed plan boundary and add only the task-level tier's lane
+  review gates.
 
 **If Inline Execution chosen:**
 - **REQUIRED SUB-SKILL:** Use joshix:executing-plans

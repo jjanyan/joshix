@@ -127,7 +127,8 @@ above; do not restate DAG policy here.
 - Same-worker continuation is preferred when supported; otherwise give a fresh
   worker the full task, scoped change context, findings, and verification
   evidence.
-- After every lane passes its caller-owned reviews, serialize integration. With
-  an active policy, perform only the tier-selected whole-change review, then run
-  broad/full completion checks once through fresh verification. Policy absence
-  preserves the caller's existing broad-check and whole-change-review order.
+- After every lane passes its caller-owned lane reviews, serialize integration
+  and return to the caller after serial integration. The caller owns core and
+  tier-added whole-change review plus broad/full completion verification; this
+  dispatcher never runs or duplicates those task-level gates. Policy absence
+  preserves the caller's existing gate order.

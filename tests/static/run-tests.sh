@@ -12,6 +12,7 @@ tests=(
   "test-review-response-format-contract.sh"
   "test-review-producer-format-contract.sh"
   "test-workflow-policy-contract.sh"
+  "test-phase-boundary-review-contract.sh"
   "test-autonomous-review-contract.sh"
   "test-readiness-hold-contract.sh"
 )

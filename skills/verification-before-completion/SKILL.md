@@ -19,11 +19,27 @@ This applies to the meaning of the claim, not the exact wording.
 When loaded repository guidance declares `joshix-workflow-policy:`, read
 `../using-joshix/references/workflow-policy.md`. Apply test depth per materially
 changed surface, keep manual verification additive, and use focused checks for
-slices and review rounds. Run the repository's full completion gates once,
-after review sign-off, at the end. Policy absence preserves the existing gate.
+slices and review rounds. When this task materially changed any repository
+surface, before running the full completion gate, confirm that the core
+completed-implementation review has been approved for the current material
+state or an explicit owner or repository instruction names the
+completed-implementation boundary. If no core completed-implementation review
+is recorded for the current material state and no explicit owner or repository
+instruction names the completed-implementation boundary, invoke
+`joshix:requesting-code-review` as the backstop. If approval or the named
+override is still absent, report `Completed-implementation boundary blocked:
+opposite-provider approval is absent and no explicit owner or repository
+instruction names the completed-implementation boundary.` and stop before the
+full completion gate. Run the repository's full completion gates once, after
+review sign-off or that named override, at the end. Policy absence preserves
+the existing gate.
 If a policy-active completion gate fails, diagnose it with focused evidence and
-rerun the affected gate after correction. Review transport adds no retry loop,
-numeric work budget, or special recovery allowance.
+rerun the affected gate after correction. A correction that materially changes
+implementation behavior or scope requires a fresh core review before any
+completion claim. A check-only or test-expectation correction that leaves the
+reviewed behavior and scope unchanged needs only the focused rerun. Review
+transport adds no retry loop, numeric work budget, or special recovery
+allowance.
 
 ```
 NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE

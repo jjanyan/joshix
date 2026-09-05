@@ -8,7 +8,7 @@ description: Use when executing implementation plans with independent tasks in t
 Execute an approved plan as dependency-aware lanes. With no workflow policy,
 use a fresh implementer and two-stage review for each lane: spec compliance
 first, then code quality. With an active policy, the tier-defined review rigor
-is authoritative and selects which existing gates run.
+selects additional lane gates; the outer core final review still runs once.
 
 When two or more plan tasks are ready and potentially safe to overlap, invoke
 `joshix:dispatching-parallel-agents` to classify, schedule, and report them.
@@ -24,7 +24,7 @@ here.
 **Core principle:** Each lane owns a bounded scope. Under policy absence it
 passes implementation, verification, spec review, and quality review before
 its dependents advance. Under an active policy it passes the focused checks and
-review gates selected by the task-level tier.
+additional lane review gates selected by the task-level tier.
 
 **Continuous execution:** Do not pause to check in with the human partner
 between tasks. Continue until all authorized work is complete, a blocker or
@@ -57,6 +57,16 @@ If a workflow policy is active, the coordinator reads
 `../using-joshix/references/workflow-policy.md` and
 `../using-joshix/references/autonomous-review.md`, and owns scope, evidence,
 review rigor, and progress-transition checks.
+Before dispatch or the first implementation edit from an owner-supplied named
+plan, check ordinary task history for opposite-provider approval of the
+unchanged plan or an explicit owner or repository instruction naming the plan
+boundary. If neither exists and no opposite-provider review of the unchanged
+plan is recorded, review the plan through that contract. If approval or the
+named override is still absent, report `Plan boundary blocked:
+opposite-provider approval is absent and no explicit owner or repository instruction
+names the plan boundary.` and stop before dispatch or the first implementation
+edit. This is an entry backstop, not a duplicate review of a plan just produced
+by `writing-plans`.
 Workers receive the declaration needed for their lane but never write shared
 task context. Slices use focused checks; the coordinator reserves full
 completion gates for the end after review sign-off. A fresh review runs only
@@ -79,10 +89,19 @@ concrete defect, or the absence of an objective authorized correction.
    two-stage lane review by default.
 7. Do not advance a lane or its dependents while a selected review gate has
    open issues. Unrelated lanes may continue.
-8. After every lane passes, run serial integration and the selected final
-   whole-change review if the tier requires it. Run broad/full completion gates
-   only once after review sign-off through
-   `joshix:verification-before-completion`.
+8. After every lane passes, run serial integration. When this skill is the
+   first execution entry, it owns the one core whole-change review of the
+   completed implementation plus any distinct tier-added gates unless an
+   explicit owner or repository instruction names the completed-implementation
+   boundary. It then invokes `joshix:verification-before-completion` for
+   broad/full completion verification once after review sign-off or that named
+   override. Nested lanes never duplicate those task-level gates.
+
+When entered from `executing-plans`, that caller remains outer and retains the
+core final review. When entered from `executing-plans`, return after serial
+integration and lane verification; the caller owns core review and full
+completion verification. Parallel dispatch never takes ownership from its
+caller.
 
 ## Controller Rules
 
@@ -112,12 +131,7 @@ evidence do not depend on free-form summaries:
 Keep the complete role-specific prompt from the corresponding template; the
 description is stable metadata, not a replacement for that prompt.
 
-When the policy-absent workflow or active tier requires final review, use the
-`joshix:requesting-code-review` template, replace
-its generic dispatch description with the stable final-review description
-above, and require exactly one final line:
-`QUALITY OUTCOME: <APPROVED or CHANGES REQUIRED>`. Fix and re-review until the
-outcome is `APPROVED`.
+### Implementer return and deferred checks
 
 When an implementer returns, compare the files and mutable resources actually
 touched with the declared scope before releasing dependents. Reviewer context
@@ -129,6 +143,22 @@ the first safe serialization point. The lane stays pre-review until the check
 passes. On failure, classify it as lane-local or cross-lane, return it to the
 responsible worker when continuation is supported (or dispatch a fully briefed
 replacement), and repeat verification before review.
+
+### Policy absent — final reviewer template
+
+When the policy-absent workflow requires final review, use the
+`joshix:requesting-code-review` template, replace
+its generic dispatch description with the stable final-review description
+above, and require exactly one final line:
+`QUALITY OUTCOME: <APPROVED or CHANGES REQUIRED>`. Fix and re-review until the
+outcome is `APPROVED`.
+
+### Active policy — final reviewer transport
+
+Active policy uses the installed `joshix-review review` operation and its
+structured result for core and tier-added whole-change reviews. Follow
+`autonomous-review.md` for material-change eligibility and semantic stopping;
+do not request a `QUALITY OUTCOME` line.
 
 ## Model Selection
 
@@ -186,8 +216,9 @@ whole-change review, and fresh completion verification.
 
 - Policy absent: keep spec-compliance review before code-quality review in every
   lane, and re-review until each gate passes.
-- Active policy: run only tier-selected gates. Start a new review only after a
-  material change or new evidence, and stop under the disagreement protocol in
+- Active policy: run only tier-selected gates inside each lane; the outer core
+  final review remains required. Start a new review only after a material
+  change or new evidence, and stop under the disagreement protocol in
   `../using-joshix/references/autonomous-review.md`.
 - Self-review never replaces a required independent review.
 - Do not advance the same lane or its dependents while a selected review has
@@ -195,8 +226,9 @@ whole-change review, and fresh completion verification.
 - Verify actual changed files and resources remain within declared scope.
 - Preserve deferred checks for the first safe serialization point; never treat
   deferral as a pass.
-- After all lanes pass, perform a final whole-change review only when the
-  policy-absent workflow or active tier requires it.
+- After all lanes pass, active policy performs the core final whole-change
+  review once at the outer coordinator; a nested invocation returns to that
+  owner before task-level review and completion verification.
 
 ## Red Flags
 

@@ -57,8 +57,9 @@ You MUST create a task for each of these items and complete them in order:
 5. **Present design** — in sections scaled to their complexity, get user approval after each section
 6. **Write design doc** — save to `.joshix/specs/YYYY-MM-DD-<topic>-design.md`
 7. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
-8. **User reviews written spec** — ask user to review the spec file before proceeding
-9. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+8. **Opposite-provider spec review** — with an active workflow policy, review the written spec through `../using-joshix/references/autonomous-review.md`
+9. **User reviews written spec when the boundary is satisfied** — ask user to review the approved or explicitly overridden spec before proceeding
+10. **Transition to implementation** — invoke writing-plans skill to create implementation plan
 
 ## Progress DAG
 
@@ -79,6 +80,9 @@ digraph brainstorming {
     "User approves design?" [shape=diamond];
     "Write design doc" [shape=box];
     "Spec self-review\n(fix inline)" [shape=box];
+    "Opposite-provider spec review\n(active policy)" [shape=box];
+    "Spec boundary satisfied?" [shape=diamond];
+    "Stop at blocked spec boundary" [shape=box];
     "User reviews spec?" [shape=diamond];
     "Invoke writing-plans skill" [shape=doublecircle];
 
@@ -92,7 +96,10 @@ digraph brainstorming {
     "User approves design?" -> "Present design sections" [label="no, revise"];
     "User approves design?" -> "Write design doc" [label="yes"];
     "Write design doc" -> "Spec self-review\n(fix inline)";
-    "Spec self-review\n(fix inline)" -> "User reviews spec?";
+    "Spec self-review\n(fix inline)" -> "Opposite-provider spec review\n(active policy)";
+    "Opposite-provider spec review\n(active policy)" -> "Spec boundary satisfied?";
+    "Spec boundary satisfied?" -> "User reviews spec?" [label="yes"];
+    "Spec boundary satisfied?" -> "Stop at blocked spec boundary" [label="no"];
     "User reviews spec?" -> "Write design doc" [label="changes requested"];
     "User reviews spec?" -> "Invoke writing-plans skill" [label="approved"];
 }
@@ -160,20 +167,35 @@ After writing the spec document, look at it with fresh eyes:
 
 Fix any issues inline. No need to re-review — just fix and move on.
 
+**Opposite-Provider Spec Review:**
+With an active workflow policy, unless an explicit owner or repository
+instruction names the spec boundary, review the written spec through
+`../using-joshix/references/autonomous-review.md` after self-review and before
+the owner reviews it or planning begins. Apply the existing reception and
+semantic stopping rules; a fresh review requires a material correction or new
+evidence. Policy absence preserves the existing spec-review workflow.
+
 When a delegated spec reviewer is used, use the template at
 `../reviewing-specs/spec-document-reviewer-prompt.md`.
 
 **User Review Gate:**
-After any independent spec-review gate selected by the active tier, or required
-by the policy-absent workflow, passes, report the written spec for owner review.
+If the active-policy core spec review is not approved and no explicit owner or
+repository instruction names the spec boundary, report `Spec boundary blocked:
+opposite-provider approval is absent and no explicit owner or repository
+instruction names the spec boundary.` and stop before owner handoff.
+
+After the active-policy core spec review is approved or explicitly overridden
+and any tier-added review completes, or after the review required by the
+policy-absent workflow passes, report the written spec for owner review.
 If the
 owner approves but has not explicitly authorized planning in the same message,
 do not ask again or invent a choice. End exactly:
 
 `Ready to plan; waiting for your command.`
 
-If they request changes, make them and rerun only a tier-selected or
-policy-absent spec-review gate. Approval is not planning authorization. Proceed
+If they request changes, make them and rerun the active-policy core review only
+after a material correction; also rerun any applicable tier-added or
+policy-absent gate. Approval is not planning authorization. Proceed
 only when the owner explicitly commands planning; a command in the same message
 as approval is sufficient.
 

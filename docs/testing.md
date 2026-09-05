@@ -81,8 +81,11 @@ node tests/reviewer-host/real-codex-claude-smoke.mjs
 
 These commands invoke models and are intentional cost-bearing coverage. The
 autonomous-review scripts also expose `--oracle-only` for their deterministic
-direction/profile checks. Development slices use focused checks; full
-completion gates run once, after whole-change review sign-off.
+direction/profile checks. Development slices use focused checks. Existing specs
+are reviewed before planning, plans before execution, and the completed
+implementation once before full completion gates. Tier rules may add lane or
+slice review. Full completion gates run once, after whole-change review
+sign-off.
 The discussion-routing, completion-recovery, reciprocal Claude autonomous-loop,
 and real sandbox-to-Claude smoke tests are release gates, not per-round checks.
 The reciprocal and smoke tests require the newly installed bridge plus valid

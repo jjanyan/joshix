@@ -21,9 +21,10 @@ approval for a pasted plan.
 
 **Routing:** Execute small or tightly coupled plans inline with this skill. When
 two or more tasks are independently implementable with disjoint scopes, route
-the plan to `joshix:subagent-driven-development`; that skill invokes the
-canonical parallel-dispatch policy. Do not copy scheduling, capacity, fallback,
-or reporting rules here.
+the plan to `joshix:subagent-driven-development`; that delegates task execution
+while this skill retains the core final review and Step 3. The delegated skill
+invokes the canonical parallel-dispatch policy. Do not copy scheduling,
+capacity, fallback, or reporting rules here.
 
 ## The Process
 
@@ -37,7 +38,17 @@ or reporting rules here.
 
 If a workflow policy is active, read
 `../using-joshix/references/workflow-policy.md` and
-`../using-joshix/references/autonomous-review.md`. Before each edit, next
+`../using-joshix/references/autonomous-review.md`. Before the first
+implementation edit from an owner-supplied named plan, check ordinary task
+history for opposite-provider approval of the unchanged plan or an explicit
+owner or repository instruction naming the plan boundary. If neither exists
+and no opposite-provider review of the unchanged plan is recorded, review the
+plan through that contract. If approval or the named override is still absent,
+report `Plan boundary blocked: opposite-provider approval is absent and no
+explicit owner or repository instruction names the plan boundary.` and stop
+before the first implementation edit. This is an entry backstop, not a
+duplicate review of a plan just produced by `writing-plans`. Before each edit,
+next
 planned step, reviewer dispatch, and state transition, check authorized scope
 and evidence. Stop before new subsystems, invariants, dependencies,
 generalized hardening, or future infrastructure. Use focused checks until the
@@ -64,10 +75,12 @@ canonical trigger, rendering, state, topology, and update rules in
 ### Step 3: Complete Development
 
 After all tasks complete and verified:
-- With an active workflow policy, invoke `joshix:requesting-code-review` for
-  each task-level tier-selected whole-change gate and complete its semantic
-  review loop. Do not start full completion verification before review
-  sign-off. Policy absence preserves the existing completion sequence.
+- With an active workflow policy, unless an explicit owner or repository
+  instruction names the completed-implementation boundary, invoke
+  `joshix:requesting-code-review` for one core whole-change review of the
+  completed implementation, plus any distinct tier-added whole-change gate.
+  Obtain approval or the named boundary override before full completion
+  verification. Policy absence preserves the existing completion sequence.
 - Announce: "I'm using the verification-before-completion skill to verify this work before reporting completion."
 - **REQUIRED SUB-SKILL:** Use joshix:verification-before-completion
 - Follow that skill to run fresh verification and report evidence before claiming completion
@@ -109,5 +122,5 @@ After all tasks complete and verified:
 
 **Required workflow skills:**
 - **joshix:writing-plans** - Creates the plan this skill executes
-- **joshix:requesting-code-review** - Runs active-policy tier-selected review gates
+- **joshix:requesting-code-review** - Runs the active-policy core final review and tier-added gates
 - **joshix:verification-before-completion** - Verify work before reporting completion

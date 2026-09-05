@@ -51,8 +51,10 @@ user request.
 
 ## When to Request Review
 
-With an active workflow policy, tier-defined review rigor is authoritative.
-Use only the review gates required by the task-level tier; do not carry the
+With an active workflow policy, run the core completed-implementation review
+once unless an explicit owner or repository instruction names that boundary.
+Tier-defined review rigor may add distinct whole-change, slice, or lane gates;
+it does not suppress or duplicate the core review. Do not carry the
 policy-absent mandatory per-task or per-lane gates into the active branch.
 
 **Policy absent — mandatory:**
@@ -126,7 +128,8 @@ You: [Fix progress indicators]
 ## Integration with Workflows
 
 The bullets below describe the policy-absent workflow. Under an active policy,
-use the selected tier's gate count and placement instead.
+use the core completed-implementation review plus the selected tier's
+additional gate count and placement instead.
 
 **Subagent-Driven Development:**
 - Review after EACH task
