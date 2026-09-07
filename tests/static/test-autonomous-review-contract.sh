@@ -53,8 +53,13 @@ require_exact_count() {
     || { printf 'FAIL: %s (expected %s, found %s)\n' "$label" "$expected" "$actual"; exit 1; }
 }
 
-CANONICAL='Challenge assumptions in the spec, plan, and implementation when they create concrete risk; do not treat prior approval as proof of correctness. Read the shared chat and review'
+CANONICAL="$(sed -n 's/^> //p' "$CONTRACT")"
+[ -n "$CANONICAL" ]
 require_exact_count "$CONTRACT" "$CANONICAL" 1 'autonomous review keeps the exact instruction once'
+require_collective 'accepted limitations' 'reviewers recover settled decisions'
+require_collective 'including interactions with unchanged parts' 'follow-ups cover affected interactions'
+require_collective 'Challenge assumptions in the spec, plan, and implementation when they create concrete risk.' 'reviewers actively scrutinize concrete risk'
+require_collective "Review code for concrete correctness risks, regressions, and missing requirements throughout the task's scope, including outside the latest correction." 'code review retains self-contained breadth'
 require_collective 'OpenAI and Anthropic' 'provider authorization remains fixed in joshix'
 require_collective 'fresh reviewer' 'every review pass starts without provider session state'
 require_collective 'ordinary SQLite message' 'the review result is normal task history'
@@ -97,13 +102,18 @@ test ! -e "$FLOW_FIXTURE" || { echo 'FAIL: self-referential autonomous flow fixt
 ! grep -Fq 'timeout:' "$LIVE_SMOKE" \
   || { echo 'FAIL: live review smoke still imposes a caller deadline'; exit 1; }
 
-node --input-type=module - "$SCHEMA" "$ROOT/skills/requesting-code-review/scripts/reviewer-host-launcher.mjs" <<'NODE'
+node --input-type=module - "$SCHEMA" "$LAUNCHER" "$CONTRACT" <<'NODE'
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 const schema = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const launcher = process.argv[3];
 process.argv[1] = process.argv[2];
-const { REVIEW_SCHEMA } = await import(pathToFileURL(launcher).href);
+const { REVIEW_SCHEMA, reviewPrompt } = await import(pathToFileURL(launcher).href);
+const canonical = fs.readFileSync(process.argv[4], 'utf8').split('\n').filter(line => line.startsWith('> ')).map(line => line.slice(2));
+const prompt = reviewPrompt({ repoRoot: '/repo', taskFolder: '.joshix/tasks/test' });
+if (canonical.length !== 1 || prompt.split('\n\nMechanical metadata:')[0] !== canonical[0]) {
+  throw new Error('actual review prompt drifted from the authoritative instruction');
+}
 const finding = schema.properties.findings.items;
 const exact = (actual, expected) => JSON.stringify([...actual].sort()) === JSON.stringify([...expected].sort());
 if (!exact(schema.required, ['status', 'findings'])) throw new Error('root required keys are not exact');

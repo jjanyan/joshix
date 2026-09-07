@@ -127,6 +127,16 @@ owner-gated, and an explicit no-edit instruction keeps the meta-review
 read-only. Artifact readiness requires reviewer approval plus the owner agent's
 independent concurrence.
 
+### Browser testing
+
+Automated browser tests default to an isolated headless browser. A check that
+needs a visible browser uses a separate test browser/profile. Agents may use
+Josh's live browser session only when he explicitly requests it; a general
+testing request, existing login, hidden tab, or failed isolated run is not that
+permission. Missing test tooling or authentication must be reported as a blocker,
+not worked around by borrowing his browser session or copying its login.
+User-requested previews and the brainstorming visual companion are unchanged.
+
 ### Proportional workflow policy
 
 A repository may opt into proportional ceremony and verification by naming a
@@ -153,22 +163,49 @@ access. The reviewer receives one exact, artifact-neutral instruction and
 infers whether the active work is a spec, plan, implementation, or cross-layer
 combination from SQLite and the repository.
 
-The bridge makes one provider attempt. On success it validates the small result
-and appends it as an ordinary SQLite message. There are no provider sessions,
-automatic retries, fallback reviewers, review envelopes, numeric correction or
-recovery budgets, caller output limits, or reviewer deadlines. A failed call is
-reported and stops. A new explicit review is useful only after material artifact
-change or new evidence. Product, policy, architecture, and scope decisions stay
-owner-gated. Explicit SIGINT or SIGTERM is forwarded to the provider and
-appends no review.
+Run `joshix-review review ...` as the **only command in its shell call**.
+Prepare files and append logs in separate calls. Do not bundle the launcher with
+Python, heredocs, `cd`, chains, or pipes. The wrapper does not elevate itself:
+the saved narrow Codex rule allows the standalone command to run outside the
+sandbox. A default-permissions tool call alone does not prove where it ran.
 
-Without a workflow-policy declaration, joshix review behaves as before.
-Ordinary subagents remain outside top-level shared task context in both modes.
+The bridge makes one provider attempt. On success it validates the result and
+appends an ordinary SQLite message. Failures preserve terminal stdout and stderr
+diagnostics bounded to 16 KiB. Authentication errors include recovery guidance:
+if the original call was bundled, the coordinator retries once standalone. If
+it was already standalone or that retry fails, stop and report the error to the
+user; the account may actually be logged out. The bridge itself never retries,
+changes credentials, or alters permissions. Other failures and cancellation
+stop without retry or fallback; SIGINT/SIGTERM is forwarded and appends no review.
 
-Approval never implies authorization for the next phase. A completed approved
-spec ends with `Ready to plan; waiting for your command.` and a completed
-approved plan ends with `Ready to execute; waiting for your command.` These are
-hold states, not fabricated owner decisions.
+Reviewers recover the latest applicable owner decisions and accepted limitations
+from existing history and repository guidance; no mandatory recap or new
+artifact is required. Reopening a settled issue needs the prior resolution and
+new evidence showing it was wrong, later invalidated, or left a defect outside
+the accepted risk. Initial spec/plan review covers the artifact. Follow-ups
+inspect corrections and their consequences, including unchanged interactions;
+clarification does not restart broad review. Code-review breadth is unchanged.
+Required provider approval and owner authority remain intact.
+
+Mechanical work with settled behavior defaults to a short plan, with or without
+a workflow policy. File count and criticality alone do not require long planning.
+Explicit requests for both spec and plan get both concise artifacts. Verification
+and required artifact reviews keep their existing rigor.
+
+After required spec reviews and genuine owner decisions, continue directly to
+planning without another command or routine written-spec signoff. Honor explicit
+spec-only, review-only, or stop requests. An approved plan still needs execution
+authorization; when absent, end with `Ready to execute; waiting for your command.`
+
+Owner decisions use the [shared rendered question template](skills/using-joshix/references/owner-question-format.md):
+a prominent question, short concrete summary, two to four choices, and a Pro and
+Con for each. Dialogs are allowed. There are no timed defaults: silence, elapsed
+time, Skip, and dismissal do not answer the question. Continue independent work
+while the decision remains pending; accept the eventual answer without routine
+reconfirmation.
+
+Ordinary subagents remain outside top-level shared task context in both policy
+modes. Compaction behavior and chat-log insertion tools are unchanged.
 
 joshix is parallel-first after execution is authorized when meaningful tasks
 are independent, have disjoint ownership, and can be verified safely. Coupled,

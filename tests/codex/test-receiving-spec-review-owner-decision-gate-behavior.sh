@@ -49,11 +49,23 @@ Update the named spec for objective feedback, but do not make new product,
 scope, or architecture decisions for me.
 EOF
 
+if [ "${CODEX_OWNER_QUESTION_ARTIFACT:-0}" = 1 ]; then
+  PROMPT="$PROMPT
+For this headless fixture, write the full review-reception report intended for
+our UI to review-report.md, using the shared response grammar and owner-question
+template. Do not ask the owner live; the test UI will display the file. No owner
+answer has been given. Objective spec corrections remain authorized."
+fi
+
 echo "Test project: $TEST_PROJECT"
 echo "Running Codex with workspace-write so spec edits are observable..."
 run_codex "$TEST_PROJECT" "$PROMPT" "$OUTPUT_DIR" "workspace-write"
 
 FINAL_FILE="$OUTPUT_DIR/final.md"
+if [ "${CODEX_OWNER_QUESTION_ARTIFACT:-0}" = 1 ]; then
+  FINAL_FILE="$TEST_PROJECT/review-report.md"
+  echo 'LIMITATION: report artifact checked; live host rendering remains unverified.'
+fi
 FINAL_OUTPUT="$(cat "$FINAL_FILE")"
 SPEC_FILE="$TEST_PROJECT/.joshix/specs/notification-delivery-design.md"
 SPEC_OUTPUT="$(cat "$SPEC_FILE")"
@@ -93,30 +105,13 @@ else
   FAILED=$((FAILED + 1))
 fi
 assert_contains "$FINAL_OUTPUT" '^[[:space:]]*-[[:space:]]+\*\*[^*]+ — VALID( · (CRITICAL|IMPORTANT|MINOR))?\*\* — .*(((three|3).*(retr|Failure Handling|correct))|((retr|Failure Handling|correct).*(three|3)))' 'Reports the corrected retry count' || FAILED=$((FAILED + 1))
-assert_contains "$FINAL_OUTPUT" 'Your decision needed' 'Separates the architecture decision' || FAILED=$((FAILED + 1))
+assert_contains "$FINAL_OUTPUT" '^## .+\?'  'Separates the architecture decision' || FAILED=$((FAILED + 1))
 
-OWNER_EXAMPLE_LINE="$(printf '%s\n' "$FINAL_OUTPUT" | awk '
-  /^### Your decision needed$/ { in_lane = 1; next }
-  in_lane && /^Example:/ { print; exit }
-')"
-FIRST_IDENTIFIER_COUNT="$(printf '%s\n' "$FINAL_OUTPUT" | rg -o 'NotificationDeliveryPolicy' | wc -l | tr -d ' ' || true)"
-if [ "$FIRST_IDENTIFIER_COUNT" -eq 1 ] \
-    && printf '%s\n' "$OWNER_EXAMPLE_LINE" | rg -q 'NotificationDeliveryPolicy' \
-    && ! printf '%s\n' "$FINAL_OUTPUT" | rg -q 'DurableNotificationQueue|process restarts'; then
-  echo '  [PASS] Puts the first identifier only in the example and hides the second request'
-else
-  echo '  [FAIL] Expected NotificationDeliveryPolicy only in Example and no durable-queue preview'
-  FAILED=$((FAILED + 1))
-fi
+assert_not_contains "$FINAL_OUTPUT" 'DurableNotificationQueue|process restarts' \
+  'Hides later owner decisions and their tradeoffs' || FAILED=$((FAILED + 1))
 
-REMAINING_DECISION_COUNT="$(printf '%s\n' "$FINAL_OUTPUT" | rg -c '^One decision remains\.$' || true)"
-if [ "${REMAINING_DECISION_COUNT:-0}" -eq 1 ]; then
-  echo '  [PASS] States the hidden-only count as a standalone sentence'
-else
-  echo "  [FAIL] Expected one exact standalone 'One decision remains.'; found ${REMAINING_DECISION_COUNT:-0}"
-  FAILED=$((FAILED + 1))
-fi
-
+OWNER_PREFIX="$(printf '%s\n' "$FINAL_OUTPUT" | sed '/^## /,$d')"
+assert_contains "$OWNER_PREFIX" '^One decision remains\.$' 'discloses the later decision before the question' || FAILED=$((FAILED + 1))
 if validate_single_owner_lane "$FINAL_OUTPUT"; then
   echo '  [PASS] Uses exactly one owner lane with one direct question'
 else
@@ -125,21 +120,21 @@ else
 fi
 
 if validate_owner_structure "$FINAL_OUTPUT"; then
-  echo '  [PASS] Uses one plain decision name, one example, and keeps the owner lane last'
+  echo '  [PASS] Uses the shared rendered question template and keeps it last'
 else
-  echo '  [FAIL] Expected a 1-5-word plain name immediately after the owner heading, one pre-option Example, and no later section'
+  echo '  [FAIL] Expected an H2 question, short summary, H3 choices, Pro/Con lines, and no later section'
   FAILED=$((FAILED + 1))
 fi
 
 if validate_owner_options "$FINAL_OUTPUT"; then
-  echo '  [PASS] Offers at least two options with pros and cons for each'
+  echo '  [PASS] Offers two to four sequential choices with one recommendation'
 else
-  echo '  [FAIL] Each of at least two uniquely lettered options must have pros and cons'
+  echo '  [FAIL] Expected two to four sequential choice headings and one recommendation'
   FAILED=$((FAILED + 1))
 fi
 
 RECOMMENDATION_COUNT="$(printf '%s\n' "$FINAL_OUTPUT" \
-  | rg -ic '^[[:space:]]*-[[:space:]]+\*\*[A-Z]\. .*recommended\*\*[[:space:]]*$' || true)"
+  | rg -ic '^### Choice [A-D]: .* — Recommended$' || true)"
 if [ "${RECOMMENDATION_COUNT:-0}" -eq 1 ]; then
   echo '  [PASS] Marks exactly one option recommended'
 else

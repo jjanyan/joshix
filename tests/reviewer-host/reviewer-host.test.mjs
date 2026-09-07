@@ -91,6 +91,10 @@ if (config.waitForSignal) {
   for (let index = 0; index < (config.ordinaryEventCount || 0); index += 1) {
     process.stdout.write(JSON.stringify({ type: 'progress', index }) + '\\n');
   }
+  for (const event of config.stdoutEvents || []) {
+    fs.writeSync(1, JSON.stringify(event) + '\\n');
+  }
+  if (config.stdoutText) fs.writeSync(1, config.stdoutText);
   if (config.rawLine !== undefined) {
     fs.writeSync(1, config.rawLine + '\\n');
   } else if (config.result !== undefined) {
@@ -101,7 +105,8 @@ if (config.waitForSignal) {
       fs.writeSync(1, JSON.stringify({ type: 'result', structured_output: config.result }) + '\\n');
     }
   }
-  process.exit(config.exitCode || 0);
+  if (config.killSelf) process.kill(process.pid, 'SIGKILL');
+  else process.exit(config.exitCode || 0);
 }
 `;
 
@@ -210,6 +215,8 @@ function createFixture(options = {}) {
   const result = Object.hasOwn(options, 'result') ? options.result : approvedReview;
   const {
     rawLine,
+    stdoutEvents,
+    stdoutText,
     ordinaryEventCount,
     stderrBytes,
     stderrHead,
@@ -255,7 +262,7 @@ function createFixture(options = {}) {
   writeFileSync(gitLog, '');
   writeFileSync(signalLog, '');
   writeFileSync(configPath, JSON.stringify({
-    result, rawLine, ordinaryEventCount, stderrBytes, stderrHead, stderrTail,
+    result, rawLine, stdoutEvents, stdoutText, ordinaryEventCount, stderrBytes, stderrHead, stderrTail,
     stderrText, exitCode,
   }));
 
@@ -880,6 +887,9 @@ test('provider failures are direct and never relaunch', () => {
   const authResult = auth.review('claude');
   assert.equal(authResult.result.kind, 'authentication');
   assert.equal(authResult.result.exitCode, 7);
+  assert.match(authResult.result.guidance, /only command.*shell call/i);
+  assert.match(authResult.result.guidance, /once.*standalone/i);
+  assert.match(authResult.result.guidance, /already standalone.*stop.*user/i);
   assert.equal(auth.providerCalls().length, 1);
 
   const nonzero = createFixture({ result: undefined, exitCode: 3 });
@@ -897,6 +907,158 @@ test('provider failures are direct and never relaunch', () => {
   const missingResult = missing.review('codex');
   assert.equal(missingResult.result.kind, 'missing-result');
   assert.equal(missing.providerCalls().length, 1);
+});
+
+for (const exitCode of [0, 1]) {
+  for (const payload of [
+    { result: 'Not logged in · Please run /login' },
+    { errors: ['Not logged in · Please run /login'] },
+  ]) {
+    test(`Claude terminal authentication ${Object.keys(payload)[0]} survives exit ${exitCode}`, () => {
+      const fixture = createFixture({
+        result: undefined, exitCode,
+        stdoutEvents: [{ type: 'result', is_error: true, ...payload }],
+      });
+      const { processResult, result } = fixture.review('claude');
+      assert.equal(processResult.status, 1);
+      assert.equal(result.kind, 'authentication');
+      assert.equal(result.exitCode, exitCode);
+      assert.match(result.message, /stdout:[\s\S]*Not logged in/);
+      assert.match(result.guidance, /retry it once as a standalone command/);
+      assert.equal(fixture.providerCalls().length, 1);
+      assert.deepEqual(fixture.messages(), []);
+    });
+  }
+}
+
+test('provider terminal errors remain failures without an authentication guess', () => {
+  for (const [provider, event] of [
+    ['claude', { type: 'result', subtype: 'error_during_execution', errors: ['quota exceeded'] }],
+    ['codex', { type: 'turn.failed', error: { message: 'quota exceeded' } }],
+    ['codex', { type: 'error', message: 'quota exceeded' }],
+  ]) {
+    const fixture = createFixture({ result: undefined, stdoutEvents: [event] });
+    const { result } = fixture.review(provider);
+    assert.equal(result.kind, 'provider-exit');
+    assert.match(result.message, /quota exceeded/);
+    assert.equal(result.guidance, undefined);
+    assert.deepEqual(fixture.messages(), []);
+  }
+});
+
+test('Codex nonfatal error items preserve a valid final review', () => {
+  const fixture = createFixture({
+    result: approvedReview,
+    stdoutEvents: [{ type: 'item.completed', item: {
+      id: 'item_1', type: 'error', message: 'in-process app-server event stream lagged',
+    } }],
+  });
+  const { result } = fixture.review('codex');
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.review, approvedReview);
+  assert.equal(fixture.messages().length, 1);
+});
+
+test('Codex unrecoverable stream errors override an otherwise valid final file', () => {
+  const fixture = createFixture({
+    result: approvedReview,
+    stdoutEvents: [{ type: 'error', message: 'unrecoverable stream failure' }],
+  });
+  const { result } = fixture.review('codex');
+  assert.equal(result.kind, 'provider-exit');
+  assert.match(result.message, /unrecoverable stream failure/);
+  assert.deepEqual(fixture.messages(), []);
+});
+
+test('nonzero plain stdout is retained even without a trailing newline', () => {
+  const fixture = createFixture({ result: undefined, exitCode: 2, stdoutText: 'provider configuration missing' });
+  const { result } = fixture.review('claude');
+  assert.equal(result.kind, 'provider-exit');
+  assert.match(result.message, /stdout:[\s\S]*provider configuration missing/);
+  assert.equal(result.guidance, undefined);
+  assert.deepEqual(fixture.messages(), []);
+});
+
+test('combined failure diagnostics retain both labeled tails within 16 KiB', () => {
+  const fixture = createFixture({
+    result: undefined, exitCode: 2,
+    stdoutEvents: [{ type: 'result', is_error: true, result: `HEAD-OUT${'💬'.repeat(10000)}TAIL-OUT` }],
+    stderrText: `HEAD-ERR${'d'.repeat(20000)}TAIL-ERR`,
+  });
+  const { result } = fixture.review('claude');
+  assert.equal(result.kind, 'provider-exit');
+  assert.match(result.message, /stdout:[\s\S]*TAIL-OUT/);
+  assert.match(result.message, /stderr:[\s\S]*TAIL-ERR/);
+  assert.doesNotMatch(result.message, /HEAD-OUT|HEAD-ERR/);
+  assert(Buffer.byteLength(result.message, 'utf8') <= 16 * 1024);
+  assert.deepEqual(fixture.messages(), []);
+});
+
+test('empty terminal errors retain the nonzero plain stdout fallback', () => {
+  const fixture = createFixture({
+    result: undefined, exitCode: 1,
+    stdoutText: 'Not logged in · Please run /login\n',
+    rawLine: JSON.stringify({ type: 'result', is_error: true, errors: [] }),
+  });
+  const { result } = fixture.review('claude');
+  assert.equal(result.kind, 'authentication');
+  assert.match(result.message, /Not logged in/);
+  assert.match(result.guidance, /retry it once as a standalone command/);
+  assert.equal(fixture.providerCalls().length, 1);
+  assert.deepEqual(fixture.messages(), []);
+});
+
+test('signal details fit within the combined diagnostic limit', () => {
+  const fixture = createFixture({
+    result: undefined,
+    stdoutEvents: [{ type: 'result', is_error: true, result: `${'x'.repeat(20000)}OUT-END` }],
+    stderrText: `${'d'.repeat(20000)}ERR-END`,
+  });
+  const config = JSON.parse(readFileSync(fixture.configPath, 'utf8'));
+  writeFileSync(fixture.configPath, JSON.stringify({ ...config, killSelf: true }));
+  const { result } = fixture.review('claude');
+  assert.equal(result.kind, 'provider-exit');
+  assert.match(result.message, /OUT-END/);
+  assert.match(result.message, /ERR-END/);
+  assert.match(result.message, /provider terminated by SIGKILL/);
+  assert(Buffer.byteLength(result.message, 'utf8') <= 16 * 1024);
+  assert.deepEqual(fixture.messages(), []);
+});
+
+test('authentication classification precedes combined diagnostic truncation', () => {
+  const fixture = createFixture({
+    result: undefined, exitCode: 1,
+    stdoutEvents: [{ type: 'result', is_error: true, result: 'x'.repeat(16000) }],
+    stderrText: `Not logged in${'d'.repeat(12000)}`,
+  });
+  const { result } = fixture.review('claude');
+  assert.equal(result.kind, 'authentication');
+  assert.match(result.guidance, /account may actually be logged out/);
+  assert(Buffer.byteLength(result.message, 'utf8') <= 16 * 1024);
+});
+
+test('progress and review text cannot masquerade as authentication failures', () => {
+  const review = { status: 'issues', findings: [{
+    title: 'Not logged in behavior', severity: 'medium',
+    evidence: 'The application returns unauthorized for an expired session.',
+    recommendation: 'Preserve the authentication required message.',
+  }] };
+  const fixture = createFixture({
+    result: review,
+    stdoutEvents: [
+      { type: 'progress', message: 'Not logged in' },
+      { type: 'assistant', message: { content: 'Please run /login' } },
+    ],
+    stderrText: 'authentication required in the reviewed fixture',
+  });
+  assert.deepEqual(fixture.review('claude').result.review, review);
+  assert.equal(fixture.messages().length, 1);
+
+  const failed = createFixture({
+    result: undefined, exitCode: 1,
+    stdoutEvents: [{ type: 'progress', message: 'Not logged in' }],
+  });
+  assert.equal(failed.review('claude').result.kind, 'provider-exit');
 });
 
 test('an externally signal-killed provider reports the signal accurately', async () => {

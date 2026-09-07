@@ -3,6 +3,25 @@
 Review producers inspect the current artifact and available review context,
 emit a detailed evidence-backed report, and never edit the reviewed artifact.
 
+## Settled scope and follow-ups
+
+Establish the latest applicable owner decisions and accepted limitations from
+the supplied history/reasoning and repository guidance, including what
+superseded earlier discussion. No mandatory recap or new decision artifact is
+required. Review within that scope. Prior approval does not prove correctness,
+but a limitation knowingly accepted by the owner is not an overlooked defect.
+
+Before reopening a settled issue, identify the decision and new evidence that
+its resolution was wrong, invalidated by later changes, or left a defect outside
+the accepted limitation. A repeated risk or different preference is insufficient.
+
+Initial spec/plan reviews cover the artifact. Follow-ups inspect corrections
+and their consequences, including interactions with unchanged parts. Fixing X
+with Y can reveal a fair Y+Z concern; unrelated settled M requires new evidence.
+Clarifying wording does not restart broad design review. Code-review breadth
+stays unchanged: newly demonstrated in-scope bugs remain reportable even outside
+the latest correction.
+
 ## Top-level producer
 
 A top-level producer reads the artifact and prior reasoning from shared task

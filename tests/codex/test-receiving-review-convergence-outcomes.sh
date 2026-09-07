@@ -176,7 +176,7 @@ EOF
 run_codex "$OWNER_PROJECT" "$OWNER_PROMPT" "$OWNER_PROJECT/output" \
   "workspace-write" "$CODEX_TEST_TIMEOUT" "use-rules"
 OWNER_FINAL="$(cat "$OWNER_PROJECT/output/final.md")"
-assert_contains "$OWNER_FINAL" '^### Your decision needed$' \
+assert_contains "$OWNER_FINAL" '^## .+\?$' \
   'Owner-only blocker uses the owner-decision lane' || FAILED=$((FAILED + 1))
 assert_not_contains "$OWNER_FINAL" '^### Review outcome$' \
   'Owner-only blocker omits the review outcome lane' || FAILED=$((FAILED + 1))

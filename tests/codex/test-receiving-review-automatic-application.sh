@@ -25,7 +25,7 @@ else
 fi
 
 OUTCOME_ONLY=$'### Review outcome\n\n**Approved** — Both agents agree.'
-OUTCOME_WITH_DECISION=$'### Review outcome\n\n**Rereview required** — The artifact changed.\n\n### Your decision needed\n\n**Retry owner**'
+OUTCOME_WITH_DECISION=$'### Review outcome\n\n**Rereview required** — The artifact changed.\n\n## Who owns retries?\n\nRetry placement is undecided.'
 OUTCOME_DUPLICATE=$'### Review outcome\n\n**Approved** — First.\n\n**Approved** — Second.'
 OUTCOME_MISMATCH=$'### Review outcome\n\n**Approval disputed** — Evidence differs.'
 if validate_review_outcome "$OUTCOME_ONLY" 'Approved' \
@@ -351,7 +351,7 @@ EOF
       assert_contains "$final_output" \
         '^[[:space:]]*-[[:space:]]+\*\*[^*]*timeout[^*]* — REJECT\*\* — ' \
         'Reports the false timeout finding as REJECT' || FAILED=$((FAILED + 1))
-      assert_not_contains "$final_output" '^### Your decision needed$' \
+      assert_not_contains "$final_output" '^## .+\?$' \
         'Later objective correction does not manufacture an owner gate' || FAILED=$((FAILED + 1))
       ;;
     plan)

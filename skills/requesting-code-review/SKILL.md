@@ -29,10 +29,24 @@ starts one fresh reviewer process. The reviewer reads prior reasoning from
 SQLite and discovers the relevant artifact and Git scope through the bridge's
 narrow read-only commands.
 
+Run `joshix-review review` as the only command in its shell call. NEVER combine
+it with file preparation, logging, heredocs, command chains, pipelines, or
+another command. Prepare files in separate calls. In the configured Codex
+installation, the saved narrow allow rule permits the standalone launcher to
+run outside the sandbox automatically. The wrapper itself does not elevate.
+Default tool permissions alone do not establish whether execution stayed
+sandboxed.
+
 The bridge performs one provider attempt. On success it validates the small
 review result, appends it as an ordinary SQLite message, and returns the review
 plus its history ID. On cancellation or failure it appends nothing, starts no
 retry or fallback, and returns one direct result for the coordinator to report.
+
+On an `authentication` result, inspect the original shell call. If the launcher
+was bundled, retry once as a standalone command. If it was already standalone,
+or that retry fails, stop and report the underlying error to the user: the
+account may actually be logged out. This is the only coordinator retry
+exception; the bridge never retries internally or changes credentials.
 
 Independently verify every finding. Apply only concrete,
 requirement-determined corrections within the owner's authorized outcome and

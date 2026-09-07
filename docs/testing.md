@@ -36,7 +36,8 @@ These commands are deterministic and model-free.
 The host suite proves one provider spawn, fresh-process profiles, literal argv
 transport, command-token-bounded Claude permissions, confined task and Git
 reads, ordinary SQLite append, fresh-process rereview continuity, completed-
-result validation, rolling diagnostics, signal propagation, direct failure
+result validation, bounded terminal stdout/stderr diagnostics, authentication
+guidance, signal propagation, direct failure
 results, permission-unsafe path rejection before provider spawn, and a one-file
 owner-only install. Static and focused contract oracles cover the semantic stop
 conditions for owner decisions, repeated rebuttal without evidence, unchanged
@@ -75,9 +76,58 @@ tests/codex/run-skill-tests.sh --test test-discussion-review-routing-behavior.sh
 tests/codex/run-skill-tests.sh --test test-completion-gate-recovery-behavior.sh
 tests/codex/run-skill-tests.sh --test test-autonomous-review-loop-behavior.sh
 bash tests/codex/test-readiness-hold-behavior.sh
+bash tests/codex/test-review-followup-scope-behavior.sh
+bash tests/codex/test-owner-question-wait-behavior.sh
+bash tests/codex/test-owner-question-no-timer-behavior.sh
+bash tests/codex/test-browser-test-isolation-behavior.sh
+bash tests/codex/test-receiving-spec-review-owner-decision-gate-behavior.sh
 tests/claude-code/run-skill-tests.sh --test test-autonomous-review-loop-behavior.sh
 node tests/reviewer-host/real-codex-claude-smoke.mjs
 ```
+
+The source-only follow-up, question/wait, readiness, workflow-policy, and owner
+reception checks use repository skills in isolated fixtures. They cover settled
+decisions versus new interaction defects, rendered choices without timed
+consent, automatic plan-file creation, and short mechanical planning under both
+policy modes. Some Codex builds inject a higher-priority Default-mode prohibition on textual
+multiple-choice messages. When that blocks the live question tests, keep the
+failure visible. Use the explicit `CODEX_OWNER_QUESTION_ARTIFACT=1` mode on
+`test-owner-question-wait-behavior.sh`, `test-readiness-hold-behavior.sh`, and the representative spec owner-gate test
+to verify a generated UI report artifact plus waiting/authority behavior. This
+mode does not prove live chat/dialog rendering; report that limitation rather
+than treating artifact-mode success as a live UI pass.
+
+`test-owner-question-no-timer-behavior.sh` tests waiting independently of choice
+formatting. Real Codex turns must ask before a dependent edit, complete separate
+work, leave a dismissed question unanswered despite elapsed time, and apply the
+eventual explicit answer. The test rejects observed agent timers, announced
+defaults, and repeated questions. It does not inspect native desktop dialog
+chrome or prove that every future model response will comply. Set
+`JOSHIX_TEST_SKILLS_DIR` to an installed plugin's `skills` directory to repeat
+this check against that installation.
+
+`test-browser-test-isolation-behavior.sh` runs five fresh Codex sessions against
+a simulated browser driver: ordinary headless testing, a check requiring a
+separate visible browser, missing test authentication, unavailable isolated
+tooling, and an explicit request to inspect a named live tab. It checks actual
+tool calls and matching fixture logs, including concrete blocker reports and
+positive successful checks. No real browser, personal profile, cookies, or
+login is accessed. This measures agent choices with a mocked tool, not native
+desktop browser integration or guaranteed future adherence.
+
+Set `JOSHIX_TEST_SKILLS_DIR` to an installed plugin's `skills` directory to test
+its bootstrap, and `JOSHIX_BROWSER_TEST_CASE=login-blocked` to run one scenario.
+`--oracle-only` runs the deterministic fixture processes and positive/negative
+trace checks. `tests/static/test-browser-test-isolation-contract.sh` invokes
+that entry point alongside the bootstrap text anchors, and is included in the
+normal model-free suite. The baseline reproduced an isolated-login failure
+followed by live-session reuse; other unmodified baseline samples already
+complied, so neither the failure nor compliance is deterministic.
+
+Static question fixtures reject invalid spacing, missing Pro/Con,
+one/five choices, duplicate recommendations, excessive summaries, and fenced
+user-visible source. The prompt contract compares the actual bridge instruction
+with its authoritative reference.
 
 These commands invoke models and are intentional cost-bearing coverage. The
 autonomous-review scripts also expose `--oracle-only` for their deterministic
@@ -89,7 +139,10 @@ sign-off.
 The discussion-routing, completion-recovery, reciprocal Claude autonomous-loop,
 and real sandbox-to-Claude smoke tests are release gates, not per-round checks.
 The reciprocal and smoke tests require the newly installed bridge plus valid
-Codex and Claude authentication/permission state. The smoke proves both fresh
+Codex and Claude authentication/permission state. Source verification does not
+prove the old installed bridge has changed. Installation and the bridge-dependent
+release checks are a separate authorized step; report them as pending until run
+against the updated installation. The smoke proves both fresh
 provider directions can read ordinary SQLite history, append one ordinary
 review message, and leave artifacts plus `current.md` unchanged. Run
 `node tests/reviewer-host/real-codex-claude-smoke.mjs --permission-only` to

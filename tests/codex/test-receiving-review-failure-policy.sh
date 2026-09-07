@@ -262,7 +262,7 @@ assert_contains "$POST_FINAL" 'exit(ed| code)?[[:space:]]+23|fixed delay' \
   'Names the verification failure that was automatically recovered' || FAILED=$((FAILED + 1))
 assert_contains "$POST_FINAL" 'verify-review\.sh|exit(ed| code)?[[:space:]]+0' \
   'Names the focused command or successful evidence' || FAILED=$((FAILED + 1))
-assert_not_contains "$POST_FINAL" '^### Your decision needed$' \
+assert_not_contains "$POST_FINAL" '^## .+\?$' \
   'Successful objective recovery does not ask the owner to restart the turn' || FAILED=$((FAILED + 1))
 if validate_review_outcome "$POST_FINAL" 'Rereview required'; then
   echo '  [PASS] Recovered artifact change reports exactly one canonical rereview outcome'
@@ -359,7 +359,7 @@ assert_contains "$FAIL_FINAL" 'unattempted.*Audit|Audit.*unattempted' \
   'Reports the later audit correction as unattempted' || FAILED=$((FAILED + 1))
 assert_contains "$FAIL_FINAL" 'exit(ed| code)?[[:space:]]+24|verify-review\.sh' \
   'Names the failed recovery evidence' || FAILED=$((FAILED + 1))
-assert_exact_heading_count "$FAIL_FINAL" '### Your decision needed' 1 \
+assert_exact_heading_count "$FAIL_FINAL" '## .+\?' 1 \
   'Failed recovery emits one owner-decision lane' || FAILED=$((FAILED + 1))
 
 CAP_PROJECT="$TEST_ROOT/recovery-cap"
@@ -478,7 +478,7 @@ assert_contains "$CAP_FINAL" 'third recovery|third pass|two recovery|recovery ca
   'Reports the total recovery cap as the stopping reason' || FAILED=$((FAILED + 1))
 assert_contains "$CAP_FINAL" 'unattempted.*Metrics|Metrics.*unattempted' \
   'Reports the capped recovery as unattempted' || FAILED=$((FAILED + 1))
-assert_exact_heading_count "$CAP_FINAL" '### Your decision needed' 1 \
+assert_exact_heading_count "$CAP_FINAL" '## .+\?' 1 \
   'Recovery cap emits one owner-decision lane' || FAILED=$((FAILED + 1))
 
 if [ "$FAILED" -eq 0 ]; then

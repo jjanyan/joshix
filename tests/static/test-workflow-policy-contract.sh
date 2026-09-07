@@ -53,7 +53,7 @@ for removed in 'correction round' 'recovery repair' 'pass ceiling'; do
   reject_fixed "$POLICY" "$removed" "policy has no review-engine concept: $removed"
 done
 require_fixed "$ROOT/skills/brainstorming/SKILL.md" 'Routine design-note terminal' 'routine brainstorming has a terminal branch'
-require_fixed "$ROOT/skills/writing-plans/SKILL.md" 'Routine short-plan terminal' 'routine planning has a terminal branch'
+require_fixed "$ROOT/skills/writing-plans/SKILL.md" 'Short-planning branch' 'routine planning has a terminal branch'
 reject_fixed "$BOOTSTRAP" 'highest = ' 'bootstrap does not hardcode tiers'
 reject_fixed "$BOOTSTRAP" 'AGENTS.md, CLAUDE.md' 'bootstrap does not hardcode host filenames'
 reject_fixed "$BOOTSTRAP" '## The Rule' 'bootstrap removes duplicated skill rule'
@@ -68,4 +68,7 @@ router_words="$({
 [ "$router_words" -le 80 ] \
   || { printf 'FAIL: bootstrap routers exceed 80 words (%s)\n' "$router_words"; exit 1; }
 
+require_fixed "$POLICY" 'with or without an active policy' 'mechanical short planning works without policy'
+require_fixed "$POLICY" 'Explicit requests for both spec and plan receive both' 'explicit artifact requests remain effective'
+require_fixed "$ROOT/skills/writing-plans/SKILL.md" 'Shorter planning does not reduce testing or required artifact reviews.' 'short ceremony preserves rigor'
 echo 'STATUS: PASSED'

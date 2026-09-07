@@ -26,6 +26,19 @@ Severity never creates edit authority. Recommendations, advisories,
 preferences, speculative hardening, and while-we-are-here improvements remain
 unchanged unless Josh explicitly authorizes them.
 
+Read the latest applicable owner decisions and accepted limitations in existing
+history and repository guidance before classifying a finding. Do not require a
+separate decision recap. A reversal must identify the prior resolution and new
+evidence showing an error, later invalidation, or a defect outside accepted
+limitations. Repeating an accepted risk or preferring a different design does
+not reopen a settled decision.
+
+For spec/plan follow-ups, verify corrections and affected interactions, including
+unchanged parts; a clarification alone does not restart broad design review.
+Code-review breadth remains unchanged. A rejected finding alone does not create
+provider approval: any required follow-up resolves the outstanding disagreement
+or verifies the fix within this focused scope.
+
 The reviewer supplies evidence and a recommendation. The coordinator verifies
 the evidence and classifies scope, policy, product, and architecture impact.
 Severity never grants edit authority. A new review is useful only after the
@@ -45,9 +58,10 @@ artifact changes or new evidence appears.
 | Agent 2 finding asks for a new product, scope, ownership, acceptance-criteria, or architecture choice | Finish independent objective work, leave the gated item unchanged, then ask exactly one owner question. | Owner-decision lane; do not silently choose with `REJECT` or `DEFER`. |
 | Josh answers an owner question | After Josh answers an owner question, apply the answer and newly unblocked work without another permission request. When prior shared reasoning or the review supplies exact replacement text, preserve it verbatim rather than restyling or elaborating it. | Report the applied continuation as requested; materially changed work may be rereviewed fresh. |
 | Agent 1 discovers a concern Agent 2 did not raise | Independently verify it and apply the same authority rules used for reviewer findings. | Correct objective in-scope defects; leave owner-gated choices unchanged. |
-| Later Agent 2 review says a previous automatic change was wrong | If a later Agent 2 pass identifies a previously applied automatic change as wrong, that report is an ordinary new finding. Verify it and apply an objective correction automatically; the prior application does not create a new owner gate. | Materially changed work may be rereviewed fresh. |
+| Later Agent 2 review says a previous automatic change was wrong | Require the prior resolution and new evidence; independently verify the demonstrated error or later invalidation before applying an objective correction. The prior application does not create a new owner gate. | Materially changed work may be rereviewed fresh; unsupported reversals do not reopen settled work. |
 | Current Agent 2 review approves and Agent 1 concurs | Make no change. | Approved. |
-| The current review approves a spec or plan and that artifact's immediate next phase lacks explicit authorization | Treat artifact-local readiness as settled state, not an unresolved choice. | Emit the exact readiness hold from the response format; never manufacture owner options or borrow readiness from queued work. |
+| The current review approves a spec and genuine owner decisions are satisfied | Continue into writing-plans automatically, unless the user explicitly requested spec-only, review-only, or a stop. | No separate planning command or routine written-spec signoff. |
+| The current review approves a plan and execution lacks explicit authorization | Treat artifact-local readiness as settled state, not an unresolved choice. | Emit the exact execution readiness hold from the response format; never manufacture owner options or borrow readiness from queued work. |
 
 ## Policy-active structured findings
 
@@ -55,9 +69,10 @@ The structured result contains evidence, not workflow governance. After
 independent verification, the coordinator compares each concrete risk with the
 active declaration and policy. Requirement-determined corrections inside the
 authorized outcome proceed. New product, scope, policy, ownership, acceptance,
-or architecture decisions remain owner-gated. An approved spec or plan whose
-own immediate next phase remains unauthorized uses the readiness hold, never
-the owner-decision lane. Other approval reports do not inherit a hold from
+or architecture decisions remain owner-gated. An approved spec continues to
+planning automatically within the user's requested scope. An approved plan
+whose execution remains unauthorized uses the readiness hold, never the
+owner-decision lane. Other approval reports do not inherit a hold from
 queued work.
 
 Rereview with a fresh provider process only after the artifact materially
@@ -92,8 +107,8 @@ verification solely to confirm it.
 Stop before further writes when the current state is uncertain, diagnosis
 cannot identify an objective correction, the correction would overwrite user
 changes, or further work requires excluded authority or scope expansion. Emit
-one owner question through the response format's owner-decision lane; under an
-active workflow policy, use its decision memo format. Never require an owner
+one owner question through the response format's owner-decision lane using
+`owner-question-format.md`. Never require an owner
 message solely to reset a conversational turn boundary.
 
 The eventual reception report names every successfully recovered failure and

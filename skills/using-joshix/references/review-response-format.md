@@ -17,7 +17,7 @@ Emit only non-empty lanes, in this order:
 | 1 | Settled findings exist, or a change was applied | Exactly one applicable settled lane heading plus compact finding bullets. |
 | 2 | A reviewer claim cannot be settled from available evidence | `### Evidence needed — no changes made` plus evidence bullets. |
 | 3 | The outcome is informative | `### Review outcome` plus exactly one outcome. |
-| 4 | Owner input is required | `### Your decision needed`; this is always the final section. |
+| 4 | Owner input is required | The H2 question and H3 choices from `owner-question-format.md`; this is always the final section. |
 
 After Josh answers, acknowledge and record the choice, then present the next
 owner decision without repeating completed findings. Do not reclassify the
@@ -92,44 +92,26 @@ substitute an inline `Outcome:` label.
 | Outcome | Use only when |
 |---|---|
 | **Approved** — Agent 1 agrees that no actual findings remain. | `Approved` requires a current Agent 2 approval plus Agent 1 concurrence with no unresolved dispute. |
-| **Rereview required** — Another Agent 2 pass is required because the artifact changed, an accepted objective finding remains unapplied, or a reviewer-raised finding remains unsettled, disputed, or lacks evidence. | Any artifact change; any rejected or deferred finding Agent 2 has not accepted; any unsettled evidence; or any accepted-but-unapplied finding. In semantic explicit no-edit mode, any accepted objective finding left unapplied requires `**Rereview required**`. |
+| **Rereview required** — Another Agent 2 pass is required because the artifact materially changed, an accepted objective finding remains unapplied, or a reviewer-raised finding remains unsettled, disputed, or lacks evidence. | A material correction requiring verification; any rejected or deferred finding Agent 2 has not accepted; any unsettled evidence; or any accepted-but-unapplied finding. In semantic explicit no-edit mode, any accepted objective finding left unapplied requires `**Rereview required**`. |
 | **Approval disputed** — Agent 2 approved the artifact, but Agent 1 identified a newly discovered concern that must wait for Agent 2's next review. | Agent 2 approved, but Agent 1 does not concur because of a new concern. |
 
 When `Rereview required` follows a `REJECT` or `DEFER`, its outcome reason must
 explicitly state that Agent 2 must accept or rebut Agent 1's reasoning.
 
+A spec/plan clarification does not restart broad review. Focus follow-ups on
+outstanding findings, corrections, and their consequences, including unchanged
+interactions. Reopening a settled issue requires the prior decision and new
+evidence under `review-reception-contract.md`. Code-review breadth is unchanged.
+None of this substitutes coordinator reasoning for required provider approval.
+
 ### Owner-decision lane
 
-Use ordinary wording, one concrete example, and exactly one owner decision per
-response. Offer at least two genuine options lettered `A` through `Z`. Give each
-option concrete pros and cons, and mark exactly one recommended option.
-
-Make the first non-empty line after `### Your decision needed` a plain
-one-to-five-word decision name. Include exactly one concrete `Example:` line
-before the options.
-
-```markdown
-### Your decision needed
-
-**Plain one-to-five-word decision name**
-
-One direct question in simple language.
-
-Example: A concrete situation showing what changes.
-
-- **A. First option — recommended**
-  - Pros: Concrete benefits.
-  - Cons: Concrete costs or risks.
-- **B. Second option**
-  - Pros: Concrete benefits.
-  - Cons: Concrete costs or risks.
-```
-
-If the shown request has a technical identifier, put that exact identifier in
-the `Example:` line only. Hide every later request's details and tradeoffs. The
-remaining count excludes the shown decision. When one later decision remains,
-write the standalone sentence `One decision remains.` End the response with
-this owner section.
+Read and use `owner-question-format.md`, the single literal template for
+formatting, spacing, choice count, plain language, dialogs, and waiting. Ask
+exactly one owner decision per response. Hide every later request's details and
+tradeoffs. When later decisions remain, state their count before the question;
+it excludes the shown decision. When one later decision remains, write the
+standalone sentence `One decision remains.` End the response with this owner section.
 
 Accept a letter-only answer, modified option, or new direction. Record it and
 do not ask again unless new evidence changes the tradeoff. Continue independent,
@@ -149,17 +131,18 @@ environment, or pre-existing behavior before classifying them.
 
 ### Readiness hold
 
-Approval is not authorization for the next phase. A readiness hold is local to
-the reviewed artifact and its immediate next phase. Use it only when the
-current review just approved a spec whose next phase is planning or a plan
-whose next phase is execution, and that phase requires an explicit owner
-command. Never infer a readiness hold from another queued task, plan, or
-artifact. Never append one after implementation or code-review completion.
-When no genuine unresolved choice remains, never emit `### Your decision
-needed`, invent options, or ask a question. When a hold applies, report the
-settled state and end with exactly one applicable line:
+Spec-to-plan continuation is automatic after required spec review and genuine
+owner decisions are satisfied. Do not request a separate planning command or
+routine written-spec signoff. Respect explicit spec-only, review-only, or stop
+instructions and report that requested stopping point plainly.
 
-`Ready to plan; waiting for your command.`
+Approval is not implementation authorization. A readiness hold is local to
+the reviewed artifact and its immediate next phase. Use it when the current
+review approves a plan and execution still requires an explicit owner command.
+Never infer a readiness hold from another queued task, plan, or artifact.
+Never append one after implementation or code-review completion. When no
+genuine unresolved choice remains, never invent options or ask a question.
+When an execution hold applies, report the settled state and end exactly:
 
 `Ready to execute; waiting for your command.`
 

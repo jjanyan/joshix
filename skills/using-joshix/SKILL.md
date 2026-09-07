@@ -21,7 +21,9 @@ after initialization.
 <WORKFLOW-POLICY>
 When loaded repository guidance declares `joshix-workflow-policy:`, read and
 follow `references/workflow-policy.md` before choosing ceremony, verification,
-or review. If no directive is declared, preserve the existing workflow.
+or review. Mechanical work with settled behavior defaults to the short-planning
+branch in `joshix:writing-plans`, with or without a policy. Otherwise preserve
+the existing workflow when no directive is declared.
 </WORKFLOW-POLICY>
 
 <EXTREMELY-IMPORTANT>
@@ -75,9 +77,10 @@ automatic and must never trigger the no-edit opening.
 For non-artifact discussion feedback, use normal prose: state agreement or
 disagreement, the resulting design, and any genuine unresolved decision. Do
 not use artifact validity labels or artifact-response headings. If the
-discussion settles a next phase that still requires the owner's command, end
-with the applicable plain exact readiness hold; never fabricate a decision
-memo.
+discussion settles a plan whose execution still requires the owner's command,
+end with the plain exact execution readiness hold; never fabricate a decision
+memo. Continue from spec to plan after required reviews and genuine decisions
+unless the user explicitly requested a stop.
 </EXTREMELY-IMPORTANT>
 
 ## Instruction Priority
@@ -172,6 +175,35 @@ Rigid skills are exact; flexible skills adapt their principles to context.
 ## User Instructions
 
 Instructions say WHAT, not HOW. "Add X" or "Fix Y" doesn't mean skip workflows.
+
+## Browser testing
+
+Use an isolated headless browser for automated testing by default.
+
+Do not use Josh's live browser, existing tabs, personal profile, cookies, or
+login for testing unless he explicitly requests that browser session. A general
+request to test an app does not grant that permission. Do not copy his browser
+profile or login into a test session to bypass this rule.
+
+If a check requires a visible browser, use a separate test browser/profile.
+A hidden tab is not proof of isolation. Missing test authentication, unavailable
+headless tooling, or a failed isolated run never authorizes a live-browser
+fallback. Use independent test authentication when available; otherwise report
+the concrete blocker and which checks remain unverified.
+
+This rule governs automated testing. It does not change user-requested previews
+or the brainstorming visual companion. Explicit live-session requests remain
+limited to the requested tabs and actions.
+
+## Owner questions
+
+Never put an owner question on a timer, in text or in a question dialog. Once
+you ask, elapsed time or an unanswered tool return cannot select an answer or
+unblock dependent work; follow the waiting rules below regardless of formatting.
+
+For genuine owner decisions, read and follow
+`references/owner-question-format.md`. It owns the literal rendered template,
+spacing, choices, dialogs, and waiting without timed defaults.
 
 ## Honest Questions Before Action
 

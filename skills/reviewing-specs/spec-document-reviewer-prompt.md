@@ -24,6 +24,13 @@ Task tool (general-purpose):
 
     You are a spec document reviewer. Verify this spec is complete and ready for planning.
 
+    Use supplied prior reasoning and repository guidance for the latest owner
+    decisions and accepted limitations. Before reopening a settled decision,
+    identify its resolution and new evidence of error, later invalidation, or
+    a defect outside the accepted limitation. A repeated risk is insufficient. On a
+    follow-up inspect corrections and their affected interactions, including
+    unchanged parts, rather than restart broad review after a clarification.
+
     **Spec to review:** [SPEC_FILE_PATH]
     **Prior reasoning:** [PRIOR_REASONING]
 

@@ -33,8 +33,18 @@ const TERMINATION_GRACE_MS = 2_000;
 const TIMESTAMP_DEFAULT = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
 const VERSION_ONE_COLUMNS = ['id', 'created_at', 'speaker', 'content'];
 const VERSION_TWO_COLUMNS = [...VERSION_ONE_COLUMNS, 'idempotency_key'];
-const CANONICAL_INSTRUCTION =
-  'Challenge assumptions in the spec, plan, and implementation when they create concrete risk; do not treat prior approval as proof of correctness. Read the shared chat and review';
+const CANONICAL_INSTRUCTION = [
+  'Challenge assumptions in the spec, plan, and implementation when they create concrete risk.',
+  'Read the shared chat and repository guidance.',
+  'Establish the latest applicable owner decisions, accepted limitations, and superseded choices before reviewing the current artifact.',
+  'Evaluate within that scope; prior approval is not proof of correctness, but a knowingly accepted limitation is not an overlooked defect.',
+  'Before reopening a settled issue, identify the prior decision and new evidence that its resolution was incorrect, invalidated by later changes, or left a defect outside the accepted limitation.',
+  'Repeating an accepted risk or preferring another design is insufficient.',
+  'Initial spec and plan reviews cover the artifact.',
+  'Follow-ups examine corrections and their consequences, including interactions with unchanged parts; do not restart broad review because wording was clarified or relitigate unrelated settled issues without new evidence.',
+  "Review code for concrete correctness risks, regressions, and missing requirements throughout the task's scope, including outside the latest correction.",
+  'Read the existing history as needed; no mandatory decision recap or new decision artifact is required.',
+].join(' ');
 
 export const REVIEW_SCHEMA = Object.freeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -370,8 +380,37 @@ function appendDiagnosticTail(current, chunk) {
     : combined.subarray(combined.length - MAX_DIAGNOSTIC_BYTES);
 }
 
-function providerFailure({ spawnError, exitCode, signal, diagnosticTail }) {
-  const message = diagnosticTail.toString('utf8').trim();
+function diagnosticTextTail(buffer, limit) {
+  // Re-encode once so replacement characters and multibyte boundaries count
+  // toward the returned UTF-8 budget, even if a retained tail starts mid-codepoint.
+  const text = Buffer.from(buffer.toString('utf8').trim());
+  let start = Math.max(0, text.length - limit);
+  while (start < text.length && (text[start] & 0xc0) === 0x80) start += 1;
+  return text.subarray(start).toString('utf8');
+}
+
+function failureDiagnostics(stdout, stderr, limit = MAX_DIAGNOSTIC_BYTES) {
+  const sources = [['stdout', stdout], ['stderr', stderr]]
+    .filter(([, tail]) => tail.toString('utf8').trim());
+  if (!sources.length) return '';
+  const labelBytes = sources.reduce((total, [name]) => total + Buffer.byteLength(`${name}:\n`), 0)
+    + (sources.length - 1) * 2;
+  const available = limit - labelBytes;
+  const budgets = sources.map(([, tail]) => Math.min(tail.length, Math.floor(available / sources.length)));
+  let remaining = available - budgets.reduce((total, size) => total + size, 0);
+  for (let index = 0; index < sources.length; index += 1) {
+    const extra = Math.min(remaining, sources[index][1].length - budgets[index]);
+    budgets[index] += extra;
+    remaining -= extra;
+  }
+  return sources.map(([name, tail], index) => `${name}:\n${diagnosticTextTail(tail, budgets[index])}`)
+    .join('\n\n');
+}
+
+function providerFailure({ spawnError, exitCode, signal, stdoutTail, diagnosticTail, terminalError }) {
+  const signalSuffix = signal ? ` (provider terminated by ${signal})` : '';
+  const message = failureDiagnostics(stdoutTail, diagnosticTail,
+    MAX_DIAGNOSTIC_BYTES - Buffer.byteLength(signalSuffix));
   if (spawnError) {
     const unavailable = new Set(['ENOENT', 'EACCES', 'ENOEXEC']).has(spawnError.code);
     return {
@@ -385,19 +424,37 @@ function providerFailure({ spawnError, exitCode, signal, diagnosticTail }) {
       ok: false,
       kind: 'provider-exit',
       message: message
-        ? `${message} (provider terminated by ${signal})`
+        ? `${message}${signalSuffix}`
         : `provider terminated by ${signal}`,
     };
   }
-  if (/authentication required|not logged in|please run \/login|unauthorized/i.test(message)) {
-    return { ok: false, kind: 'authentication', message, exitCode };
+  const authentication = /authentication required|not logged in|please run \/login|unauthorized/i;
+  if ([stdoutTail, diagnosticTail].some((tail) => authentication.test(tail.toString('utf8')))) {
+    return {
+      ok: false, kind: 'authentication', message, exitCode,
+      guidance: 'Authentication failed. Was this launcher the only command in its shell call? '
+        + 'If not, retry it once as a standalone command. If it was already standalone, '
+        + 'or the standalone retry fails, stop and report the error to the user; '
+        + 'the account may actually be logged out.',
+    };
   }
   return {
     ok: false,
     kind: 'provider-exit',
-    message: message || `provider exited ${exitCode}`,
+    message: message || (terminalError ? 'provider reported a terminal error' : `provider exited ${exitCode}`),
     ...(Number.isInteger(exitCode) ? { exitCode } : {}),
   };
+}
+
+function terminalFailure(event) {
+  if (!event || typeof event !== 'object') return null;
+  const failed = (event.type === 'result'
+    && (event.is_error === true || /^error(?:_|$)/.test(event.subtype ?? '')))
+    || event.type === 'error' || event.type === 'turn.failed';
+  if (!failed) return null;
+  const values = [event.result, event.message, event.error, event.errors].flat();
+  return values.map((value) => typeof value === 'string' ? value : value?.message)
+    .filter((value) => typeof value === 'string' && value.trim()).join('\n');
 }
 
 function terminalCandidate(event) {
@@ -414,6 +471,9 @@ function terminalCandidate(event) {
 function runProvider(command, args, { cwd, environment, provider, finalFile }) {
   return new Promise((resolvePromise) => {
     let diagnosticTail = Buffer.alloc(0);
+    let terminalTail = Buffer.alloc(0);
+    let plainStdoutTail = Buffer.alloc(0);
+    let terminalError = false;
     let pending = '';
     let candidate;
     let candidateObserved = false;
@@ -435,7 +495,14 @@ function runProvider(command, args, { cwd, environment, provider, finalFile }) {
       try {
         event = JSON.parse(line);
       } catch {
+        plainStdoutTail = appendDiagnosticTail(plainStdoutTail, `${line}\n`);
         if (provider === 'claude') candidateObserved = true;
+        return;
+      }
+      const failure = terminalFailure(event);
+      if (failure !== null) {
+        terminalError = true;
+        if (failure) terminalTail = appendDiagnosticTail(terminalTail, `${failure}\n`);
         return;
       }
       const observed = terminalCandidate(event);
@@ -493,8 +560,12 @@ function runProvider(command, args, { cwd, environment, provider, finalFile }) {
         resolvePromise({ ok: false, kind: 'cancelled', signal: cancelledSignal });
         return;
       }
-      if (spawnError || exitCode !== 0) {
-        resolvePromise(providerFailure({ spawnError, exitCode, signal, diagnosticTail }));
+      if (spawnError || signal || exitCode !== 0 || terminalError) {
+        resolvePromise(providerFailure({
+          spawnError, exitCode, signal, diagnosticTail, terminalError,
+          stdoutTail: terminalTail.length ? terminalTail
+            : exitCode !== 0 ? plainStdoutTail : Buffer.alloc(0),
+        }));
         return;
       }
 

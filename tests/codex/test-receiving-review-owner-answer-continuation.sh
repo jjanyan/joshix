@@ -66,7 +66,7 @@ Here is another agent's spec review. What do you think?
 2. Decide whether a new NotificationPolicy service should own retry rules. This is an architecture choice.
 3. If the policy-owner option is selected, replace the inline placement statement with `NotificationPolicy owns the retry rule`.
 
-For the owner choice, label the options exactly `A. Add a policy owner` and `B. Keep the rule inline`. In your response, the identifier NotificationPolicy may appear only on the canonical `Example:` line.
+For the owner choice, use `Choice A: Add a policy owner` and `Choice B: Keep the rule inline` as the choice headings, with the recommended marker on your recommendation.
 EOF
 
 run_codex "$TEST_PROJECT" "$FIRST_PROMPT" "$FIRST_OUTPUT_DIR" \
@@ -83,22 +83,12 @@ assert_not_contains "$(cat "$SPEC_FILE")" 'NotificationPolicy' \
   'First turn leaves the owner-gated architecture untouched' || FAILED=$((FAILED + 1))
 assert_file_contains "$SPEC_FILE" 'retry rule remains inline' \
   'First turn leaves the dependent placement correction blocked' || FAILED=$((FAILED + 1))
-assert_contains "$FIRST_FINAL" '^-[[:space:]]+\*\*A\. Add a policy owner' \
+assert_contains "$FIRST_FINAL" '^### Choice A: Add a policy owner' \
   'First turn presents the requested A option' || FAILED=$((FAILED + 1))
-assert_contains "$FIRST_FINAL" '^-[[:space:]]+\*\*B\. Keep the rule inline' \
+assert_contains "$FIRST_FINAL" '^### Choice B: Keep the rule inline' \
   'First turn presents the requested B option' || FAILED=$((FAILED + 1))
 
-OWNER_EXAMPLE_LINE="$(printf '%s\n' "$FIRST_FINAL" | awk '
-  /^### Your decision needed$/ { in_lane=1; next }
-  in_lane && /^Example:/ { print; exit }
-')"
-POLICY_COUNT="$(printf '%s\n' "$FIRST_FINAL" | rg -o 'NotificationPolicy' | wc -l | tr -d ' ' || true)"
-if [ "$POLICY_COUNT" -eq 1 ] && printf '%s\n' "$OWNER_EXAMPLE_LINE" | rg -q 'NotificationPolicy'; then
-  echo '  [PASS] First turn places NotificationPolicy only in the canonical example'
-else
-  echo '  [FAIL] NotificationPolicy must appear exactly once and only in the Example line'
-  FAILED=$((FAILED + 1))
-fi
+validate_owner_structure "$FIRST_FINAL" || FAILED=$((FAILED + 1))
 
 shopt -s nullglob
 FIRST_TASK_DIRS=("$TEST_PROJECT"/.joshix/tasks/20??-??-??-*)

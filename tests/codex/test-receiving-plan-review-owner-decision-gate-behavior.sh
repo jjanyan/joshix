@@ -218,30 +218,13 @@ else
   echo '  [FAIL] Expected compact items with unique normalized 1-5-word shorthand and reasons of at most 40 words'
   FAILED=$((FAILED + 1))
 fi
-assert_contains "$FINAL_OUTPUT" 'Your decision needed' 'Separates the architecture decision' || FAILED=$((FAILED + 1))
+assert_contains "$FINAL_OUTPUT" '^## .+\?'  'Separates the architecture decision' || FAILED=$((FAILED + 1))
 
-OWNER_EXAMPLE_LINE="$(printf '%s\n' "$FINAL_OUTPUT" | awk '
-  /^### Your decision needed$/ { in_lane = 1; next }
-  in_lane && /^Example:/ { print; exit }
-')"
-FIRST_IDENTIFIER_COUNT="$(printf '%s\n' "$FINAL_OUTPUT" | rg -o 'NotificationQueueService' | wc -l | tr -d ' ' || true)"
-if [ "$FIRST_IDENTIFIER_COUNT" -eq 1 ] \
-    && printf '%s\n' "$OWNER_EXAMPLE_LINE" | rg -q 'NotificationQueueService' \
-    && ! printf '%s\n' "$FINAL_OUTPUT" | rg -q 'NotificationDeliveryPolicy|weekend suppression'; then
-  echo '  [PASS] Puts the first identifier only in the example and hides the second request'
-else
-  echo '  [FAIL] Expected NotificationQueueService only in Example and no delivery-policy preview'
-  FAILED=$((FAILED + 1))
-fi
+assert_not_contains "$FINAL_OUTPUT" 'NotificationDeliveryPolicy|weekend suppression' \
+  'Hides later owner decisions and their tradeoffs' || FAILED=$((FAILED + 1))
 
-REMAINING_DECISION_COUNT="$(printf '%s\n' "$FINAL_OUTPUT" | rg -c '^One decision remains\.$' || true)"
-if [ "${REMAINING_DECISION_COUNT:-0}" -eq 1 ]; then
-  echo '  [PASS] States the hidden-only count as a standalone sentence'
-else
-  echo "  [FAIL] Expected one exact standalone 'One decision remains.'; found ${REMAINING_DECISION_COUNT:-0}"
-  FAILED=$((FAILED + 1))
-fi
-
+OWNER_PREFIX="$(printf '%s\n' "$FINAL_OUTPUT" | sed '/^## /,$d')"
+assert_contains "$OWNER_PREFIX" '^One decision remains\.$' 'discloses the later decision before the question' || FAILED=$((FAILED + 1))
 if validate_single_owner_lane "$FINAL_OUTPUT"; then
   echo '  [PASS] Uses exactly one owner lane with one direct question'
 else
@@ -250,21 +233,21 @@ else
 fi
 
 if validate_owner_structure "$FINAL_OUTPUT"; then
-  echo '  [PASS] Uses one plain decision name, one example, and keeps the owner lane last'
+  echo '  [PASS] Uses the shared rendered question template and keeps it last'
 else
-  echo '  [FAIL] Expected a 1-5-word plain name immediately after the owner heading, one pre-option Example, and no later section'
+  echo '  [FAIL] Expected an H2 question, short summary, H3 choices, Pro/Con lines, and no later section'
   FAILED=$((FAILED + 1))
 fi
 
 if validate_owner_options "$FINAL_OUTPUT"; then
-  echo '  [PASS] Offers at least two options with pros and cons for each'
+  echo '  [PASS] Offers two to four sequential choices with one recommendation'
 else
-  echo '  [FAIL] Each of at least two uniquely lettered options must have pros and cons'
+  echo '  [FAIL] Expected two to four sequential choice headings and one recommendation'
   FAILED=$((FAILED + 1))
 fi
 
 RECOMMENDATION_COUNT="$(printf '%s\n' "$FINAL_OUTPUT" \
-  | rg -ic '^[[:space:]]*-[[:space:]]+\*\*[A-Z]\. .*recommended\*\*[[:space:]]*$' || true)"
+  | rg -ic '^### Choice [A-D]: .* — Recommended$' || true)"
 if [ "${RECOMMENDATION_COUNT:-0}" -eq 1 ]; then
   echo '  [PASS] Marks exactly one option recommended'
 else

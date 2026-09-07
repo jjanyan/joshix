@@ -12,8 +12,12 @@ Help turn ideas into fully formed designs and specs through natural collaborativ
 If loaded repository guidance declares `joshix-workflow-policy:`, read
 `../using-joshix/references/workflow-policy.md` first. For `trivial`, skip this
 skill. For `routine`, use it only when the single selected artifact is a short
-design note; never add a plan too. For `complex`, continue below. Policy absence
-preserves this skill unchanged.
+design note, unless the user explicitly requests both artifacts. For `complex`,
+continue below. Before the full design gate, apply this exception with or without
+a policy: mechanical work with settled behavior defaults to the short-planning
+branch in `joshix:writing-plans`. File count and criticality alone do not require
+full design. An explicit request for spec plus plan receives both, kept concise,
+with required artifact reviews; do not reopen settled design to fill a checklist.
 
 ### Routine design-note terminal
 
@@ -33,18 +37,22 @@ planning artifact:
 If execution is not already authorized, end with the exact execution readiness
 hold from the review response contract.
 
+For genuine owner decisions, read and follow
+`../using-joshix/references/owner-question-format.md` for the exact rendered
+question, spacing, choices, and waiting behavior.
+
 Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
 
 <HARD-GATE>
-Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. Apply this full-design gate when design is unresolved; settled mechanical work follows the short-planning exception above.
 </HARD-GATE>
 
-The hard gate and all remaining sections are the `complex` and policy-absent
-branch only.
+The hard gate and remaining detailed sections apply to nonmechanical `complex`
+and policy-absent work; they do not override the short-planning exception.
 
 ## Anti-Pattern: "This Is Too Simple To Need A Design"
 
-Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+Small changes with unresolved behavior still need design. Settled mechanical work uses the short-planning exception. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
 
 ## Checklist
 
@@ -58,8 +66,8 @@ You MUST create a task for each of these items and complete them in order:
 6. **Write design doc** — save to `.joshix/specs/YYYY-MM-DD-<topic>-design.md`
 7. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 8. **Opposite-provider spec review** — with an active workflow policy, review the written spec through `../using-joshix/references/autonomous-review.md`
-9. **User reviews written spec when the boundary is satisfied** — ask user to review the approved or explicitly overridden spec before proceeding
-10. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+9. **Resolve genuine owner decisions** — honor explicit spec-only, review-only, or stop instructions; no routine extra written-spec signoff
+10. **Continue to planning automatically** — after required spec reviews and genuine decisions, invoke writing-plans without another planning command
 
 ## Progress DAG
 
@@ -83,7 +91,9 @@ digraph brainstorming {
     "Opposite-provider spec review\n(active policy)" [shape=box];
     "Spec boundary satisfied?" [shape=diamond];
     "Stop at blocked spec boundary" [shape=box];
-    "User reviews spec?" [shape=diamond];
+    "Genuine owner decision or explicit stop?" [shape=diamond];
+    "Resolve decision or honor requested stop" [shape=box];
+    "Stop at requested boundary" [shape=box];
     "Invoke writing-plans skill" [shape=doublecircle];
 
     "Explore project context" -> "Visual questions ahead?";
@@ -98,14 +108,16 @@ digraph brainstorming {
     "Write design doc" -> "Spec self-review\n(fix inline)";
     "Spec self-review\n(fix inline)" -> "Opposite-provider spec review\n(active policy)";
     "Opposite-provider spec review\n(active policy)" -> "Spec boundary satisfied?";
-    "Spec boundary satisfied?" -> "User reviews spec?" [label="yes"];
+    "Spec boundary satisfied?" -> "Genuine owner decision or explicit stop?" [label="yes"];
     "Spec boundary satisfied?" -> "Stop at blocked spec boundary" [label="no"];
-    "User reviews spec?" -> "Write design doc" [label="changes requested"];
-    "User reviews spec?" -> "Invoke writing-plans skill" [label="approved"];
+    "Genuine owner decision or explicit stop?" -> "Resolve decision or honor requested stop" [label="yes"];
+    "Genuine owner decision or explicit stop?" -> "Invoke writing-plans skill" [label="no"];
+    "Resolve decision or honor requested stop" -> "Spec boundary satisfied?" [label="decision answered; continue authorized"];
+    "Resolve decision or honor requested stop" -> "Stop at requested boundary" [label="owner requested stop"];
 }
 ```
 
-**The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
+**Continue into writing-plans when its boundary is satisfied and no explicit stop applies.** Otherwise report the blocking boundary or requested stop. Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY next phase after brainstorming is writing-plans.
 
 ## The Process
 
@@ -171,33 +183,27 @@ Fix any issues inline. No need to re-review — just fix and move on.
 With an active workflow policy, unless an explicit owner or repository
 instruction names the spec boundary, review the written spec through
 `../using-joshix/references/autonomous-review.md` after self-review and before
-the owner reviews it or planning begins. Apply the existing reception and
+planning begins. Apply the existing reception and
 semantic stopping rules; a fresh review requires a material correction or new
 evidence. Policy absence preserves the existing spec-review workflow.
 
 When a delegated spec reviewer is used, use the template at
 `../reviewing-specs/spec-document-reviewer-prompt.md`.
 
-**User Review Gate:**
+**Spec-to-Plan Continuation:**
 If the active-policy core spec review is not approved and no explicit owner or
 repository instruction names the spec boundary, report `Spec boundary blocked:
 opposite-provider approval is absent and no explicit owner or repository
-instruction names the spec boundary.` and stop before owner handoff.
+instruction names the spec boundary.` and stop before planning.
 
-After the active-policy core spec review is approved or explicitly overridden
-and any tier-added review completes, or after the review required by the
-policy-absent workflow passes, report the written spec for owner review.
-If the
-owner approves but has not explicitly authorized planning in the same message,
-do not ask again or invent a choice. End exactly:
-
-`Ready to plan; waiting for your command.`
-
-If they request changes, make them and rerun the active-policy core review only
-after a material correction; also rerun any applicable tier-added or
-policy-absent gate. Approval is not planning authorization. Proceed
-only when the owner explicitly commands planning; a command in the same message
-as approval is sufficient.
+After the required spec reviews and genuine owner decisions are satisfied,
+continue directly into writing-plans. Do not request a separate planning command
+or routine written-spec signoff. Explicit spec-only, review-only, or stop
+instructions remain effective; report the requested stopping point plainly.
+If changes are requested, apply them and review material corrections and their
+consequences under the existing review contracts. Clarifications do not restart
+broad design review. Required provider approval still must be present.
+Implementation authorization remains separate from planning.
 
 **Implementation:**
 

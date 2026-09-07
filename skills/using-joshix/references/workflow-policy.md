@@ -21,7 +21,7 @@ because the loaded content is authoritative, not its filename.
 |---|---|
 | No eligible directive | Policy absent: use the existing joshix workflow unchanged. |
 | One valid directive and complete policy | Activate this contract for the task. |
-| Invalid, duplicate, dangling, or incomplete directive | Stop policy activation and emit one capability decision memo. Never partially activate or guess. |
+| Invalid, duplicate, dangling, or incomplete directive | Stop policy activation and ask one owner question using `owner-question-format.md`. Never partially activate or guess. |
 
 The policy must define:
 
@@ -73,7 +73,13 @@ next state transition.
 | `complex` | Existing brainstorm, spec, detailed plan, and decomposition into implementation slices. |
 
 Criticality never adds planning documents. Complexity never changes test depth.
-Policy absence preserves the existing unconditional workflow.
+Mechanical work with settled behavior defaults to a short implementation plan,
+with or without an active policy. A multi-file rename, persistence change, or
+high criticality does not by itself create design uncertainty. Expand planning
+only for concrete unresolved behavior, architecture, or interactions. Explicit
+requests for both spec and plan receive both, kept concise; this overrides the
+usual one-artifact default without weakening verification or required reviews.
+Policy absence otherwise preserves the existing workflow.
 
 With an active policy, review follows each phase output that exists: review a
 written spec before planning, review a written implementation plan before
@@ -150,26 +156,12 @@ review transport.
 
 Executing an already authorized decision never bubbles again.
 
-Use one decision memo, not a transcript:
+For a genuine owner decision, read and use `owner-question-format.md`, the
+single literal rendered template. Include only the context needed to choose;
+do not add a mandatory history field or competing policy-specific format.
 
-```markdown
-### Your decision needed
-
-**Short decision name**
-
-Question: One concrete question.
-
-Context: One paragraph explaining why work stopped.
-
-History: `.joshix/tasks/<task>/` messages <ids>.
-
-- **A. Recommended option — recommended**
-  - Pros: ...
-  - Cons: ...
-- **B. Other genuine option**
-  - Pros: ...
-  - Cons: ...
-```
-
-Do not emit this lane for a settled phase merely waiting for an explicit next
-command.
+Spec-to-plan continuation is automatic once required reviews and genuine owner
+decisions are satisfied. Do not pause for a separate planning command or routine
+written-spec signoff. Honor explicit spec-only, review-only, or stop requests.
+Execution still needs the user's authorization. Do not turn that settled
+execution hold into an owner question.

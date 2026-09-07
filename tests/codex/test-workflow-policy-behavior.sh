@@ -36,6 +36,11 @@ EOF
 read -r -d '' POLICY_PROMPT <<'EOF' || true
 Use the active joshix workflow policy. This is a read-only classification; do
 not edit files. Return one JSON object and no prose for these cases:
+- mechanical: rename a settled persisted field across twelve files, including
+  its existing migration mapping; no behavior or architecture uncertainty.
+- explicitBoth: same mechanical change, owner explicitly requests spec and plan.
+- uncertainDesign: the persistence rename has an unresolved backwards-compatibility
+  strategy and storage ownership choice.
 - highTrivial: one-line authorization evaluator change, trivial complexity.
 - routineDesign: a routine task whose only uncertainty is behavior choice, so
   the selected artifact is a design note.
@@ -54,11 +59,15 @@ not edit files. Return one JSON object and no prose for these cases:
 - scopeExpansion: requested CSS fix grows a new subsystem.
 - costAtTwoTimesEstimate: active work reaches exactly twice estimate.
 
-Use keys planningArtifacts, planningStages, verification, taskReviewTier,
+For mechanical, explicitBoth, and uncertainDesign, include planningSize (exactly
+short or detailed), planningArtifacts, and verification. Use keys planningArtifacts, planningStages, verification, taskReviewTier,
 surfaceTestsStayDistinct, lowerFinding, higherFinding, scopeExpansion, and
 costAtTwoTimesEstimate as applicable. For mixed.surfaceTestsStayDistinct,
 return an object with exact keys guarded and presentation whose values state
 each surface's test depth.
+For costAtTwoTimesEstimate, return an object with action (continue or pause) and
+reason, assuming the estimate is the only changed fact and no real owner
+decision or external blocker has arisen.
 EOF
 run_codex "$TEST_PROJECT" "$POLICY_PROMPT" "$POLICY_OUTPUT" "read-only" "$CODEX_TEST_TIMEOUT" "use-rules"
 POLICY_FINAL="$(cat "$POLICY_OUTPUT/final.md")"
@@ -76,9 +85,15 @@ cat > "$TEST_PROJECT/AGENTS.md" <<'EOF'
 Use joshix normally. No workflow policy is declared.
 EOF
 read -r -d '' LEGACY_PROMPT <<'EOF' || true
-Use joshix to describe the required workflow for a multi-step feature. Do not
-edit files. State whether brainstorming, a spec, and an implementation plan are
-still required when no repository workflow policy is declared.
+Use joshix to classify these cases with no repository workflow policy. Do not
+edit files. Return one JSON object and no prose with keys:
+- nonmechanical: describe the workflow for a new multi-step feature with unresolved design.
+- mechanical: settled persisted-field rename across twelve files, including an
+  existing migration mapping; no behavior or architecture uncertainty.
+- explicitBoth: same mechanical work, owner explicitly requests spec and plan.
+- uncertainDesign: persistence rename with unresolved compatibility and storage ownership.
+For each use planningArtifacts (array), planningStages (array), planningSize
+(short or detailed), and verification (required checks/reviews).
 EOF
 run_codex "$TEST_PROJECT" "$LEGACY_PROMPT" "$LEGACY_OUTPUT" "read-only" "$CODEX_TEST_TIMEOUT" "use-rules"
 LEGACY_FINAL="$(cat "$LEGACY_OUTPUT/final.md")"
@@ -90,31 +105,58 @@ if jq -e '
   ((.routineDesign.planningArtifacts // .planningArtifacts.routineDesign) | tostring | test("design note"; "i")) and
   ((.routinePlan.planningArtifacts // .planningArtifacts.routinePlan) | length == 1) and
   ((.routinePlan.planningArtifacts // .planningArtifacts.routinePlan) | tostring | test("plan"; "i")) and
-  ((.lowComplex.planningArtifacts // .planningArtifacts.lowComplex) | tostring | test("brainstorm")) and
+  ((.lowComplex.planningStages // .planningStages.lowComplex) | tostring | test("brainstorm"; "i")) and
   ((.lowComplex.planningArtifacts // .planningArtifacts.lowComplex) | tostring | test("spec")) and
   ((.lowComplex.planningArtifacts // .planningArtifacts.lowComplex) | tostring | test("plan")) and
   ((.lowComplex.verification // .verification.lowComplex) | tostring | test("no new automated tests|light|presentation"; "i")) and
-  ((.highTrivial.verification // .verification.highTrivial) | tostring | test("exhaustive")) and
+  ((.highTrivial.verification // .verification.highTrivial) | tostring | test("exhaustive"; "i")) and
   ((.mixed.taskReviewTier // .taskReviewTier.mixed) == "guarded") and
   ((.displayRead.taskReviewTier // .taskReviewTier.displayRead) == "presentation") and
   (((.mixed.surfaceTestsStayDistinct // .surfaceTestsStayDistinct) | type) == "object" and
     ((.mixed.surfaceTestsStayDistinct // .surfaceTestsStayDistinct).guarded | tostring | test("exhaustive"; "i")) and
     ((.mixed.surfaceTestsStayDistinct // .surfaceTestsStayDistinct).presentation | tostring | test("no new automated tests|recurring"; "i"))) and
-  (.lowerFinding | tostring | test("deferred")) and
+  (.lowerFinding | tostring | test("defer|leave unchanged|outside.*scope"; "i")) and
   (.higherFinding | tostring | test("bubble up|bubble-up")) and
-  (.unchangedLowerFinding | tostring | test("deferred|out-of-scope"; "i")) and
+  (.unchangedLowerFinding | tostring | test("defer|out.of.scope|outside.*scope"; "i")) and
   (.unchangedHigherFinding | tostring | test("bubble up|bubble-up"; "i")) and
   (.scopeExpansion | tostring | test("bubble up|bubble-up")) and
-  (.costAtTwoTimesEstimate | tostring | test("decision memo|bubble up|bubble-up"))
+  (.costAtTwoTimesEstimate.action == "continue")
 ' "$POLICY_JSON" >/dev/null; then
   echo 'PASS: policy JSON preserves independent axes and bubble-up rules'
 else
   echo 'FAIL: policy JSON preserves independent axes and bubble-up rules'
   FAILED=$((FAILED + 1))
 fi
-assert_contains "$LEGACY_FINAL" 'brainstorm' 'no-policy branch keeps brainstorming' || FAILED=$((FAILED + 1))
-assert_contains "$LEGACY_FINAL" 'spec' 'no-policy branch keeps spec' || FAILED=$((FAILED + 1))
-assert_contains "$LEGACY_FINAL" 'plan' 'no-policy branch keeps plan' || FAILED=$((FAILED + 1))
+LEGACY_JSON="$LEGACY_OUTPUT/classification.json"
+printf '%s\n' "$LEGACY_FINAL" | sed '/^```/d' > "$LEGACY_JSON"
+for result_file in "$POLICY_JSON" "$LEGACY_JSON"; do
+  if ! jq -e '
+    .mechanical.planningSize == "short" and
+    (.mechanical.planningArtifacts | length == 1) and
+    (.mechanical.planningArtifacts | tostring | test("plan"; "i")) and
+    .explicitBoth.planningSize == "short" and
+    (.explicitBoth.planningArtifacts | length == 2) and
+    (.explicitBoth.planningArtifacts | tostring | test("spec"; "i")) and
+    (.explicitBoth.planningArtifacts | tostring | test("plan"; "i")) and
+    .uncertainDesign.planningSize == "detailed" and
+    (.mechanical.verification | tostring | test("test|verif|check"; "i")) and
+    (.mechanical.verification | tostring | test("review"; "i"))
+  ' "$result_file" >/dev/null; then
+    echo 'FAIL: mechanical planning classification or retained verification'
+    FAILED=$((FAILED + 1))
+  fi
+done
+NONMECHANICAL_STAGES="$(jq -r '.nonmechanical.planningStages | join(" ")' "$LEGACY_JSON")"
+assert_contains "$NONMECHANICAL_STAGES" 'brainstorm|compar.*approach' 'no-policy branch keeps design exploration' || FAILED=$((FAILED + 1))
+assert_contains "$NONMECHANICAL_STAGES" 'approv' 'no-policy branch keeps design approval' || FAILED=$((FAILED + 1))
+if ! jq -e '
+  .nonmechanical.planningSize == "detailed" and
+  (.nonmechanical.planningArtifacts | tostring | test("spec"; "i")) and
+  (.nonmechanical.planningArtifacts | tostring | test("plan"; "i"))
+' "$LEGACY_JSON" >/dev/null; then
+  echo 'FAIL: nonmechanical work must retain its spec and detailed plan'
+  FAILED=$((FAILED + 1))
+fi
 
 if [ "$FAILED" -ne 0 ]; then
   printf '%s\n' "$POLICY_FINAL" "$LEGACY_FINAL"

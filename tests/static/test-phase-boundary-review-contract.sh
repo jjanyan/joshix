@@ -62,8 +62,8 @@ require_order "$BRAINSTORMING" \
   '**Spec self-review**' '**Opposite-provider spec review**' \
   'spec review follows self-review'
 require_order "$BRAINSTORMING" \
-  '**Opposite-provider spec review**' '**User reviews written spec when the boundary is satisfied**' \
-  'spec review precedes owner handoff'
+  '**Opposite-provider spec review**' '**Continue to planning automatically**' \
+  'spec review precedes automatic planning'
 
 require_fixed "$WRITING" \
   'owner-supplied named spec' \
@@ -153,8 +153,8 @@ require_fixed "$BRAINSTORMING" \
   'Spec boundary blocked: opposite-provider approval is absent and no explicit owner or repository instruction names the spec boundary.' \
   'unapproved spec has a blocked terminal'
 require_fixed "$BRAINSTORMING" \
-  '**User reviews written spec when the boundary is satisfied**' \
-  'brainstorming checklist gates owner handoff'
+  '**Continue to planning automatically**' \
+  'brainstorming checklist continues only after reviews'
 require_fixed "$BRAINSTORMING" \
   '"Spec boundary satisfied?" -> "Stop at blocked spec boundary" [label="no"]' \
   'brainstorming graph has a blocked spec branch'
@@ -174,7 +174,7 @@ require_fixed "$WRITING" \
   'Plan boundary blocked: opposite-provider approval is absent and no explicit owner or repository instruction names the plan boundary.' \
   'active policy defines its blocked plan disclosure'
 require_order "$WRITING" \
-  'Continue to handoff only after the core plan review is approved or an explicit owner or repository instruction names the plan boundary.' \
+  'Continue only with provider approval or that named override' \
   '`Ready to execute; waiting for your command.`' \
   'routine plan approval condition precedes readiness'
 require_fixed "$VERIFYING" \
@@ -184,8 +184,8 @@ reject_fixed "$VERIFYING" \
   'materially changed repository code' \
   'non-code material changes remain inside the review backstop'
 require_order "$FORMAT" \
-  'end with exactly one applicable line:' \
-  '`Ready to plan; waiting for your command.`' \
+  'end exactly:' \
+  '`Ready to execute; waiting for your command.`' \
   'readiness literal immediately follows the hold introduction'
 reject_fixed "$FORMAT" \
   'semantic stop on an unchanged artifact may use the same artifact-local hold' \

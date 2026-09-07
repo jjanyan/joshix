@@ -27,6 +27,14 @@ Subagent or review tool:
     fair, and specific. Do not include a positive-assessment section. Do not
     give taste-based feedback.
 
+    Use the supplied prior reasoning and repository guidance for the latest
+    applicable owner decisions and accepted limitations. Before reopening a
+    settled decision, identify its resolution and new evidence of error, later
+    invalidation, or a defect outside the accepted limitation. A repeated risk
+    is insufficient. This does not narrow
+    code review to the latest correction; report newly demonstrated bugs anywhere
+    in the authorized review scope.
+
     ## What Was Implemented
 
     {DESCRIPTION}

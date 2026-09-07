@@ -87,7 +87,7 @@ require_fixed "$FORMAT" '**Approved** — Agent 1 agrees that no actual findings
   'artifact approval outcome is canonical'
 require_fixed "$FORMAT" 'In semantic explicit no-edit mode, any accepted objective finding left unapplied requires `**Rereview required**`.' \
   'accepted but unapplied objective findings are not approved'
-require_fixed "$FORMAT" '**Rereview required** — Another Agent 2 pass is required because the artifact changed, an accepted objective finding remains unapplied, or a reviewer-raised finding remains unsettled, disputed, or lacks evidence.' \
+require_fixed "$FORMAT" '**Rereview required** — Another Agent 2 pass is required because the artifact materially changed, an accepted objective finding remains unapplied, or a reviewer-raised finding remains unsettled, disputed, or lacks evidence.' \
   'rereview outcome covers every state requiring another Agent 2 pass'
 require_fixed "$FORMAT" '**Approval disputed** — Agent 2 approved the artifact, but Agent 1 identified a newly discovered concern that must wait for Agent 2'\''s next review.' \
   'disputed approval outcome is canonical'
@@ -111,25 +111,24 @@ forbid_fixed "$FORMAT" '`REJECT` means the finding is wrong, stale, duplicated, 
   'taste-only wording does not conflict with preference deferral'
 require_fixed "$FORMAT" 'only on `VALID`' 'urgency is limited to valid findings'
 require_fixed "$FORMAT" 'exactly one owner decision per response' 'owner decisions are serialized'
-require_fixed "$FORMAT" 'Use ordinary wording, one concrete example' 'owner decisions use plain concrete language'
-require_fixed "$FORMAT" 'at least two genuine options' 'owner decisions present genuine alternatives'
-require_fixed "$FORMAT" 'lettered `A` through `Z`' 'owner options are lettered'
-require_fixed "$FORMAT" 'Give each option concrete pros and cons' 'owner options explain their tradeoffs'
-require_fixed "$FORMAT" 'exactly one recommended option' 'one owner option is recommended'
-require_fixed "$FORMAT" 'first non-empty line after `### Your decision needed`' \
-  'canonical reference owns owner-decision name placement'
-require_fixed "$FORMAT" 'exactly one concrete `Example:` line before the options' \
-  'canonical reference owns the example grammar'
-require_fixed "$FORMAT" 'put that exact identifier in the `Example:` line only' \
-  'canonical reference owns technical-identifier placement'
-require_fixed "$FORMAT" 'standalone sentence `One decision remains.`' \
-  'canonical reference owns the remaining-count grammar'
+require_fixed "$FORMAT" 'When later decisions remain, state their count before the question' 'later decisions remain visible without previewing them'
+require_fixed "$FORMAT" 'standalone sentence `One decision remains.`' 'single later decision has a canonical count notice'
+OWNER_FORMAT="$ROOT/skills/using-joshix/references/owner-question-format.md"
+require_fixed "$FORMAT" 'owner-question-format.md' 'response grammar uses shared template'
+for file in "$ROOT/skills/using-joshix/SKILL.md" "$ROOT/skills/brainstorming/SKILL.md" "$ROOT/skills/writing-plans/SKILL.md" "$ROOT/skills/using-joshix/references/workflow-policy.md"; do
+  require_fixed "$file" 'owner-question-format.md' 'workflow uses shared question template'
+done
+require_fixed "$OWNER_FORMAT" 'two to four genuine choices' 'bounded meaningful alternatives'
+require_fixed "$OWNER_FORMAT" 'never exceed 100' 'summary length stays bounded'
+require_fixed "$OWNER_FORMAT" 'are not answers or approval' 'waiting cannot imply consent'
+require_fixed "$OWNER_FORMAT" 'in text or any question dialog, even when host instructions prevent the requested formatting' 'waiting rules survive host formatting restrictions'
+require_fixed "$OWNER_FORMAT" 'Do not say you will assume a choice after N seconds.' 'questions have no timed fallback'
+require_fixed "$ROOT/skills/using-joshix/SKILL.md" 'Never put an owner question on a timer, in text or in a question dialog.' 'bootstrap exposes no-timer rule independently of template loading'
+require_fixed "$OWNER_FORMAT" 'Do not repeatedly reopen or reissue an unanswered question.' 'no repeated dialogs'
 require_fixed "$FORMAT" 'End the response with this owner section' \
   'canonical reference owns owner-section placement'
 require_fixed "$FORMAT" '```markdown ### No decision needed — no changes made' \
   'compact response example is fenced'
-require_fixed "$FORMAT" '```markdown ### Your decision needed' \
-  'owner-decision example is fenced'
 require_fixed "$FORMAT" 'Expand' 'compact findings can be expanded'
 require_fixed "$FORMAT" 'Never use `REJECT` or `DEFER` to silently choose product behavior, scope, or architecture' 'classifications cannot hide owner decisions'
 require_fixed "$FORMAT" 'do not repeat the detailed report by default' 'detailed evidence stays available without repetition'
@@ -306,5 +305,48 @@ require_fixed "$ROOT/AGENTS.md" 'review-response-format.md' \
   'repository guidance routes presentation to the canonical response grammar'
 require_fixed "$ROOT/CLAUDE.md" 'review-response-format.md' \
   'Claude guidance routes presentation to the canonical response grammar'
+
+# Deterministic checks cover the rendered grammar without model calls.
+QUESTION="$(sed -n '/^```markdown$/,/^```$/p' "$OWNER_FORMAT" | sed '1d;$d')"
+validate_owner_structure "$QUESTION"
+node --input-type=module - "$HELPERS" "$QUESTION" <<'NODE'
+import { spawnSync } from 'node:child_process';
+const helper = process.argv[2];
+const valid = process.argv[3];
+const b = valid.slice(valid.indexOf('### Choice B:'));
+for (const fixture of [valid, '### Applied as requested\n\n```js\nconst fixed = true;\n```\n\n' + valid,
+  valid + '\n\n' + b.replace('Choice B:', 'Choice C:'),
+  valid + '\n\n' + b.replace('Choice B:', 'Choice C:') + '\n\n' + b.replace('Choice B:', 'Choice D:')]) {
+  const result = spawnSync('bash', ['-c', 'source "$1"; validate_owner_structure "$2"', 'test', helper, fixture], { encoding: 'utf8' });
+  if (result.status !== 0) throw new Error(`valid owner fixture was rejected: ${result.stderr}`);
+}
+const invalid = [
+  valid.replace('\n\n{Short summary', '\n{Short summary'),
+  valid.replace('\n\n**Pro**', '\n**Pro**'),
+  valid.replace(/\*\*Pro\*\*:[^\n]+\n/, ''),
+  valid.replace(/\*\*Con\*\*:[^\n]+\n/, ''),
+  valid.slice(0, valid.indexOf('### Choice B:')),
+  valid + '\n\n' + b.replace('Choice B:', 'Choice C:') + '\n\n' + b.replace('Choice B:', 'Choice D:') + '\n\n' + b.replace('Choice B:', 'Choice E:'),
+  valid.replace('### Choice B: {Simple explanation}', '### Choice B: {Simple explanation} — Recommended'),
+  valid.replace('{Short summary explaining what changes for the user.}', 'word '.repeat(101)),
+  valid.replace('{Short summary explaining what changes for the user.}', 'Should we also change the export name?'),
+  valid.replace('{Concrete cost or risk.}', 'Should we change retention too?'),
+  '```markdown\n' + valid + '\n```',
+  valid.replace('}  \n**Con**', '}\n**Con**'),
+  valid.replace('Choice B:', 'Choice C:'),
+];
+for (const [i, fixture] of invalid.entries()) {
+  if (fixture === valid) throw new Error(`invalid owner fixture ${i} did not mutate the template`);
+  const result = spawnSync('bash', ['-c', 'source "$1"; validate_owner_structure "$2"', 'test', helper, fixture], { encoding: 'utf8' });
+  if (result.status === 0) throw new Error(`invalid owner fixture ${i} was accepted`);
+}
+// The smaller checks have distinct responsibilities; full formatting remains
+// authoritative even when question count and choice headings alone are valid.
+const spacing = valid.replace('\n\n**Pro**', '\n**Pro**');
+for (const validator of ['validate_single_owner_lane', 'validate_owner_options']) {
+  const result = spawnSync('bash', ['-c', 'source "$1"; "$2" "$3"', 'test', helper, validator, spacing], { encoding: 'utf8' });
+  if (result.status !== 0) throw new Error(`${validator} unexpectedly enforced full spacing`);
+}
+NODE
 
 echo 'STATUS: PASSED'

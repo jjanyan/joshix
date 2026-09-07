@@ -28,7 +28,8 @@ The active algorithm is:
 7. Stop on an owner decision, when the reviewer repeats a rebutted disagreement
    without new evidence, when the same concrete defect is materially unchanged,
    or when no objective correction remains.
-8. On transport failure or cancellation, report the result and stop.
+8. On transport failure or cancellation, report the result and stop, except
+   for the narrow bundled-authentication recovery below.
 
 The reviewer supplies evidence and a recommendation. The coordinator verifies
 the evidence and classifies scope, policy, product, and architecture impact.
@@ -39,7 +40,7 @@ artifact changes or new evidence appears.
 
 The reviewer receives this exact substantive instruction once:
 
-> Challenge assumptions in the spec, plan, and implementation when they create concrete risk; do not treat prior approval as proof of correctness. Read the shared chat and review
+> Challenge assumptions in the spec, plan, and implementation when they create concrete risk. Read the shared chat and repository guidance. Establish the latest applicable owner decisions, accepted limitations, and superseded choices before reviewing the current artifact. Evaluate within that scope; prior approval is not proof of correctness, but a knowingly accepted limitation is not an overlooked defect. Before reopening a settled issue, identify the prior decision and new evidence that its resolution was incorrect, invalidated by later changes, or left a defect outside the accepted limitation. Repeating an accepted risk or preferring another design is insufficient. Initial spec and plan reviews cover the artifact. Follow-ups examine corrections and their consequences, including interactions with unchanged parts; do not restart broad review because wording was clarified or relitigate unrelated settled issues without new evidence. Review code for concrete correctness risks, regressions, and missing requirements throughout the task's scope, including outside the latest correction. Read the existing history as needed; no mandatory decision recap or new decision artifact is required.
 
 Do not rewrite, reorder, prefix, or append substantive review criteria. The
 surrounding mechanical prompt may identify the exact repository root, exact
@@ -47,6 +48,14 @@ task folder, installed read commands, and response schema. It must not select
 an artifact class, review lens, expected conclusion, or priority.
 
 ## Read-only provider boundary
+
+Run `joshix-review review` as the only command in its shell call. NEVER combine
+it with file preparation, logging, heredocs, command chains, pipelines, or
+another command. Prepare files in separate calls. In the configured Codex
+installation, the saved narrow allow rule permits the standalone launcher to
+run outside the sandbox automatically. The wrapper itself does not elevate.
+Default tool permissions alone do not establish whether execution stayed
+sandboxed.
 
 The provider process may read repository files and the exact task but may not
 edit repository or task state. The installed bridge exposes only:
@@ -84,9 +93,12 @@ workflow command.
 
 After the provider exits, the bridge validates the completed compact JSON. A
 valid result over 512 KiB is `oversized-result`; ordinary progress output is
-discarded as it arrives and never terminates a provider. Stderr retains only a
-rolling 16 KiB diagnostic tail for a terminal failure message. Diagnostics and
-ordinary events are never appended to history.
+discarded as it arrives and never terminates a provider. Retain rolling tails
+from terminal stdout errors and stderr; the combined labeled failure message
+is bounded to 16 KiB. Plain stdout is only a fallback on nonzero exit.
+Provider-declared terminal errors remain failures even with exit code zero.
+Successful review text and ordinary events are not authentication diagnostics.
+Diagnostics and ordinary events are never appended to history.
 
 On success, the bridge appends `JSON.stringify(review)` using only `speaker`
 and `content`. The speaker is `Claude Reviewer` or `Codex Reviewer`. This is an
@@ -97,11 +109,19 @@ the exact result without pretending it entered history.
 
 ## Terminal results
 
-There is no automatic retry or alternate provider. Direct, unversioned failure
+There is no internal retry or alternate provider. Direct, unversioned failure
 kinds are `invalid-request`, `unavailable`, `authentication`, `provider-exit`,
 `missing-result`, `malformed-result`, `oversized-result`, `history-read`,
 `history-append`, and `internal`. Every spawn error is handled before exit-code
 classification; missing or non-executable provider commands are `unavailable`.
+
+An `authentication` result includes the original diagnostic and fixed recovery
+guidance. The coordinator checks its original shell call: if the launcher was
+bundled, retry once as a standalone command. If it was already standalone, or
+the standalone retry fails, stop and report the error to the user; the account
+may actually be logged out. This is the only coordinator retry exception. The
+bridge cannot infer the parent call shape and never retries or changes
+credentials. A generic exit code 1 is not proof of authentication failure.
 
 Cancellation is separate from ordinary failure. `SIGINT` or `SIGTERM` is
 forwarded to the provider process group, with forced cleanup only after the
@@ -120,9 +140,16 @@ probe, or compatibility shim. During upgrade it removes only the known obsolete
 
 ## Convergence and completion
 
-Use `review-reception-contract.md` for finding authority. A changed artifact is
-eligible for a new explicit review call; unchanged work is not. A provider
-failure does not authorize a relaunch. Completion verification follows the
+Use `review-reception-contract.md` for finding authority. A material correction
+or new evidence makes work eligible for a fresh review call; unchanged work
+without new evidence does not. A provider
+failure does not authorize a relaunch except for the bundled-authentication
+case above. Completion verification follows the
 repository's declared gates and normal focused diagnosis; review transport does
-not create numeric work budgets, special recovery allowances, or additional
+not create numeric work budgets or additional
 proof rituals.
+
+A clarification alone does not restart broad spec or plan review. When a
+required follow-up remains, verify the outstanding findings and the correction's
+affected interactions. A rejection is not provider approval; unresolved required
+boundaries remain subject to the existing approval and semantic stop rules.

@@ -15,9 +15,9 @@ oracle_only() {
     'ordinary SQLite message' \
     'repeats a rebutted disagreement without new evidence' \
     'same concrete defect is materially unchanged' \
-    'There is no automatic retry or alternate provider' \
+    'There is no internal retry or alternate provider' \
     '512 KiB' \
-    'rolling 16 KiB'; do
+    'bounded to 16 KiB'; do
     [[ "$normalized" == *"$expected"* ]]
   done
   for removed in \

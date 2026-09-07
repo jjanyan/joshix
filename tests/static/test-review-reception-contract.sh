@@ -107,9 +107,9 @@ require_fixed "$CONTRACT" 'Independently verify it and apply the same authority 
   'Agent 1 concerns use the same evidence and authority rules'
 require_fixed "$CONTRACT" 'Rejected, deferred, unclear, and unverified findings remain unchanged with evidence-backed reasoning in the shared conversation.' \
   'disagreement handoff stays conversational'
-require_fixed "$CONTRACT" 'If a later Agent 2 pass identifies a previously applied automatic change as wrong, that report is an ordinary new finding.' \
-  'later corrections reenter the ordinary review loop'
-require_fixed "$CONTRACT" 'the prior application does not create a new owner gate.' \
+require_fixed "$CONTRACT" 'A reversal must identify the prior resolution and new evidence' \
+  'later corrections require evidence before reopening'
+require_fixed "$CONTRACT" 'The prior application does not create a new owner gate.' \
   'later objective corrections do not become owner decisions'
 require_fixed "$CONTRACT" 'Do not classify these failure-state entries as `VALID` or claim they were updated, handled, completed, or fixed' \
   'failure reporting cannot overstate partial work'

@@ -16,8 +16,12 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 If loaded repository guidance declares `joshix-workflow-policy:`, read
 `../using-joshix/references/workflow-policy.md` first. For `trivial`, skip this
 skill. For `routine`, continue only when the plan is the task's one selected
-planning artifact; never add a brainstorm or spec. For `complex`, continue
-below. Policy absence preserves this skill unchanged.
+planning artifact, unless the user explicitly requests both spec and plan.
+Mechanical work with settled behavior uses the short-planning branch below,
+with or without an active policy. Otherwise `complex` and policy-absent work
+continues through the detailed sections. File count and high criticality alone
+do not create design complexity; concrete unresolved behavior or architecture
+justifies expansion.
 
 Before authoring a plan from an owner-supplied named spec under an active
 workflow policy, check ordinary task history for opposite-provider approval of
@@ -31,27 +35,41 @@ spec boundary.` and stop before plan authoring. This is an entry backstop, not
 a second review of an artifact that just completed the `brainstorming`
 boundary.
 
-### Routine short-plan terminal
+### Short-planning branch
 
-When an active declaration says `routine` and selects a plan as the one planning
-artifact, write one short plan containing the requested outcome and authorized
-scope, exact files, ordered implementation steps, focused checks, and the
-repository's final completion checks. Do not add a brainstorm, spec, or
-detailed task boilerplate. Self-review for ambiguity, missing coverage, and
-scope growth, save it in the configured plan location, then review the written
-implementation plan through `../using-joshix/references/autonomous-review.md`.
-Skip that core review only when an explicit owner or repository instruction
-names the plan boundary. Continue to handoff only after the core plan review is
-approved or an explicit owner or repository instruction names the plan
-boundary. Otherwise report `Plan boundary blocked: opposite-provider approval
-is absent and no explicit owner or repository instruction names the plan
-boundary.` and stop. Apply any tier-added review rigor after the core boundary.
-Then stop before the detailed
-legacy sections below. If execution is not already authorized, end exactly:
+Use this branch for mechanical work with settled behavior under either policy
+mode, and for active-policy `routine` work selecting a plan. Write one short
+plan containing outcome, authorized scope, exact files, ordered implementation
+steps, focused checks, and final completion checks. Do not duplicate complete
+implementation code or add detailed task boilerplate. Explicit requests for
+both spec and plan receive both concise artifacts, with the required reviews.
+Otherwise do not add a brainstorm or spec solely to satisfy the full workflow.
+
+Self-review for ambiguity, missing coverage, and scope growth. Save the plan in
+`.joshix/plans/` (or the requested location). Under an active policy, review the written implementation plan through `../using-joshix/references/autonomous-review.md`, unless
+an explicit owner or repository instruction names the plan boundary. Continue
+only with provider approval or that named override; otherwise report `Plan
+boundary blocked: opposite-provider approval is absent and no explicit owner
+or repository instruction names the plan boundary.` Apply tier-added review
+rigor too. Without a policy, retain the required plan review from the
+policy-absent plan review heuristic below. Shorter planning does not reduce testing
+or required artifact reviews.
+
+Then stop before the detailed legacy sections below. If execution is not already
+authorized, end exactly:
 
 `Ready to execute; waiting for your command.`
 
-All remaining sections are the `complex` and policy-absent branch only.
+### Owner decisions and transitions
+
+Read `../using-joshix/references/owner-question-format.md` for genuine questions.
+Continue from a spec automatically once its required reviews and genuine owner
+decisions are satisfied; no separate planning command or routine written-spec
+signoff. Honor explicit spec-only, review-only, or stop instructions. Plan review
+and implementation authorization remain required.
+
+All remaining detailed sections apply to nonmechanical `complex` and
+policy-absent work.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 

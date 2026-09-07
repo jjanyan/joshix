@@ -15,6 +15,7 @@ tests=(
   "test-phase-boundary-review-contract.sh"
   "test-autonomous-review-contract.sh"
   "test-readiness-hold-contract.sh"
+  "test-browser-test-isolation-contract.sh"
 )
 
 passed=0

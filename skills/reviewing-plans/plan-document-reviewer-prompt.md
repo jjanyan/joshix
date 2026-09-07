@@ -24,6 +24,13 @@ Task tool (general-purpose):
 
     You are a plan document reviewer. Verify this plan is complete and ready for implementation.
 
+    Use supplied prior reasoning and repository guidance for the latest owner
+    decisions and accepted limitations. Before reopening a settled decision,
+    identify its resolution and new evidence of error, later invalidation, or
+    a defect outside the accepted limitation. A repeated risk is insufficient. On a
+    follow-up inspect corrections and their affected interactions, including
+    unchanged parts, rather than restart broad review after a clarification.
+
     **Plan to review:** [PLAN_FILE_PATH]
     **Spec for reference:** [SPEC_FILE_PATH]
     **Prior reasoning:** [PRIOR_REASONING]

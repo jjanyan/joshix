@@ -197,7 +197,7 @@ validate_review_outcome() {
     local output="$1" expected="$2"
     printf '%s\n' "$output" | awk -v expected="$expected" '
       /^### Review outcome$/ { headings++; in_outcome=1; next }
-      /^### / && !/^### Review outcome$/ { in_outcome=0 }
+      (/^## / || /^### /) && !/^### Review outcome$/ { in_outcome=0 }
       in_outcome && /^\*\*/ {
         outcomes++
         if (index($0, "**" expected "**") == 1) matched++
@@ -252,96 +252,17 @@ validate_compact_bounds() {
     '
 }
 
+validate_owner_question() {
+    printf '%s\n' "$1" | node "$CODEX_TEST_DIR/owner-question-validator.mjs"
+}
+
 validate_owner_options() {
-    printf '%s\n' "$1" | awk '
-      function finish_previous() {
-        if (seen && (!pros || !cons)) exit 1
-      }
-      /^### Your decision needed$/ {
-        headings++
-        if (headings == 1) in_lane = 1
-        next
-      }
-      !in_lane { next }
-      /^[[:space:]]*-[[:space:]]+\*\*[A-Z]\. .+\*\*[[:space:]]*$/ {
-        finish_previous()
-        option = $0
-        sub(/^[[:space:]]*-[[:space:]]+\*\*/, "", option)
-        letter = substr(option, 1, 1)
-        if (letters[letter]) duplicate = 1
-        letters[letter] = 1
-        seen++
-        pros = 0
-        cons = 0
-        next
-      }
-      seen && /^[[:space:]]*-[[:space:]]+Pros:/ { pros = 1; next }
-      seen && /^[[:space:]]*-[[:space:]]+Cons:/ { cons = 1; next }
-      END {
-        if (headings != 1 || seen < 2 || !pros || !cons || duplicate) exit 1
-      }
-    '
+    printf '%s\n' "$1" | node "$CODEX_REPO_ROOT/tests/codex/owner-question-validator.mjs" options
 }
-
 validate_single_owner_lane() {
-    printf '%s\n' "$1" | awk '
-      /^### Your decision needed$/ {
-        headings++
-        if (headings == 1) in_lane = 1
-        next
-      }
-      in_lane && /^[[:space:]]*-[[:space:]]+\*\*[A-Z]\. / { options_started = 1 }
-      in_lane {
-        question_line = $0
-        question_marks = gsub(/\?/, "", question_line)
-        questions += question_marks
-        if (!options_started) questions_before_options += question_marks
-      }
-      END {
-        if (headings != 1 || questions != 1 || questions_before_options != 1) exit 1
-      }
-    '
+    printf '%s\n' "$1" | node "$CODEX_REPO_ROOT/tests/codex/owner-question-validator.mjs" single
 }
-
-validate_owner_structure() {
-    printf '%s\n' "$1" | awk '
-      function plain_name(line, name, words) {
-        if (line !~ /^\*\*[^*]+\*\*$/) return 0
-        name = line
-        sub(/^\*\*/, "", name)
-        sub(/\*\*$/, "", name)
-        if (name !~ /^[[:alnum:]][[:alnum:] &\/-]*$/) return 0
-        if (name ~ /[[:lower:]][[:upper:]]/) return 0
-        words = split(name, name_parts, /[[:space:]]+/)
-        return words >= 1 && words <= 5
-      }
-      /^### Your decision needed$/ {
-        headings++
-        if (headings == 1) in_lane = 1
-        next
-      }
-      in_lane && /^#+[[:space:]]/ { later_section = 1 }
-      in_lane && NF && !first_nonempty {
-        first_nonempty = 1
-        if (plain_name($0)) names++
-        else invalid_name = 1
-        next
-      }
-      in_lane && /^\*\*[^*]+\*\*$/ {
-        names++
-        if (!plain_name($0)) invalid_name = 1
-        next
-      }
-      in_lane && /^[[:space:]]*-[[:space:]]+\*\*[A-Z]\. / { options_started = 1 }
-      in_lane && /^Example:/ {
-        examples++
-        if ($0 !~ /^Example:[[:space:]]+[^[:space:]]/ || options_started) invalid_example = 1
-      }
-      END {
-        if (headings != 1 || names != 1 || invalid_name || examples != 1 || invalid_example || later_section) exit 1
-      }
-    '
-}
+validate_owner_structure() { validate_owner_question "$1"; }
 
 export CODEX_TEST_DIR
 export CODEX_REPO_ROOT
@@ -364,3 +285,5 @@ export -f validate_owner_options
 export -f validate_single_owner_lane
 export -f validate_owner_structure
 export -f validate_review_outcome
+
+export -f validate_owner_question

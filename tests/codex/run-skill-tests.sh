@@ -90,6 +90,10 @@ tests=(
     "test-workflow-policy-behavior.sh"
     "test-autonomous-review-loop-behavior.sh"
     "test-readiness-hold-behavior.sh"
+    "test-review-followup-scope-behavior.sh"
+    "test-owner-question-wait-behavior.sh"
+    "test-owner-question-no-timer-behavior.sh"
+    "test-browser-test-isolation-behavior.sh"
     "test-discussion-review-routing-behavior.sh"
     "test-completion-gate-recovery-behavior.sh"
 )
