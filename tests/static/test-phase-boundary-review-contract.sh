@@ -30,104 +30,35 @@ require_order() {
     || { printf 'FAIL: %s\nExpected order: %s -> %s\n' "$label" "$first" "$second"; exit 1; }
 }
 
-require_fixed "$POLICY" \
-  'review a written spec before planning, review a written implementation plan before execution, and review the completed implementation before a completion claim' \
-  'policy defines the three core phase boundaries'
-require_fixed "$POLICY" \
-  'Complexity determines which planning artifacts exist; it does not determine whether an existing artifact is reviewed.' \
-  'complexity selects artifacts rather than review suppression'
-require_fixed "$POLICY" \
-  'Criticality controls test depth and may add review gates; it does not remove a core phase-boundary review.' \
-  'tiers add rigor without suppressing core reviews'
-require_fixed "$POLICY" \
-  'only by naming that boundary' \
-  'explicit instructions can name a boundary override'
-require_fixed "$POLICY" \
-  'A core phase boundary is satisfied by provider approval.' \
-  'provider approval satisfies every core boundary'
-require_fixed "$POLICY" \
-  'A semantic stop without approval leaves the boundary blocked until material change, new evidence, or an explicit owner instruction naming that boundary.' \
-  'semantic stops remain finite without pretending to approve'
-require_fixed "$POLICY" \
-  'A tier-required review at the same artifact boundary is satisfied by the core review; only a separately named, distinct gate adds another review.' \
-  'core review also satisfies an equivalent tier gate'
+BOOTSTRAP="$ROOT/skills/using-joshix/SKILL.md"
+require_fixed "$BOOTSTRAP" '## Work and review' 'one central ceremony selector'
+require_fixed "$BOOTSTRAP" 'A plan file, file count, or task count alone does not require it.' 'artifact presence does not create advance review'
+require_fixed "$BOOTSTRAP" 'Preserve tier-required gates.' 'explicit risk gates remain binding'
+require_fixed "$BOOTSTRAP" 'Required review needs approval or an explicit owner override of that review' 'required gates need approval'
+require_fixed "$BOOTSTRAP" 'Extending a preview does not start completion review.' 'preview retains its phase'
+require_fixed "$POLICY" 'including for owner-supplied specs and plans' 'supplied artifacts use the same selector'
+require_fixed "$POLICY" 'A semantic stop without approval leaves a required gate blocked' 'unapproved required gate remains blocked'
+require_fixed "$POLICY" 'An equivalent tier review satisfies the same gate' 'equivalent final gates coalesce'
+for file in "$BRAINSTORMING" "$WRITING" "$EXECUTING" "$SUBAGENT"; do
+  require_fixed "$file" 'Work and review' 'workflow routes to the central selector'
+  reject_fixed "$file" 'If neither exists and no opposite-provider review' 'unconditional supplied-artifact backstop removed'
+done
+require_fixed "$WRITING" 'If review is required, confirm its approval' 'required supplied-spec gate remains enforced'
+require_fixed "$EXECUTING" 'obtain that review before retained implementation' 'required supplied-plan gate remains enforced'
+require_fixed "$BRAINSTORMING" 'A required unapproved review blocks its dependent phase' 'selected spec review blocks its dependent phase'
+require_fixed "$SUBAGENT" 'one core whole-change review' 'outer completed-change review remains'
+require_fixed "$EXECUTING" 'one core whole-change review' 'inline completed-change review remains'
+require_fixed "$VERIFYING" 'Completed-implementation boundary blocked:' 'unapproved final gate has a blocked terminal'
 
-require_fixed "$BRAINSTORMING" \
-  'review the written spec through `../using-joshix/references/autonomous-review.md`' \
-  'brainstorming owns active-policy spec review'
-require_fixed "$BRAINSTORMING" \
-  'unless an explicit owner or repository instruction names the spec boundary' \
-  'spec producer preserves the named boundary override'
-require_order "$BRAINSTORMING" \
-  '**Spec self-review**' '**Opposite-provider spec review**' \
-  'spec review follows self-review'
-require_order "$BRAINSTORMING" \
-  '**Opposite-provider spec review**' '**Continue to planning automatically**' \
-  'spec review precedes automatic planning'
-
-require_fixed "$WRITING" \
-  'owner-supplied named spec' \
-  'planning has a supplied-spec entry backstop'
-require_fixed "$WRITING" \
-  'opposite-provider approval of the unchanged spec or an explicit owner or repository instruction naming the spec boundary' \
-  'supplied-spec backstop checks boundary satisfaction'
-require_fixed "$WRITING" \
-  'If neither exists and no opposite-provider review of the unchanged spec is recorded, review that spec' \
-  'supplied-spec backstop avoids duplicate review after a semantic stop'
-require_fixed "$WRITING" \
-  'Spec boundary blocked: opposite-provider approval is absent and no explicit owner or repository instruction names the spec boundary.' \
-  'supplied-spec backstop has a blocked terminal'
-require_fixed "$WRITING" \
-  'review the written implementation plan through `../using-joshix/references/autonomous-review.md`' \
-  'writing-plans owns active-policy plan review'
-require_fixed "$WRITING" \
-  'unless an explicit owner or repository instruction names the plan boundary' \
-  'plan producer preserves the named boundary override'
-require_order "$WRITING" \
-  'Self-review for ambiguity, missing coverage, and scope growth' \
-  'review the written implementation plan' \
-  'routine plan review follows self-review'
-require_order "$WRITING" \
-  'review the written implementation plan' \
-  '`Ready to execute; waiting for your command.`' \
-  'plan review precedes execution hold'
-
-require_fixed "$EXECUTING" \
-  'Before the first implementation edit from an owner-supplied named plan' \
-  'execution has a supplied-plan entry backstop'
-require_fixed "$EXECUTING" \
-  'opposite-provider approval of the unchanged plan or an explicit owner or repository instruction naming the plan boundary' \
-  'inline supplied-plan backstop checks boundary satisfaction'
-require_fixed "$EXECUTING" \
-  'If neither exists and no opposite-provider review of the unchanged plan is recorded, review the plan' \
-  'inline supplied-plan backstop avoids duplicate review after a semantic stop'
-require_fixed "$EXECUTING" \
-  'Plan boundary blocked: opposite-provider approval is absent and no explicit owner or repository instruction names the plan boundary.' \
-  'inline supplied-plan backstop has a blocked terminal'
 require_fixed "$EXECUTING" \
   'one core whole-change review of the completed implementation, plus any distinct tier-added whole-change gate' \
   'inline execution owns final core review'
-require_fixed "$EXECUTING" \
-  'unless an explicit owner or repository instruction names the completed-implementation boundary' \
-  'inline execution preserves the named final boundary override'
 require_fixed "$SUBAGENT" \
   'first execution entry, it owns the one core whole-change review' \
   'subagent execution preserves one outer review'
 require_fixed "$SUBAGENT" \
   'It then invokes `joshix:verification-before-completion` for broad/full completion verification once after review sign-off or that named override.' \
   'direct subagent execution invokes the completion backstop owner'
-require_fixed "$SUBAGENT" \
-  'Before dispatch or the first implementation edit from an owner-supplied named plan' \
-  'subagent execution has a supplied-plan entry backstop'
-require_fixed "$SUBAGENT" \
-  'opposite-provider approval of the unchanged plan or an explicit owner or repository instruction naming the plan boundary' \
-  'subagent supplied-plan backstop checks boundary satisfaction'
-require_fixed "$SUBAGENT" \
-  'If neither exists and no opposite-provider review of the unchanged plan is recorded, review the plan' \
-  'subagent supplied-plan backstop avoids duplicate review after a semantic stop'
-require_fixed "$SUBAGENT" \
-  'Plan boundary blocked: opposite-provider approval is absent and no explicit owner or repository instruction names the plan boundary.' \
-  'subagent supplied-plan backstop has a blocked terminal'
 require_fixed "$SUBAGENT" \
   'run only tier-selected gates inside each lane; the outer core final review remains required' \
   'tier selection is confined to additional lane review'
@@ -149,44 +80,12 @@ require_fixed "$VERIFYING" \
 require_fixed "$VERIFYING" \
   'Completed-implementation boundary blocked: opposite-provider approval is absent and no explicit owner or repository instruction names the completed-implementation boundary.' \
   'unapproved completed implementation has a blocked terminal'
-require_fixed "$BRAINSTORMING" \
-  'Spec boundary blocked: opposite-provider approval is absent and no explicit owner or repository instruction names the spec boundary.' \
-  'unapproved spec has a blocked terminal'
-require_fixed "$BRAINSTORMING" \
-  '**Continue to planning automatically**' \
-  'brainstorming checklist continues only after reviews'
-require_fixed "$BRAINSTORMING" \
-  '"Spec boundary satisfied?" -> "Stop at blocked spec boundary" [label="no"]' \
-  'brainstorming graph has a blocked spec branch'
 require_fixed "$VERIFYING" \
   'A correction that materially changes implementation behavior or scope requires a fresh core review before any completion claim.' \
   'material post-review corrections return through code review'
-require_fixed "$WRITING" \
-  '### Policy-absent plan review heuristic' \
-  'plan-review skip heuristic is explicitly policy-absent'
-require_fixed "$WRITING" \
-  'Under an active policy, do not use this heuristic or its skip disclosure.' \
-  'active policy cannot inherit the policy-absent skip'
-require_fixed "$WRITING" \
-  'Core plan review approved and accounted for.' \
-  'active policy defines its execution-handoff disclosure'
-require_fixed "$WRITING" \
-  'Plan boundary blocked: opposite-provider approval is absent and no explicit owner or repository instruction names the plan boundary.' \
-  'active policy defines its blocked plan disclosure'
-require_order "$WRITING" \
-  'Continue only with provider approval or that named override' \
-  '`Ready to execute; waiting for your command.`' \
-  'routine plan approval condition precedes readiness'
 require_fixed "$VERIFYING" \
   'When this task materially changed any repository surface' \
   'no-change completion claims skip the implementation-review backstop'
-reject_fixed "$VERIFYING" \
-  'materially changed repository code' \
-  'non-code material changes remain inside the review backstop'
-require_order "$FORMAT" \
-  'end exactly:' \
-  '`Ready to execute; waiting for your command.`' \
-  'readiness literal immediately follows the hold introduction'
 reject_fixed "$FORMAT" \
   'semantic stop on an unchanged artifact may use the same artifact-local hold' \
   'semantic stop cannot masquerade as reviewed-artifact readiness'
@@ -202,29 +101,9 @@ require_fixed "$SUBAGENT" \
 require_fixed "$PARALLEL" \
   'return to the caller after serial integration' \
   'parallel dispatcher returns before caller-owned completion gates'
-reject_fixed "$PARALLEL" \
-  'run broad/full completion checks once' \
-  'parallel dispatcher does not run caller-owned completion gates'
 require_fixed "$SUBAGENT" \
   'Active policy uses the installed `joshix-review review` operation and its structured result' \
   'active-policy final review uses the thin bridge result'
-require_fixed "$SUBAGENT" \
-  'Policy absent — final reviewer template' \
-  'quality outcome template is scoped to policy absence'
-require_fixed "$SUBAGENT" \
-  'Active policy — final reviewer transport' \
-  'active transport has its own section'
-require_fixed "$SUBAGENT" \
-  'Implementer return and deferred checks' \
-  'mode-neutral controller rules have a neutral section'
-require_order "$SUBAGENT" \
-  '### Implementer return and deferred checks' \
-  '### Policy absent — final reviewer template' \
-  'mode-neutral return rules precede policy-specific templates'
-require_order "$SUBAGENT" \
-  '### Policy absent — final reviewer template' \
-  '### Active policy — final reviewer transport' \
-  'policy-specific final-review sections are siblings'
 reject_fixed "$SUBAGENT" \
   'or when active policy requires its core final review or a tier-added gate' \
   'active-policy core review cannot enter the legacy final-line loop'
@@ -236,30 +115,5 @@ for file in "$POLICY" "$BRAINSTORMING" "$WRITING" "$EXECUTING" \
     exit 1
   fi
 done
-
-reject_fixed "$WRITING" \
-  'request independent plan review only when the task-level tier selects that existing gate' \
-  'tier cannot suppress plan review'
-reject_fixed "$WRITING" \
-  'records opposite-provider review of the unchanged spec' \
-  'recorded review alone cannot discharge supplied-spec boundary'
-reject_fixed "$EXECUTING" \
-  'each task-level tier-selected whole-change gate' \
-  'tier cannot suppress inline final review'
-reject_fixed "$EXECUTING" \
-  'records opposite-provider review of the unchanged plan' \
-  'recorded review alone cannot discharge inline supplied-plan boundary'
-reject_fixed "$SUBAGENT" \
-  'records opposite-provider review of the unchanged plan' \
-  'recorded review alone cannot discharge subagent supplied-plan boundary'
-reject_fixed "$REQUESTING" \
-  'Use only the review gates required by the task-level tier' \
-  'tier cannot suppress requesting-code-review core gate'
-reject_fixed "$PARALLEL" \
-  'perform only the tier-selected whole-change review' \
-  'tier cannot suppress parallel final review'
-reject_fixed "$SUBAGENT" \
-  'perform a final whole-change review only when the policy-absent workflow or active tier requires it' \
-  'tier cannot suppress subagent final review'
 
 echo 'STATUS: PASSED'

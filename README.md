@@ -146,15 +146,21 @@ policy from its loaded guidance or one directly referenced runbook:
 joshix-workflow-policy: <repo-relative-path>
 ```
 
-Without that declaration, joshix keeps its existing workflow unchanged. With
-it, repository-defined criticality controls verification and additional review
-rigor; task complexity independently controls planning ceremony. Review follows
-the phase artifacts that exist: spec before plan, plan before execution, and
-completed implementation before completion. Tiers may add review gates but do
-not implicitly remove these core boundaries. Agents do not
-estimate effort or use elapsed time to control review, pass budgets, or
-authority. Repository safety, authorization, and completion rules remain
-unconditional at every level.
+With or without a policy, ceremony follows the work. Discussion stays
+discussion, visual trials stay previews, and isolated disposable experiments
+can supply evidence before a formal plan. An understood repair uses one short
+plan when useful, implementation, focused outcome proof, and completed-change
+review. Advance spec or plan review is for consequential unresolved product or
+architecture choices, or an explicit owner or repository requirement. A plan
+file alone does not create a review gate.
+
+Repository criticality controls test depth and additional review rigor;
+complexity independently controls planning detail. Tier-required gates remain
+binding. Prove the main user outcome early, check affected paths together, and
+use executable evidence to settle technical claims. Preserve settled decisions
+and existing authorization after questions or interruptions. Repository safety,
+authorization, and completion checks remain unconditional. Agents do not use
+elapsed time to control review, pass budgets, or authority.
 
 Policy-active reviews pair Codex with Claude and Claude with Codex; OpenAI and
 Anthropic are the complete built-in provider boundary. Every selected review

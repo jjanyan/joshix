@@ -9,6 +9,8 @@ oracle_only() {
   local using="$ROOT/skills/using-joshix/SKILL.md"
   local contract="$ROOT/skills/using-joshix/references/review-reception-contract.md"
   local format="$ROOT/skills/using-joshix/references/review-response-format.md"
+  local normalized_using
+  normalized_using="$(tr '\n\r\t' '   ' < "$using" | tr -s ' ')"
   for expected in \
     'concrete code or diff' \
     'named plan' \
@@ -17,7 +19,10 @@ oracle_only() {
     'proposed architecture' \
     'normal conversational response' \
     'phrase `review` alone does not select artifact reception'; do
-    rg -Fq -- "$expected" "$using"
+    [[ "$normalized_using" == *"$expected"* ]] || {
+      printf 'FAIL: bootstrap discussion routing missing: %s\n' "$expected"
+      return 1
+    }
   done
   rg -Fq -- 'concrete code or diff' "$contract"
   rg -Fq -- 'named plan' "$contract"

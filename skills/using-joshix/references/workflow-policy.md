@@ -52,8 +52,8 @@ materially changed.
 
 Criticality and complexity are independent. Criticality controls verification
 depth and additional review rigor. Complexity alone controls planning ceremony.
-Core phase-boundary review is separate from both axes. Neither axis is derived
-from predicted or elapsed duration.
+Advance review follows the bootstrap's Work and review rules and any explicit
+repository gate. Neither axis is derived from predicted or elapsed duration.
 
 The highest-criticality changed surface sets task-level review rigor. Test
 depth and finding comparisons stay surface-specific.
@@ -78,30 +78,22 @@ with or without an active policy. A multi-file rename, persistence change, or
 high criticality does not by itself create design uncertainty. Expand planning
 only for concrete unresolved behavior, architecture, or interactions. Explicit
 requests for both spec and plan receive both, kept concise; this overrides the
-usual one-artifact default without weakening verification or required reviews.
-Policy absence otherwise preserves the existing workflow.
+usual one-artifact default, not the advance-review selection rule.
 
-With an active policy, review follows each phase output that exists: review a
-written spec before planning, review a written implementation plan before
-execution, and review the completed implementation before a completion claim.
-Complexity determines which planning artifacts exist; it does not determine
-whether an existing artifact is reviewed. Criticality controls test depth and
-may add review gates; it does not remove a core phase-boundary review.
+Use the Work and review rules in `../SKILL.md` to select advance review,
+including for owner-supplied specs and plans. An understood repair or disposable
+experiment does not acquire a review gate merely because a plan was written.
+Explicit repository requirements, including tier-required advance review,
+remain binding. Complete any selected required review before its dependent
+phase; reuse approval for unchanged work rather than reviewing it twice.
 
-An explicit owner or repository instruction may skip a core review boundary
-only by naming that boundary. A tier count, generic no-review rule, or selected
-lane-review shape does not implicitly skip spec, plan, or
-completed-implementation review. Use `autonomous-review.md` for every active-policy core
-or additional review; do not duplicate its transport or convergence rules.
-
-A tier-required review at the same artifact boundary is satisfied by the core
-review; only a separately named, distinct gate adds another review. Test depth
-and lane-local gates remain tier-controlled.
-
-A core phase boundary is satisfied by provider approval. A semantic stop
-without approval leaves the boundary blocked until material change, new
-evidence, or an explicit owner instruction naming that boundary. This keeps
-the existing review loop finite without treating disagreement as approval.
+Review the completed retained implementation once before full completion
+checks, unless the owner explicitly overrides that review. This gate applies
+when finishing implementation, not during discussion or a requested preview.
+An equivalent tier review satisfies the same gate; only a distinct tier gate
+adds another review. Use `autonomous-review.md` for selected active-policy
+reviews. A semantic stop without approval leaves a required gate blocked;
+it does not create an approval or a gate that was never required.
 
 ## Verification and scope
 

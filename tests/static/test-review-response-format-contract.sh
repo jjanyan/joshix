@@ -113,9 +113,10 @@ require_fixed "$FORMAT" 'only on `VALID`' 'urgency is limited to valid findings'
 require_fixed "$FORMAT" 'exactly one owner decision per response' 'owner decisions are serialized'
 require_fixed "$FORMAT" 'When later decisions remain, state their count before the question' 'later decisions remain visible without previewing them'
 require_fixed "$FORMAT" 'standalone sentence `One decision remains.`' 'single later decision has a canonical count notice'
+require_fixed "$ROOT/skills/writing-plans/SKILL.md" 'Work and review rules in `../using-joshix/SKILL.md`' 'planning delegates owner choices to the bootstrap'
 OWNER_FORMAT="$ROOT/skills/using-joshix/references/owner-question-format.md"
 require_fixed "$FORMAT" 'owner-question-format.md' 'response grammar uses shared template'
-for file in "$ROOT/skills/using-joshix/SKILL.md" "$ROOT/skills/brainstorming/SKILL.md" "$ROOT/skills/writing-plans/SKILL.md" "$ROOT/skills/using-joshix/references/workflow-policy.md"; do
+for file in "$ROOT/skills/using-joshix/SKILL.md" "$ROOT/skills/brainstorming/SKILL.md" "$ROOT/skills/using-joshix/references/workflow-policy.md"; do
   require_fixed "$file" 'owner-question-format.md' 'workflow uses shared question template'
 done
 require_fixed "$OWNER_FORMAT" 'two to four genuine choices' 'bounded meaningful alternatives'

@@ -72,6 +72,7 @@ Focused policy and autonomous-review behavior checks are:
 
 ```bash
 tests/codex/run-skill-tests.sh --test test-workflow-policy-behavior.sh
+tests/codex/run-skill-tests.sh --test test-workflow-proportionality-behavior.sh
 tests/codex/run-skill-tests.sh --test test-discussion-review-routing-behavior.sh
 tests/codex/run-skill-tests.sh --test test-completion-gate-recovery-behavior.sh
 tests/codex/run-skill-tests.sh --test test-autonomous-review-loop-behavior.sh
@@ -131,11 +132,22 @@ with its authoritative reference.
 
 These commands invoke models and are intentional cost-bearing coverage. The
 autonomous-review scripts also expose `--oracle-only` for their deterministic
-direction/profile checks. Development slices use focused checks. Existing specs
-are reviewed before planning, plans before execution, and the completed
-implementation once before full completion gates. Tier rules may add lane or
-slice review. Full completion gates run once, after whole-change review
-sign-off.
+direction/profile checks. Development slices use focused checks. Advance spec
+and plan review follows the shared ceremony rule and explicit repository gates.
+Completed retained implementation receives one review before full completion
+checks; discussion and previews do not start that gate. Tier rules may add
+distinct lane or slice review.
+
+The proportionality fixture observes actual commands and retained edits for an
+understood repair, a disposable experiment, a visual preview, and a guarded
+repair whose repository policy explicitly requires advance plan review. It
+checks failing-then-passing outcome evidence before final review and preserves
+the guarded gate. Review transport and visual inspection are simulated; this
+test proves workflow choices, not reviewer quality or browser rendering. Set
+`JOSHIX_WORKFLOW_CASE=repair|experiment|preview|guarded` to run one case, or
+`JOSHIX_TEST_SKILLS_DIR` to compare another skill tree. Do not substitute a
+prose-only model answer for observed execution.
+
 The discussion-routing, completion-recovery, reciprocal Claude autonomous-loop,
 and real sandbox-to-Claude smoke tests are release gates, not per-round checks.
 The reciprocal and smoke tests require the newly installed bridge plus valid

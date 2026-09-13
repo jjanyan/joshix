@@ -33,8 +33,14 @@ evidence showing an error, later invalidation, or a defect outside accepted
 limitations. Repeating an accepted risk or preferring a different design does
 not reopen a settled decision.
 
-For spec/plan follow-ups, verify corrections and affected interactions, including
-unchanged parts; a clarification alone does not restart broad design review.
+Before resubmitting, verify the correction across affected callers, sibling
+paths, tests, and repeated requirements, including unchanged interactions.
+Check that the main user outcome still holds. For runtime-dependent claims,
+inspect the actual artifact or run a bounded reproduction before revising more
+prose. Preserve concrete evidence for the reviewer; do not expand product or
+architecture scope to satisfy a speculative preference.
+
+For spec/plan follow-ups, a clarification alone does not restart broad design review.
 Code-review breadth remains unchanged. A rejected finding alone does not create
 provider approval: any required follow-up resolves the outstanding disagreement
 or verifies the fix within this focused scope.

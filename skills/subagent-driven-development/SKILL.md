@@ -57,16 +57,11 @@ If a workflow policy is active, the coordinator reads
 `../using-joshix/references/workflow-policy.md` and
 `../using-joshix/references/autonomous-review.md`, and owns scope, evidence,
 review rigor, and progress-transition checks.
-Before dispatch or the first implementation edit from an owner-supplied named
-plan, check ordinary task history for opposite-provider approval of the
-unchanged plan or an explicit owner or repository instruction naming the plan
-boundary. If neither exists and no opposite-provider review of the unchanged
-plan is recorded, review the plan through that contract. If approval or the
-named override is still absent, report `Plan boundary blocked:
-opposite-provider approval is absent and no explicit owner or repository instruction
-names the plan boundary.` and stop before dispatch or the first implementation
-edit. This is an entry backstop, not a duplicate review of a plan just produced
-by `writing-plans`.
+Before dispatch or the first implementation edit, apply the bootstrap's Work
+and review rules to the supplied plan. Obtain advance approval only when that
+review is selected or explicitly required by repository policy; reuse approval
+for unchanged work. A required unresolved review blocks its dependent work,
+not unrelated lanes. A settled plan alone creates no additional gate.
 Workers receive the declaration needed for their lane but never write shared
 task context. Slices use focused checks; the coordinator reserves full
 completion gates for the end after review sign-off. A fresh review runs only

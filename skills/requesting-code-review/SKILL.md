@@ -65,6 +65,12 @@ user request.
 
 ## When to Request Review
 
+Use the bootstrap's Work and review rules to distinguish a requested preview
+or disposable experiment from a completed retained change. Do not start final
+review merely because the user asks to extend a visual trial. First collect
+focused evidence for the main outcome and affected interactions; reserve the
+full completion checks for after review.
+
 With an active workflow policy, run the core completed-implementation review
 once unless an explicit owner or repository instruction names that boundary.
 Tier-defined review rigor may add distinct whole-change, slice, or lane gates;

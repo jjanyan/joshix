@@ -88,6 +88,7 @@ tests=(
     "test-joshix-guidance-regressions.sh"
     "test-using-joshix-no-implicit-git.sh"
     "test-workflow-policy-behavior.sh"
+    "test-workflow-proportionality-behavior.sh"
     "test-autonomous-review-loop-behavior.sh"
     "test-readiness-hold-behavior.sh"
     "test-review-followup-scope-behavior.sh"

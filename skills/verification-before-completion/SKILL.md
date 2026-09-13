@@ -16,6 +16,11 @@ This applies to the meaning of the claim, not the exact wording.
 
 ## Completion Gate
 
+Apply the bootstrap's Work and review rules first. A preview or experiment
+report describes only the observed result; it does not claim completed retained
+implementation or trigger its review gate. When finishing the change, preserve
+the main outcome proof along with the required completion evidence below.
+
 When loaded repository guidance declares `joshix-workflow-policy:`, read
 `../using-joshix/references/workflow-policy.md`. Apply test depth per materially
 changed surface, keep manual verification additive, and use focused checks for

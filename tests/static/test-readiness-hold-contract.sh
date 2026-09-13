@@ -30,7 +30,6 @@ require_fixed "$CONTRACT" 'never manufacture owner options or borrow readiness f
 require_fixed "$CONTRACT" 'Other approval reports do not inherit a hold from queued work.' 'other approvals cannot inherit readiness'
 require_fixed "$BRAINSTORMING" 'continue directly into writing-plans' 'brainstorming continues into planning'
 require_fixed "$BRAINSTORMING" 'Explicit spec-only, review-only, or stop instructions remain effective' 'explicit stops remain effective'
-require_fixed "$BRAINSTORMING" '"Resolve decision or honor requested stop" -> "Stop at requested boundary" [label="owner requested stop"]' 'diagram has a terminal for an explicit stop'
 require_fixed "$ROOT/skills/using-joshix/references/workflow-policy.md" 'Stop policy activation and ask one owner question using `owner-question-format.md`.' 'invalid policy routes to the shared question template'
 require_fixed "$WRITING_PLANS" 'Ready to execute; waiting for your command.' 'planning holds before execution'
 reject_fixed "$WRITING_PLANS" 'Proceed with the recommended approach, or use the other one?' 'no fabricated execution decision'

@@ -30,39 +30,32 @@ capacity, fallback, or reporting rules here.
 
 ### Step 1: Load and Review Plan
 1. Read plan file
-2. Review critically - identify any questions or concerns about the plan
-3. If concerns: Raise them with your human partner before starting
-4. If no concerns: Create or update the available task list and proceed
+2. Check the plan against source and current requirements; resolve technical
+   details locally and raise only consequential unanswered owner choices.
+3. Create or update the available task list and proceed with unblocked work.
 
 ### Step 2: Execute Tasks
 
-If a workflow policy is active, read
-`../using-joshix/references/workflow-policy.md` and
-`../using-joshix/references/autonomous-review.md`. Before the first
-implementation edit from an owner-supplied named plan, check ordinary task
-history for opposite-provider approval of the unchanged plan or an explicit
-owner or repository instruction naming the plan boundary. If neither exists
-and no opposite-provider review of the unchanged plan is recorded, review the
-plan through that contract. If approval or the named override is still absent,
-report `Plan boundary blocked: opposite-provider approval is absent and no
-explicit owner or repository instruction names the plan boundary.` and stop
-before the first implementation edit. This is an entry backstop, not a
-duplicate review of a plan just produced by `writing-plans`. Before each edit,
-next
-planned step, reviewer dispatch, and state transition, check authorized scope
-and evidence. Stop before new subsystems, invariants, dependencies,
-generalized hardening, or future infrastructure. Use focused checks until the
-single final completion gate, and report progress only on `started`, `done`,
-`blocked`, or `bubble-up` transitions. The coordinator verifies review evidence,
-owns fixes and rebuttals, and asks the owner only for genuine product, policy,
-architecture, or scope decisions. A new review runs only after material change
-or new evidence; do not add pass counters or transport state.
+Apply the Work and review rules in `../using-joshix/SKILL.md`. For an
+owner-supplied named plan, check whether advance review is actually required;
+a settled short plan does not acquire that gate merely by being supplied.
+Honor explicit repository and tier requirements. If a required plan review has
+no approval or owner override, obtain that review before retained implementation;
+report the concrete unresolved boundary if approval remains absent. Do not
+repeat an unchanged review without new evidence.
+
+With an active policy, read `../using-joshix/references/workflow-policy.md` and
+use `../using-joshix/references/autonomous-review.md` for selected reviews.
+The coordinator owns scope, evidence, fixes and rebuttals. Use focused checks
+until the single final completion gate. Resolve technical details with source
+inspection or bounded checks; ask the owner only for new product, policy,
+architecture, or scope choices.
 
 For each task:
 1. Mark as in_progress
-2. Follow each step as written (plan has bite-sized steps). If new facts
-   contradict the plan or make a step stale, stop and raise the mismatch
-   before proceeding.
+2. Preserve the plan's outcome and constraints. Adapt implementation details to
+   new evidence within that scope; record the reason. A new owner choice stops
+   only the dependent work.
 3. Run verifications as specified
 4. Mark as completed
 
@@ -89,34 +82,16 @@ After all tasks complete and verified:
   the agent plan/spec as permanent documentation. Follow any explicit closeout
   task for removing or archiving completed `.joshix/` artifacts.
 
-## When to Stop and Ask for Help
+## Failures and interruptions
 
-**STOP executing immediately when:**
-- Hit a blocker (missing dependency, test fails, instruction unclear)
-- Plan has critical gaps preventing starting
-- You don't understand an instruction
-- New evidence contradicts the plan or makes a planned step stale
-- Verification fails repeatedly
+Diagnose failed checks before further affected edits, then apply a verified
+in-scope correction and rerun the affected check. A test failure or stale
+implementation detail does not itself require another owner command.
 
-**Ask for clarification rather than guessing.**
-
-## When to Revisit Earlier Steps
-
-**Return to Review (Step 1) when:**
-- Partner updates the plan based on your feedback
-- Fundamental approach needs rethinking
-
-**Don't force through blockers** - stop and ask.
-
-## Remember
-- Review plan critically first
-- Follow plan steps as written, but stop on contradictions or stale steps
-- Don't skip verifications
-- Reference skills when plan says to
-- Keep `.joshix/` artifacts temporary or semi-temporary; durable decisions
-  belong in repo documentation
-- Stop when blocked, don't guess
-- Work in the current checkout and branch unless the user explicitly requested a branch or worktree
+Stop dependent work when an unresolved owner decision, unavailable capability,
+uncertain external action, or risk of overwriting user work prevents safe
+continuation. Preserve state and report the concrete next action. Use the
+bootstrap's Questions and continuation rules after interruptions.
 
 ## Integration
 

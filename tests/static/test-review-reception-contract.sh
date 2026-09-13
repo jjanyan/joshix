@@ -152,7 +152,7 @@ for skill in "${RECEIVERS[@]}"; do
   require_fixed "$skill" 'review-response-format.md' \
     "$(basename "$(dirname "$skill")") links response presentation"
 done
-require_fixed "$USING" 'merely asks for meta-review' \
+require_fixed "$USING" 'Questions merely soliciting meta-review follow the reception contract.' \
   'bootstrap honest-question rule has the meta-review carve-out'
 require_fixed "$USING" 'product discussion' \
   'bootstrap excludes product discussion from artifact reception'

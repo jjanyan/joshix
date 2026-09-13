@@ -21,9 +21,8 @@ after initialization.
 <WORKFLOW-POLICY>
 When loaded repository guidance declares `joshix-workflow-policy:`, read and
 follow `references/workflow-policy.md` before choosing ceremony, verification,
-or review. Mechanical work with settled behavior defaults to the short-planning
-branch in `joshix:writing-plans`, with or without a policy. Otherwise preserve
-the existing workflow when no directive is declared.
+or review. The Work and review section below selects ceremony with or without
+a policy; repository policy supplies additional risk-specific requirements.
 </WORKFLOW-POLICY>
 
 <EXTREMELY-IMPORTANT>
@@ -205,26 +204,50 @@ For genuine owner decisions, read and follow
 `references/owner-question-format.md`. It owns the literal rendered template,
 spacing, choices, dialogs, and waiting without timed defaults.
 
-## Honest Questions Before Action
+## Work and review
 
-If the user's message contains an honest question, answer the question before
-making changes, running consequential tools, or continuing implementation.
+Follow the user's current phase. Product discussion stays discussion; answering
+a design question does not authorize implementation preparation. Visual
+experimentation stays a preview until the user requests completion or accepts
+the direction and authorizes finishing. Extending a preview does not start
+completion review. Explicit requests to review a spec, plan, or code still use
+the matching review skill.
 
-A question that merely asks for meta-review does not pause automatic review
-reception. `What do you think?`, `Thoughts?`, and `Is this right?` about another
-agent's review ask for meta-review; evaluate and continue under the reception
-contract. A substantive question about whether work should occur still pauses
-action and must be answered first.
+For an understood repair, write one short plan only when useful, implement,
+prove the intended result, and review the completed change. An isolated,
+disposable experiment may run before planning or review: state the question,
+run the smallest safe check, then use its evidence to decide what to retain.
+Neither path relaxes permissions, isolation, repository-required checks, or
+review of retained changes. Do not label a production change an experiment to
+avoid its requirements.
 
-A question is honest when the answer could affect scope, approach, priority, or
-whether work should happen at all. Do not treat an honest question as approval
-to proceed.
+Request advance spec or plan review for consequential unresolved product or
+architecture choices, or when the owner or repository explicitly requires
+that review. A plan file, file count, or task count alone does not require it.
+Preserve tier-required gates. Required review needs approval or an explicit
+owner override of that review; an unresolved defect is not approval. A settled
+short plan needs self-review, not a waiver of an otherwise unnecessary gate.
 
-Rhetorical questions do not block action when the user also gives a clear
-instruction. Example: "Who would do that? Do the other thing" means do the other
-thing.
+Prove the main user outcome early with the cheapest meaningful test or
+inspection, before expanding edge-case detail. Preserve that proof through
+corrections. Use source inspection or a bounded experiment to settle technical
+uncertainty instead of repeatedly elaborating speculative plan prose. Review
+reception and affected-path checks follow `references/review-reception-contract.md`.
 
-When unsure whether a question is honest or rhetorical, answer it and wait.
+## Questions and continuation
+
+Answer substantive questions before consequential action. If the answer leaves
+a real owner choice unresolved, wait for that choice; a discussion answer is
+not execution approval. A status question or interruption does not cancel
+previously authorized work. Establish whether an interrupted action ran before
+retrying, then continue safely within the existing authorization. Never infer
+success or duplicate an external action whose outcome is uncertain.
+
+Carry settled decisions and accepted limitations in the existing task context;
+do not ask them again without new evidence. Report what changed, what remains
+unproven, and the next action. Avoid repeated unchanged review-wait messages.
+
+Questions merely soliciting meta-review follow the reception contract.
 
 ## Plan Documents Default To Review
 
@@ -248,25 +271,6 @@ Do not edit the spec or execute implementation unless the user explicitly asks
 for that action. Received spec-review feedback is different: it takes
 precedence over this producer route and invokes `joshix:receiving-spec-review`
 under the review-feedback rules below.
-
-## Review Feedback Default
-
-First route received feedback by what the reviewer evaluated. Only concrete
-code or diff, a named plan, or a named spec enters artifact reception. Task
-history, `current.md`, product discussion, proposed architecture, and general
-chat receive a normal conversational response; the phrase `review` alone does
-not select artifact reception.
-
-For a concrete artifact:
-
-- Code review feedback invokes `joshix:receiving-code-review`.
-- Plan review feedback invokes `joshix:receiving-plan-review`.
-- Spec review feedback invokes `joshix:receiving-spec-review`.
-
-The canonical `references/review-reception-contract.md` decision table and
-`references/review-response-format.md` response grammar above own all shared
-receiver behavior. The matching reception skill adds only artifact-specific
-classification and application guidance.
 
 ## Agent Workspace Artifacts
 
