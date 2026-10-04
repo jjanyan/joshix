@@ -90,6 +90,7 @@ tests=(
     "test-workflow-policy-behavior.sh"
     "test-workflow-proportionality-behavior.sh"
     "test-autonomous-review-loop-behavior.sh"
+    "test-opposite-provider-routing-behavior.sh"
     "test-readiness-hold-behavior.sh"
     "test-review-followup-scope-behavior.sh"
     "test-owner-question-wait-behavior.sh"

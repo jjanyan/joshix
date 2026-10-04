@@ -58,9 +58,10 @@ whole implementation code or adding details only to fill a template.
 
 Self-review the spec against the original outcome and the actual source. Resolve
 contradictions across affected sections together. Apply the bootstrap's advance
-review rule. With an active policy use
-`../using-joshix/references/autonomous-review.md` for selected reviews; otherwise
-use `../reviewing-specs/spec-document-reviewer-prompt.md` in an isolated review
+review rule. Codex and Claude Code use
+`../using-joshix/references/autonomous-review.md` for selected reviews with or
+without a workflow policy. Other hosts use
+`../reviewing-specs/spec-document-reviewer-prompt.md` in an isolated review
 context. A required unapproved review blocks its dependent phase until approval
 or an explicit owner override. Do not create an extra gate for a settled note.
 

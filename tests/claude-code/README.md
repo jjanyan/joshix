@@ -71,6 +71,12 @@ output only for failures.
 
 ### Independent two-lane plan
 
+This fixture explicitly overrides provider selection to use native Claude
+reviewer subagents and test their transcript ordering. The planted-bug test in
+`test-requesting-code-review.sh` and all workflow questions in
+`test-subagent-driven-development.sh` make the same explicit override. These
+test native behavior; see `docs/testing.md` for default-routing coverage.
+
 The fixture gives Tasks 1 and 2 disjoint files and makes Task 3 depend on both.
 It verifies:
 

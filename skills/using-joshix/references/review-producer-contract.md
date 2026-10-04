@@ -30,11 +30,14 @@ read-only.
 
 ## Reviewer peer
 
-A policy-active reviewer peer is a fresh process that reads the exact shared
+A bridge reviewer peer is a fresh process that reads the exact shared
 task folder supplied by the coordinator and may inspect prior decisions,
 reviews, and responses there. It is read-only and never initializes, appends,
 or replaces shared task state. The installed bridge validates its structured
 review and appends that review as an ordinary task-history message.
+This role and structured result apply with or without a workflow policy.
+An assigned reviewer never dispatches another reviewer; coordinator routing
+does not turn a review into a recursive provider exchange.
 
 ## Delegated producer
 

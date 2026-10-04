@@ -7,21 +7,20 @@ description: Use when completing tasks, implementing major features, or reviewin
 
 Request a focused code review to catch concrete issues before they cascade.
 Provide the reviewer with relevant implementation context, requirements,
-changed files, diff context, and prior reasoning. With no active workflow
-policy, dispatch every reviewer in an isolated context with every required
-artifact, requirement, and prior reasoning item embedded in the dispatch
-prompt. Never use inherited or forked conversation history for that
-policy-absent review context.
+changed files, diff context, and prior reasoning. Codex and Claude Code always
+use the opposite-provider bridge below unless the owner explicitly overrides
+provider selection. Workflow policy controls review gates, not provider routing.
 
 **Core principle:** Review concrete risks before proceeding.
 
-## Active workflow policy
+## Codex and Claude Code review transport
 
-When repository guidance declares `joshix-workflow-policy:`, read
-`../using-joshix/references/workflow-policy.md` and
-`../using-joshix/references/autonomous-review.md` before dispatch. That central
-protocol replaces the manual dispatch and unbounded feedback rules below. With
-no policy, keep this skill's existing behavior unchanged.
+Read `../using-joshix/references/autonomous-review.md` before dispatch, with or
+without a workflow policy. Also read
+`../using-joshix/references/workflow-policy.md` when repository guidance declares
+`joshix-workflow-policy:`. On Codex and Claude Code the bridge replaces the
+native dispatch instructions below; policy absence never selects a native
+same-provider reviewer.
 
 Invoke the installed `joshix-review review` operation with only the opposite
 provider, canonical repository root, and exact task folder. Every invocation
@@ -92,7 +91,12 @@ policy-absent mandatory per-task or per-lane gates into the active branch.
 If the latest user message contains an honest question that needs an answer,
 answer it before requesting review.
 
-## How to Request
+## Native dispatch — other hosts or explicit owner override
+
+This section is not the default for Codex or Claude Code. Dispatch every native
+reviewer in an isolated context with every required artifact, requirement, and
+prior reasoning item embedded in the dispatch prompt. Never use inherited or
+forked conversation history for that native review context.
 
 **1. Gather review inputs:**
 
@@ -117,10 +121,10 @@ Use the platform's subagent, review, or task tool with the template at
 - Consider Minor issues, but do not let taste-only feedback churn the work
 - Push back if reviewer is wrong (with reasoning)
 
-Under an active policy, follow the semantic continuation and stop conditions in
+For bridge reviews, follow the semantic continuation and stop conditions in
 `autonomous-review.md`; do not add pass counters or transport state.
 
-## Example
+## Native dispatch example — no workflow policy
 
 ```
 [Just completed Task 2: Add verification function]

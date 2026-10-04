@@ -55,6 +55,25 @@ require_exact_count() {
 
 CANONICAL="$(sed -n 's/^> //p' "$CONTRACT")"
 [ -n "$CANONICAL" ]
+require_fixed "$CONTRACT" 'No workflow-policy declaration is required.' 'opposite-provider review is independent of workflow policy'
+require_fixed "$CONTRACT" 'Never substitute a same-provider subagent' 'missing bridge cannot silently change providers'
+require_collective 'Keep implementation writes paused until that review returns.' 'bridge lane reviews cannot race other writers'
+require_fixed "$DISPATCHING" 'Keep implementation writes paused until that review returns.' 'the scheduling owner enforces the bridge review pause'
+require_fixed "$VERIFICATION" 'Approval from an explicitly owner-selected reviewer satisfies the same gate.' 'provider override remains valid at completion'
+require_fixed "$VERIFICATION" 'native isolated reviewer on other hosts.' 'other hosts retain their completion reviewer'
+require_fixed "$SUBAGENT" 'No implementation writes run during that review.' 'the worked example preserves the bridge pause'
+! grep -Fq 'When the policy-absent workflow requires final review' "$SUBAGENT" \
+  || { echo 'FAIL: native final-review selector is still policy-gated'; exit 1; }
+for fixture in test-subagent-driven-development.sh test-subagent-driven-development-integration.sh test-requesting-code-review.sh; do
+  require_fixed "$ROOT/tests/claude-code/$fixture" 'explicitly override opposite-provider selection' 'native orchestration fixtures declare their provider override'
+done
+require_fixed "$CONTRACT" 'reuse a recorded approval for the same review scope and' 'equivalent gates reuse current approval'
+require_fixed "$SUBAGENT" 'whole-change gate in step 8.' 'final lane can satisfy the core gate for completed scope'
+for route in using-joshix brainstorming writing-plans requesting-code-review subagent-driven-development executing-plans; do
+  require_fixed "$ROOT/skills/$route/SKILL.md" 'autonomous-review.md' "$route reaches the shared review transport"
+done
+! grep -Fq 'Activate this contract only with a valid workflow policy.' "$CONTRACT" \
+  || { echo 'FAIL: review transport is still policy-gated'; exit 1; }
 require_exact_count "$CONTRACT" "$CANONICAL" 1 'autonomous review keeps the exact instruction once'
 require_collective 'accepted limitations' 'reviewers recover settled decisions'
 require_collective 'including interactions with unchanged parts' 'follow-ups cover affected interactions'

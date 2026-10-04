@@ -78,7 +78,7 @@ require_fixed "$VERIFYING" \
   'If no core completed-implementation review is recorded for the current material state and no explicit owner or repository instruction names the completed-implementation boundary, invoke `joshix:requesting-code-review` as the backstop.' \
   'completion backstop runs only when review is missing'
 require_fixed "$VERIFYING" \
-  'Completed-implementation boundary blocked: opposite-provider approval is absent and no explicit owner or repository instruction names the completed-implementation boundary.' \
+  'Completed-implementation boundary blocked: required-reviewer approval is absent and no explicit owner or repository instruction names the completed-implementation boundary.' \
   'unapproved completed implementation has a blocked terminal'
 require_fixed "$VERIFYING" \
   'A correction that materially changes implementation behavior or scope requires a fresh core review before any completion claim.' \
@@ -102,8 +102,8 @@ require_fixed "$PARALLEL" \
   'return to the caller after serial integration' \
   'parallel dispatcher returns before caller-owned completion gates'
 require_fixed "$SUBAGENT" \
-  'Active policy uses the installed `joshix-review review` operation and its structured result' \
-  'active-policy final review uses the thin bridge result'
+  'Codex and Claude Code use the installed `joshix-review review` operation and its structured result' \
+  'both hosts use the thin bridge result regardless of policy'
 reject_fixed "$SUBAGENT" \
   'or when active policy requires its core final review or a tier-added gate' \
   'active-policy core review cannot enter the legacy final-line loop'

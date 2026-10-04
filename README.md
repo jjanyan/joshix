@@ -6,7 +6,7 @@ This fork is not intended as an upstream contribution target. It is customized f
 
 ## Installation
 
-### Policy-active autonomous review host
+### Opposite-provider review host
 
 Install the review bridge once from this checkout:
 
@@ -113,7 +113,7 @@ PNG fallback. Subagents do not emit the DAG, and it is not shared task state.
 Plan, spec, and code review producers remain read-only and return detailed,
 evidence-backed reports. Top-level producers may use prior shared reasoning;
 ordinary delegated producers receive the required context in their dispatch
-and never access shared task context. A policy-active reviewer is a fresh
+and never access shared task context. A bridge reviewer is a fresh
 read-only process that reads the exact supplied task through the installed
 bridge.
 
@@ -162,8 +162,17 @@ and existing authorization after questions or interruptions. Repository safety,
 authorization, and completion checks remain unconditional. Agents do not use
 elapsed time to control review, pass budgets, or authority.
 
-Policy-active reviews pair Codex with Claude and Claude with Codex; OpenAI and
-Anthropic are the complete built-in provider boundary. Every selected review
+Codex and Claude Code coordinators use opposite-provider review by default,
+with or without a `joshix-workflow-policy:` declaration: Claude calls Codex,
+and Codex calls Claude. This covers selected spec, plan, code, lane, and final
+reviews. Workflow and repository requirements still decide when review is
+needed; provider selection does not add review gates. An assigned reviewer
+performs its review without calling another reviewer. Other hosts retain native
+isolated review, and an explicit owner instruction can override provider choice.
+An unavailable bridge or provider leaves required review blocked; it never
+silently falls back to the same provider.
+
+OpenAI and Anthropic are the complete built-in provider boundary. Every selected bridge review
 starts one fresh opposite-provider process with read-only repository and task
 access. The reviewer receives one exact, artifact-neutral instruction and
 infers whether the active work is a spec, plan, implementation, or cross-layer

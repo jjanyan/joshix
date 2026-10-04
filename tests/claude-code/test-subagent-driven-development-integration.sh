@@ -248,6 +248,10 @@ OUTPUT_FILE="$TEST_PROJECT/claude-output.txt"
 
 PROMPT="Execute the implementation plan at .joshix/plans/implementation-plan.md using the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill.
 
+For this native orchestration fixture, I explicitly override opposite-provider selection:
+use Claude native Agent/Task subagents for every spec, quality, and whole-change
+review. Do not invoke the review bridge. This override is only for this test.
+
 IMPORTANT: Follow the skill exactly. I will be verifying that you:
 1. Read the plan once at the beginning
 2. Provide full task text to subagents (don't make them read files)

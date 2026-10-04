@@ -69,9 +69,10 @@ dependencies, and durable documentation. Correct gaps together. Do not require
 complete implementation code or a separate test for every prose sentence.
 
 When advance review is selected by the bootstrap or required by repository
-policy, review before the dependent phase. Active policy uses
-`../using-joshix/references/autonomous-review.md`; otherwise use the isolated
-reviewer template at `../reviewing-plans/plan-document-reviewer-prompt.md`.
+policy, review before the dependent phase. Codex and Claude Code use
+`../using-joshix/references/autonomous-review.md` with or without a workflow
+policy. Other hosts use the isolated reviewer template at
+`../reviewing-plans/plan-document-reviewer-prompt.md`.
 Required review needs approval or the owner's explicit override of that review.
 If it remains unresolved, report the concrete blocker without implying readiness.
 Apply findings through `joshix:receiving-plan-review`. Use a focused executable

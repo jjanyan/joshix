@@ -6,6 +6,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/test-helpers.sh"
 
+# These workflow questions exercise the supported native-reviewer override.
+# Default provider routing is covered separately by the routing behavior test.
+run_native_workflow_test() {
+    local prompt="$1"
+    shift
+    run_claude "For this workflow scenario, I explicitly override opposite-provider selection: use native Claude reviewers. $prompt" "$@"
+}
+
 TASK3_START_LABEL_PATTERN='^[[:space:][:punct:]]*TASK[[:space:]]+3[[:space:]]+START[[:space:]]*:'
 TASK3_START_DECISION_PATTERN="${TASK3_START_LABEL_PATTERN}[[:space:][:punct:]]*AFTER[[:space:]]+SPEC[[:space:]]+AND[[:space:]]+QUALITY[[:space:]]+REVIEWS[[:space:][:punct:]]+FOR[[:space:][:punct:]]*TASKS[[:space:]]+1[[:space:]]+AND[[:space:]]+2[[:space:][:punct:]]*$"
 
@@ -71,7 +79,7 @@ echo ""
 # Test 1: Verify skill can be loaded
 echo "Test 1: Skill loading..."
 
-output=$(run_claude "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. Describe its key steps briefly." 30)
+output=$(run_native_workflow_test "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. Describe its key steps briefly." 30)
 
 if assert_contains "$output" "subagent-driven-development\|Subagent-Driven Development\|Subagent Driven" "Skill is recognized"; then
     : # pass
@@ -90,7 +98,7 @@ echo ""
 # Test 2: Verify skill describes correct workflow order
 echo "Test 2: Workflow ordering..."
 
-output=$(run_claude "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. What comes first: spec compliance review or code quality review? Be specific about the order." 30)
+output=$(run_native_workflow_test "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. What comes first: spec compliance review or code quality review? Be specific about the order." 30)
 
 if echo "$output" | grep -Eiq "spec[[:space:]-]*compliance.*(before|first|then).*code[[:space:]-]*quality|code[[:space:]-]*quality.*after.*spec[[:space:]-]*compliance"; then
     echo "  [PASS] Spec compliance before code quality"
@@ -108,7 +116,7 @@ echo ""
 # Test 3: Verify self-review is mentioned
 echo "Test 3: Self-review requirement..."
 
-output=$(run_claude "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill and its implementer-prompt.md template. Does it require implementers to do self-review? What should they check?" 30)
+output=$(run_native_workflow_test "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill and its implementer-prompt.md template. Does it require implementers to do self-review? What should they check?" 30)
 
 if assert_contains "$output" "self-review\|self review" "Mentions self-review"; then
     : # pass
@@ -127,7 +135,7 @@ echo ""
 # Test 4: Verify plan is read once
 echo "Test 4: Plan reading efficiency..."
 
-output=$(run_claude "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. How many times should the controller read the plan file? When does this happen?" 30)
+output=$(run_native_workflow_test "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. How many times should the controller read the plan file? When does this happen?" 30)
 
 if assert_contains "$output" "once\|one time\|single" "Read plan once"; then
     : # pass
@@ -146,7 +154,7 @@ echo ""
 # Test 5: Verify spec compliance reviewer is skeptical
 echo "Test 5: Spec compliance reviewer mindset..."
 
-output=$(run_claude "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. What is the spec compliance reviewer's attitude toward the implementer's report?" 30)
+output=$(run_native_workflow_test "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. What is the spec compliance reviewer's attitude toward the implementer's report?" 30)
 
 if assert_contains "$output" "not trust\|don't trust\|skeptical\|skepticism\|strict\|zero-tolerance\|independent.*verif\|verif.*independent\|rather than trusting\|suspicious" "Reviewer is skeptical"; then
     : # pass
@@ -165,7 +173,7 @@ echo ""
 # Test 6: Verify review loops
 echo "Test 6: Review loop requirements..."
 
-output=$(run_claude "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. What happens if a reviewer finds issues? Is it a one-time review or a loop?" 30)
+output=$(run_native_workflow_test "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. What happens if a reviewer finds issues? Is it a one-time review or a loop?" 30)
 
 if assert_contains "$output" "loop\|again\|repeat\|until.*approved\|until.*compliant" "Review loops mentioned"; then
     : # pass
@@ -184,7 +192,7 @@ echo ""
 # Test 7: Verify full task text is provided
 echo "Test 7: Task context provision..."
 
-output=$(run_claude "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. How does the controller provide task information to the implementer subagent? Does it make them read a file or provide it directly?" 30)
+output=$(run_native_workflow_test "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. How does the controller provide task information to the implementer subagent? Does it make them read a file or provide it directly?" 30)
 
 if assert_contains "$output" "provide.*directly\|full.*text\|paste\|include.*prompt" "Provides text directly"; then
     : # pass
@@ -203,7 +211,7 @@ echo ""
 # Test 8: Verify no worktree prerequisite
 echo "Test 8: No worktree prerequisite..."
 
-output=$(run_claude "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. List the required workflow skills. Do not mention skills that are not required." 30)
+output=$(run_native_workflow_test "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. List the required workflow skills. Do not mention skills that are not required." 30)
 
 if assert_not_contains "$output" "using-git-worktrees\|requires.*worktree\|worktree.*required\|prerequisite.*worktree" "Does not require using-git-worktrees"; then
     : # pass
@@ -222,7 +230,7 @@ echo ""
 # Test 9: Verify current branch default
 echo "Test 9: Current branch default..."
 
-output=$(run_claude "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. Should implementation create or switch branches/worktrees by default, or work in the current checkout and branch?" 30)
+output=$(run_native_workflow_test "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. Should implementation create or switch branches/worktrees by default, or work in the current checkout and branch?" 30)
 
 if assert_contains "$output" "current.*checkout\|current.*branch\|unless.*user.*request\|explicitly.*request" "Uses current branch by default"; then
     : # pass
@@ -235,7 +243,7 @@ echo ""
 # Test 10: Verify independent ready lanes and lane-scoped review gates
 echo "Test 10: Independent ready lanes..."
 
-output=$(run_claude "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. An approved plan has Task 1 and Task 2 with Depends on: None, disjoint files, no shared mutable resources, and safe focused tests. Task 3 depends on Tasks 1 and 2. How does the controller execute and review these tasks? End your answer with exactly one decision line using this format, selecting one option from each angle-bracket group based on the skill: TASK 3 START: <AFTER IMPLEMENTATION | AFTER SPEC REVIEW | AFTER SPEC AND QUALITY REVIEWS> FOR <TASK 1 ONLY | TASK 2 ONLY | TASKS 1 AND 2>. Do not reproduce the angle brackets or option lists in the decision line." 60)
+output=$(run_native_workflow_test "Use the ${CLAUDE_PLUGIN_NAME}:subagent-driven-development skill. An approved plan has Task 1 and Task 2 with Depends on: None, disjoint files, no shared mutable resources, and safe focused tests. Task 3 depends on Tasks 1 and 2. How does the controller execute and review these tasks? End your answer with exactly one decision line using this format, selecting one option from each angle-bracket group based on the skill: TASK 3 START: <AFTER IMPLEMENTATION | AFTER SPEC REVIEW | AFTER SPEC AND QUALITY REVIEWS> FOR <TASK 1 ONLY | TASK 2 ONLY | TASKS 1 AND 2>. Do not reproduce the angle brackets or option lists in the decision line." 60)
 
 if assert_contains "$output" "dispatching-parallel-agents\|[Pp]arallel.*ready\|ready.*[Pp]arallel" "Invokes parallel dispatch for ready lanes"; then
     :

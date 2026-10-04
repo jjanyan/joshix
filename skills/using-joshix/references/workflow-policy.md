@@ -19,7 +19,7 @@ because the loaded content is authoritative, not its filename.
 
 | Loaded guidance state | Action |
 |---|---|
-| No eligible directive | Policy absent: use the existing joshix workflow unchanged. |
+| No eligible directive | Policy absent: use the default joshix ceremony and review gates. Codex/Claude provider routing still follows `autonomous-review.md`. |
 | One valid directive and complete policy | Activate this contract for the task. |
 | Invalid, duplicate, dangling, or incomplete directive | Stop policy activation and ask one owner question using `owner-question-format.md`. Never partially activate or guess. |
 

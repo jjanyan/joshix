@@ -33,11 +33,16 @@ is recorded for the current material state and no explicit owner or repository
 instruction names the completed-implementation boundary, invoke
 `joshix:requesting-code-review` as the backstop. If approval or the named
 override is still absent, report `Completed-implementation boundary blocked:
-opposite-provider approval is absent and no explicit owner or repository
+required-reviewer approval is absent and no explicit owner or repository
 instruction names the completed-implementation boundary.` and stop before the
 full completion gate. Run the repository's full completion gates once, after
 review sign-off or that named override, at the end. Policy absence preserves
 the existing gate.
+The required reviewer is selected by an explicit owner override when present;
+otherwise it is the opposite provider on Codex and Claude Code, or the host's
+native isolated reviewer on other hosts.
+Approval from an explicitly owner-selected reviewer satisfies the same gate.
+Provider selection does not waive review or the completed-implementation boundary.
 If a policy-active completion gate fails, diagnose it with focused evidence and
 rerun the affected gate after correction. A correction that materially changes
 implementation behavior or scope requires a fresh core review before any

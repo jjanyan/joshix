@@ -76,6 +76,7 @@ tests/codex/run-skill-tests.sh --test test-workflow-proportionality-behavior.sh
 tests/codex/run-skill-tests.sh --test test-discussion-review-routing-behavior.sh
 tests/codex/run-skill-tests.sh --test test-completion-gate-recovery-behavior.sh
 tests/codex/run-skill-tests.sh --test test-autonomous-review-loop-behavior.sh
+tests/codex/run-skill-tests.sh --test test-opposite-provider-routing-behavior.sh
 bash tests/codex/test-readiness-hold-behavior.sh
 bash tests/codex/test-review-followup-scope-behavior.sh
 bash tests/codex/test-owner-question-wait-behavior.sh
@@ -85,6 +86,15 @@ bash tests/codex/test-receiving-spec-review-owner-decision-gate-behavior.sh
 tests/claude-code/run-skill-tests.sh --test test-autonomous-review-loop-behavior.sh
 node tests/reviewer-host/real-codex-claude-smoke.mjs
 ```
+
+The opposite-provider routing test makes one read-only model call with the
+relevant skill instructions and 20 synthetic decisions. A single Codex model
+evaluates scenarios for Claude and Codex coordinators, with and without policy,
+for spec, plan, code, and lane reviews; missing-bridge cases must block and
+assigned reviewers must not delegate recursively. This does not run a Claude
+coordinator or launch reviewers. The live host smoke above separately exercises
+both reviewer providers through the installed bridge; it tests transport, not
+the coordinator's routing decision.
 
 The source-only follow-up, question/wait, readiness, workflow-policy, and owner
 reception checks use repository skills in isolated fixtures. They cover settled
@@ -201,6 +211,14 @@ Each can take 10–30 minutes and consumes model tokens.
 
 ## Concurrency evidence
 
+The independent-lane fixture, `test-requesting-code-review.sh`, and all workflow
+questions in `test-subagent-driven-development.sh` explicitly override provider
+selection to exercise native Claude Agent/Task reviewers.
+Their native dispatch and outcome-line assertions test that supported override,
+not the default opposite-provider route. Under the default bridge route, lane
+reviews wait for a verified serialization point and pause implementation writes
+until the reviewer returns.
+
 The independent-lane test parses the Claude session JSONL with
 `tests/claude-code/assert-parallel-transcript.py`. It proves overlap only when
 both implementer tool-use events occur before the first matching successful
@@ -243,7 +261,7 @@ The independent fixture checks:
 
 - disjoint files for its two starting lanes;
 - observed implementation overlap;
-- successful PASS-before-APPROVED review order within each lane;
+- successful PASS-before-APPROVED review order under the explicit native override;
 - dependency-aware integration;
 - an approved final whole-change review after the integration lane closes;
 - a passing final Node test suite;

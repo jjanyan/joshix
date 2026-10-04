@@ -125,8 +125,8 @@ require_fixed "$EXECUTING" "joshix:subagent-driven-development" "inline executor
 
 require_fixed "$SDD" "joshix:dispatching-parallel-agents" "subagent execution invokes the canonical policy"
 require_fixed "$SDD" "Policy absent: for each lane, implementation and self-review" "lane gate starts with implementation and self-review"
-require_fixed "$SDD" "verification → spec-compliance review" "verification precedes spec review"
-require_fixed "$SDD" "spec-compliance review → code-quality review" "spec review precedes quality review"
+require_fixed "$SDD" "verification → spec-compliance and code-quality approval" "verification precedes review approval"
+require_fixed "$SDD" "the native route uses spec-compliance review → code-quality review" "native spec review precedes quality review"
 require_fixed "$SDD" "Quality review Task N:" "review dispatch descriptions are stable"
 require_fixed "$SDD" "Whole-change review: <plan or feature>" "whole-change review dispatch description is stable"
 require_fixed "$SDD" "QUALITY OUTCOME: <APPROVED or CHANGES REQUIRED>" "whole-change review outcome is machine-observable"

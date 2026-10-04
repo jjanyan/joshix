@@ -44,8 +44,9 @@ no approval or owner override, obtain that review before retained implementation
 report the concrete unresolved boundary if approval remains absent. Do not
 repeat an unchanged review without new evidence.
 
-With an active policy, read `../using-joshix/references/workflow-policy.md` and
-use `../using-joshix/references/autonomous-review.md` for selected reviews.
+With an active policy, read `../using-joshix/references/workflow-policy.md`.
+Codex and Claude Code use `../using-joshix/references/autonomous-review.md` for
+selected reviews with or without a workflow policy.
 The coordinator owns scope, evidence, fixes and rebuttals. Use focused checks
 until the single final completion gate. Resolve technical details with source
 inspection or bounded checks; ask the owner only for new product, policy,

@@ -69,11 +69,12 @@ artifact changes or new evidence appears.
 | The current review approves a spec and genuine owner decisions are satisfied | Continue into writing-plans automatically, unless the user explicitly requested spec-only, review-only, or a stop. | No separate planning command or routine written-spec signoff. |
 | The current review approves a plan and execution lacks explicit authorization | Treat artifact-local readiness as settled state, not an unresolved choice. | Emit the exact execution readiness hold from the response format; never manufacture owner options or borrow readiness from queued work. |
 
-## Policy-active structured findings
+## Bridge structured findings
 
 The structured result contains evidence, not workflow governance. After
 independent verification, the coordinator compares each concrete risk with the
-active declaration and policy. Requirement-determined corrections inside the
+owner's requirements and, when present, the active declaration and policy.
+Requirement-determined corrections inside the
 authorized outcome proceed. New product, scope, policy, ownership, acceptance,
 or architecture decisions remain owner-gated. An approved spec continues to
 planning automatically within the user's requested scope. An approved plan

@@ -88,6 +88,10 @@ OUTPUT_FILE="$TEST_PROJECT/claude-output.txt"
 
 PROMPT="I just finished a refactor in the current working tree. The changed file is src/db.js.
 
+For this native reviewer fixture, I explicitly override opposite-provider selection:
+use a Claude native Agent/Task reviewer. Do not invoke the review bridge.
+This override is only for this test.
+
 Use the ${CLAUDE_PLUGIN_NAME}:requesting-code-review skill to review these changes before I proceed. Follow the skill exactly: dispatch the code reviewer subagent with the template, provide CHANGED_FILES, the relevant working tree diff or code context, and verification details if available. Report back what it found.
 
 Print the reviewer's full output."

@@ -25,7 +25,7 @@ When a workflow policy is active, the coordinator reads
 never bypasses requested scope, evidence requirements, surface-specific test
 depth, task-level review rigor, focused-check budgets, or transition-only
 progress. Workers report results; only the coordinator records shared state.
-Policy-active review lanes also follow
+Codex and Claude Code review lanes, with or without a workflow policy, follow
 `../using-joshix/references/autonomous-review.md`; parallel scheduling never
 duplicates a review call or lets a reviewer process write task or repository
 state.
@@ -56,11 +56,19 @@ begin with at most two concurrent workers; this is a bootstrap, not a durable
 slot limit.
 
 1. **Completion-aware:** Observe individual returns and backfill capacity with
-   the most useful ready implementation, review, or fix.
+   the most useful ready implementation, review, or fix, subject to the bridge
+   review serialization rule below.
 2. **Join-all:** Launch a bounded ready wave, wait for the whole wave, then
    schedule the next wave.
 3. **Serial:** Run the same authorized work and quality gates one at a time when
    concurrent workers are unavailable.
+
+Before a bridge lane review, let all running implementers finish their current
+work and reach a verified serialization point; do not start or backfill writers.
+Keep implementation writes paused until that review returns. The bridge can
+read the whole checkout, so lane-only context is not isolation from in-flight
+writes. Resume independent work afterward subject to its own gates, and report
+this serialization. This rule takes precedence over completion-aware backfill.
 
 ## Shared Checkout
 
@@ -82,7 +90,9 @@ supported, or dispatch a fully briefed replacement, then repeat verification.
 
 Reviewer input contains the lane's exact scope and a lane-scoped diff or
 equivalent change summary including untracked files, never an aggregate
-in-flight working-tree diff.
+in-flight working-tree diff. For bridge reviews, the coordinator records that
+scope and change context in shared task history before the call, rather than
+passing a custom reviewer prompt. The serialization rule above still applies.
 
 ## Model and Reasoning
 

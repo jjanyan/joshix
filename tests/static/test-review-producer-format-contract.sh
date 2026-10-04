@@ -160,7 +160,7 @@ require_fixed "$PRODUCER_CONTRACT" 'delegated producer receives every required a
 require_fixed "$PRODUCER_CONTRACT" 'never reads, writes, or mentions top-level shared task context' \
   'delegated producers stay outside shared context'
 require_fixed "$PRODUCER_CONTRACT" \
-  'A policy-active reviewer peer is a fresh process that reads the exact shared task folder supplied by the coordinator' \
+  'A bridge reviewer peer is a fresh process that reads the exact shared task folder supplied by the coordinator' \
   'fresh peer reads shared history'
 require_fixed "$PRODUCER_CONTRACT" \
   'never initializes, appends, or replaces shared task state' \
@@ -221,8 +221,10 @@ require_prompt_fixed "$QUALITY_TEMPLATE" \
   'Do not include a positive-assessment section.' \
   'quality payload forbids positive-assessment sections'
 
-require_fixed "$REQUESTING" 'With no active workflow policy, dispatch every reviewer in an isolated context with every required artifact, requirement, and prior reasoning item embedded in the dispatch prompt.' \
-  'policy-absent review requests embed complete context in isolated dispatches'
+require_fixed "$REQUESTING" 'Dispatch every native reviewer in an isolated context with every required artifact, requirement, and prior reasoning item embedded in the dispatch prompt.' \
+  'native review requests embed complete context in isolated dispatches'
+require_fixed "$REQUESTING" 'policy absence never selects a native same-provider reviewer.' \
+  'policy-absent Codex and Claude coordinators use the bridge'
 require_fixed "$REQUESTING" 'PRIOR_REASONING: Task 1 review established the current indexing and repair assumptions' \
   'review request example embeds prior reasoning'
 forbid_fixed "$REQUESTING" 'Inherit or fork session context' \

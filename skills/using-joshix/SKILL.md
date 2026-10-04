@@ -206,6 +206,13 @@ spacing, choices, dialogs, and waiting without timed defaults.
 
 ## Work and review
 
+When a Codex or Claude Code coordinator requests an independent spec, plan, or
+code review, use `references/autonomous-review.md` regardless of workflow-policy
+activation: Claude calls Codex; Codex calls Claude. This includes lane and final
+reviews. Native same-provider subagents are not the default review route.
+An assigned reviewer produces its review without dispatching another reviewer.
+Review selection remains governed by the rules below and repository requirements.
+
 Follow the user's current phase. Product discussion stays discussion; answering
 a design question does not authorize implementation preparation. Visual
 experimentation stays a preview until the user requests completion or accepts

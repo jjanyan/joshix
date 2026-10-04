@@ -1,7 +1,15 @@
 # Autonomous Review
 
-Activate this contract only with a valid workflow policy. Policy absent means
-the existing joshix review workflow is unchanged.
+Use this contract whenever a Codex or Claude Code coordinator requests an
+independent spec, plan, or code review, including lane and whole-change reviews.
+No workflow-policy declaration is required. The workflow and repository rules
+still decide when review is required; this contract decides who reviews and
+how. It does not add spec, plan, or review gates to a task.
+
+This is coordinator routing. A reviewer already assigned to produce a review
+performs that review read-only; it never delegates it back to the other provider.
+Other hosts retain their native isolated-review workflow. An explicit owner
+instruction may override provider selection; policy absence is not an override.
 
 ## Thin review loop
 
@@ -9,6 +17,17 @@ OpenAI and Anthropic are the complete authorized provider set. A Codex
 coordinator starts Claude; a Claude coordinator starts Codex. Every review call
 uses one fresh reviewer process. SQLite task history provides continuity; no
 provider process state is saved or reused.
+
+Claude Code selects `--provider codex`; Codex selects `--provider claude`.
+Never substitute a same-provider subagent when the bridge, other CLI,
+authentication, or required permissions are unavailable. Report the concrete
+blocker and leave the required review unapproved.
+
+Before dispatch, reuse a recorded approval for the same review scope and
+material state rather than requesting an equivalent review under another label.
+A lane-only approval does not cover a whole-change gate. For a broader review,
+record the completed scope and its verification evidence in shared history;
+the broader scope's evidence, not a new label, justifies a fresh review.
 
 The active algorithm is:
 
