@@ -23,14 +23,16 @@ install_repo_skills_symlink "$TEST_PROJECT"
 
 read -r -d '' PROMPT <<'EOF' || true
 Use the joshix:executing-plans skill and its canonical progress-DAG reference.
+This client has no native interactive visualization or artifact surface.
 Show how the top-level coordinator emits this three-node dependency chain:
 
 1. At start, T1 is in flight; T2 and T3 are todo.
 2. After one state change, T1 is complete; T2 is in flight; T3 is todo.
 
-Use stable node IDs and exact labels Task 1, Task 2, and Task 3. Preserve the
+Use stable node IDs and base labels Task 1, Task 2, and Task 3, with a readable
+status suffix in each label (for example, "Task 1 · active"). Preserve the
 dependencies T1 -> T2 -> T3. Then classify whether an ordinary question, a
-one-node task, or a dispatched worker gets a DAG.
+one-node implementation plan, or a dispatched worker gets a DAG.
 
 Return exactly this shape with no other prose:
 START
@@ -54,17 +56,19 @@ UPDATED_GRAPH="$(printf '%s\n' "$FINAL_OUTPUT" \
   || fail 'expected two closing Mermaid fences'
 for node in T1 T2 T3; do
   label="Task ${node#T}"
-  [ "$(count_matches "$FINAL_OUTPUT" "${node}\\[\\\"${label}\\\"\\]")" -eq 2 ] \
-    || fail "$node label must be stable"
+  [ "$(count_matches "$FINAL_OUTPUT" "${node}\\[\\\"${label} · (todo|active|done)\\\"\\]")" -eq 2 ] \
+    || fail "$node base label must be stable and its status readable"
 done
-[ "$(count_matches "$FINAL_OUTPUT" 'T1(\["Task 1"\])?[[:space:]]*-->[[:space:]]*T2')" -eq 2 ] \
+[ "$(count_matches "$FINAL_OUTPUT" 'T1(\["Task 1 · (active|done)"\])?[[:space:]]*-->[[:space:]]*T2')" -eq 2 ] \
   || fail 'T1 to T2 dependency must be stable'
-[ "$(count_matches "$FINAL_OUTPUT" 'T2(\["Task 2"\])?[[:space:]]*-->[[:space:]]*T3')" -eq 2 ] \
+[ "$(count_matches "$FINAL_OUTPUT" 'T2(\["Task 2 · (todo|active)"\])?[[:space:]]*-->[[:space:]]*T3')" -eq 2 ] \
   || fail 'T2 to T3 dependency must be stable'
 [ "$(count_matches "$FINAL_OUTPUT" 'classDef done fill:#173b2c,stroke:#34d399,color:#dcfce7,stroke-width:2px')" -eq 2 ] \
   || fail 'done class must be present in both graphs'
 [ "$(count_matches "$FINAL_OUTPUT" 'classDef active fill:#183b5f,stroke:#60a5fa,color:#dbeafe,stroke-width:3px')" -eq 2 ] \
   || fail 'active class must be present in both graphs'
+[ "$(count_matches "$FINAL_OUTPUT" 'classDef todo fill:#343434,stroke:#9ca3af,color:#f3f4f6,stroke-width:1px')" -eq 2 ] \
+  || fail 'neutral todo class must be present in both graphs'
 printf '%s\n' "$START_GRAPH" | rg -q 'class T1 active' \
   || fail 'T1 must start active'
 if printf '%s\n' "$START_GRAPH" | rg -q 'class T1 done|class T2 active'; then
@@ -74,14 +78,14 @@ printf '%s\n' "$UPDATED_GRAPH" | rg -q 'class T1 done' \
   || fail 'T1 must finish in the update'
 printf '%s\n' "$UPDATED_GRAPH" | rg -q 'class T2 active' \
   || fail 'T2 must become active in the update'
-if printf '%s\n' "$START_GRAPH" | rg -q 'class (T2|T3)([[:space:]]|$)'; then
-  fail 'start-state todo nodes must retain default styling'
-fi
-if printf '%s\n' "$UPDATED_GRAPH" | rg -q 'class T3([[:space:]]|$)'; then
-  fail 'updated-state todo T3 must retain default styling'
-fi
+for node in T2 T3; do
+  printf '%s\n' "$START_GRAPH" | rg -q "class [T0-9,]*${node}[T0-9,]* todo" \
+    || fail "start-state $node must use neutral todo styling"
+done
+printf '%s\n' "$UPDATED_GRAPH" | rg -q 'class T3 todo' \
+  || fail 'updated-state T3 must use neutral todo styling'
 printf '%s\n' "$FINAL_OUTPUT" \
-  | rg -q '^DECISIONS: QUESTION=NO DAG; ONE-NODE=NO DAG; WORKER=NO DAG$' \
+  | rg -q '^DECISIONS: QUESTION=NO DAG; ONE-NODE=DAG; WORKER=NO DAG$' \
   || fail 'non-trigger decisions are wrong'
 
 echo 'STATUS: PASSED'

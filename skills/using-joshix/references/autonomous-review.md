@@ -6,6 +6,12 @@ No workflow-policy declaration is required. The workflow and repository rules
 still decide when review is required; this contract decides who reviews and
 how. It does not add spec, plan, or review gates to a task.
 
+For implementation-plan reviews, include the planned DAG and concurrency
+decisions under `progress-dag.md`. For a material adjustment, record the proposed
+delta, its evidence and affected work in the plan/task context before requesting
+focused review. Preserve the exact instruction and mechanical-context boundary
+below; do not add a custom DAG prompt or review flag.
+
 This is coordinator routing. A reviewer already assigned to produce a review
 performs that review read-only; it never delegates it back to the other provider.
 Other hosts retain their native isolated-review workflow. An explicit owner

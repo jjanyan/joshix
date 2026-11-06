@@ -23,8 +23,8 @@ For an understood repair or mechanical change, write one short plan with:
 Do not add a spec, full implementation code, or template boilerplate. Explicit
 requests for both spec and plan receive both, kept concise. Disposable
 experiments can run first under the bootstrap's rules. For trivial work, an
-inline statement of the change and check is enough unless the owner asks for
-a document.
+inline one-node DAG with the change and check is enough unless the owner asks
+for a document.
 
 Save requested plans to `.joshix/plans/YYYY-MM-DD-<topic>.md` or the owner's
 chosen location. Self-review for ambiguity, missing coverage, and scope growth.
@@ -50,8 +50,14 @@ Read relevant source and canonical repo commands before naming files or checks.
 Group work by behavior and ownership, preserving existing structure. Include
 interfaces or short code examples only when they resolve a real ambiguity.
 
-For decomposed plans, every task declares `**Depends on:** None` or explicit
-prerequisite task numbers. Task order is presentational and carries no dependency
+Before implementation or dispatch, include the execution DAG in the plan using
+`../using-joshix/references/progress-dag.md`. It owns stable node IDs, objectives,
+completion criteria, dependencies and gates, concurrency rationale, roles and
+ownership, approved adjustments, and display. A one-node inline plan is valid;
+do not add parallel workers or a separate planning document just for the DAG.
+
+Every task declares `**Depends on:** None` or explicit
+prerequisite node IDs. Task order is presentational and carries no dependency
 meaning. Name overlapping files and shared mutable resources; serialize those
 changes. Use `joshix:subagent-driven-development` for independent bounded tasks
 and `joshix:executing-plans` for coupled work. Do not create branches or worktrees
@@ -67,6 +73,8 @@ work use appropriate verification. Preserve repository-required checks.
 Check the plan once against the actual requirements, files, commands,
 dependencies, and durable documentation. Correct gaps together. Do not require
 complete implementation code or a separate test for every prose sentence.
+Include DAG correctness, safe concurrency, shared-resource conflicts and missing
+gates in that self-review and any selected opposing-model plan review.
 
 When advance review is selected by the bootstrap or required by repository
 policy, review before the dependent phase. Codex and Claude Code use
@@ -80,9 +88,8 @@ check to settle runtime claims before another speculative rewrite.
 
 ## Progress and handoff
 
-When this top-level workflow has at least three tracked nodes, follow
-`../using-joshix/references/progress-dag.md` for its canonical trigger,
-rendering, state, topology, and updates.
+Show the planned DAG using `../using-joshix/references/progress-dag.md` for
+native capability detection, Mermaid fallback, state, and meaningful updates.
 
 Continue from a spec after required reviews and genuine owner decisions without
 another routine planning command. Honor explicit spec-only, review-only, or

@@ -16,7 +16,8 @@ install_repo_skills_symlink "$TEST_PROJECT"
 read -r -d '' PROMPT <<'EOF' || true
 Use the dispatching-parallel-agents skill from this repo.
 
-Execution is already authorized. Decide how the skill handles these cases:
+Execution is already authorized. The approved plan permits Task 1 and Task 2
+to overlap. No native rendering is available on this client. Decide these cases:
 - Task 1 and Task 2 are independent, each declares `Depends on: None`, owns
   disjoint files, shares no unsafe mutable resources, and has safe focused
   checks.
@@ -25,7 +26,7 @@ Execution is already authorized. Decide how the skill handles these cases:
   only the end of a whole concurrent wave, and another has no concurrent
   workers.
 - Delegated model and reasoning, start/completion reporting, unsupported
-  timing, the Mermaid threshold, and git recommendations must follow the skill.
+  timing, the DAG trigger, and git recommendations must follow the skill.
 
 Return exactly twelve non-empty, unformatted lines in this order. Replace each
 angle-bracketed placeholder with one concise answer and do not include the angle
@@ -40,11 +41,13 @@ MODEL: <delegated model and reasoning choice>
 START REPORT: <required start-report content>
 COMPLETION REPORT: <required completion-report content>
 TIMING: <OMIT NUMBERS or REPORT NUMBERS>
-MERMAID THRESHOLD: <complete tracked-node threshold>
-MERMAID AT THRESHOLD: <EMIT FENCE or NO FENCE>
+DAG TRIGGER: <when a planned DAG is required>
+MERMAID FALLBACK: <EMIT FENCE or NO FENCE>
 GIT: <NONE or REQUIRED>
 
 Do not add explanations, headings, bullets, blank lines, or any other prose.
+Use the skill's full terminology in the MODEL and reporting lines rather than
+abbreviating phrases or sharing modifiers across different reported items.
 EOF
 
 INDEPENDENT_PATTERN='^INDEPENDENT[[:space:]]*:[[:space:]]*PARALLEL[[:space:]]*[.]?[[:space:]]*$'
@@ -53,8 +56,9 @@ EVENT_HOST_PATTERN='^EVENT HOST[[:space:]]*:[[:space:]]*COMPLETION-AWARE[[:space
 WAVE_HOST_PATTERN='^WAVE HOST[[:space:]]*:[[:space:]]*JOIN-ALL[[:space:]]*[.]?[[:space:]]*$'
 NO_CONCURRENCY_PATTERN='^NO CONCURRENCY[[:space:]]*:[[:space:]]*SERIAL[[:space:]]*[.]?[[:space:]]*$'
 TIMING_PATTERN='^TIMING[[:space:]]*:[[:space:]]*OMIT NUMBERS[[:space:]]*[.]?[[:space:]]*$'
-MERMAID_AT_THRESHOLD_PATTERN='^MERMAID AT THRESHOLD[[:space:]]*:[[:space:]]*EMIT[[:space:]]+FENCE[[:space:]]*[.]?[[:space:]]*$'
+MERMAID_FALLBACK_PATTERN='^MERMAID FALLBACK[[:space:]]*:[[:space:]]*EMIT[[:space:]]+FENCE[[:space:]]*[.]?[[:space:]]*$'
 GIT_PATTERN='^GIT[[:space:]]*:[[:space:]]*NONE[[:space:]]*[.]?[[:space:]]*$'
+DAG_TRIGGER_PATTERN='(implementation|worker dispatch).*plan|plan.*(implementation|worker dispatch)'
 ACTUAL_CRITICAL_PATH_PATTERN='(actual critical path|actual overlap and critical path)'
 DOWNGRADE_PATTERN='least powerful|cheap model|cheaper model|lower-capability model'
 AFFIRMATIVE_GIT_PATTERN='(must|should|need to|required to)[[:space:]]+((create|use)[[:space:]]+(a[[:space:]]+)?(new[[:space:]]+)?(branch|worktree)|(stage|commit))|(branch|worktree)[[:space:]]+is[[:space:]]+required'
@@ -98,9 +102,9 @@ oracle_accepts() {
   line_matches "$(output_line "$output" 8)" 're-serialization' || return 1
   line_matches "$(output_line "$output" 8)" 'topology variance' || return 1
   line_matches "$(output_line "$output" 9)" "$TIMING_PATTERN" || return 1
-  line_matches "$(output_line "$output" 10)" '^MERMAID THRESHOLD[[:space:]]*:' || return 1
-  line_matches "$(output_line "$output" 10)" '(at least[[:space:]]+)?(three|3)[[:space:]]+tracked([[:space:]]+plan)?[[:space:]]+nodes' || return 1
-  line_matches "$(output_line "$output" 11)" "$MERMAID_AT_THRESHOLD_PATTERN" || return 1
+  line_matches "$(output_line "$output" 10)" '^DAG TRIGGER[[:space:]]*:' || return 1
+  line_matches "$(output_line "$output" 10)" "$DAG_TRIGGER_PATTERN" || return 1
+  line_matches "$(output_line "$output" 11)" "$MERMAID_FALLBACK_PATTERN" || return 1
   line_matches "$(output_line "$output" 12)" "$GIT_PATTERN" || return 1
   if line_matches "$output" "$DOWNGRADE_PATTERN"; then return 1; fi
   if line_matches "$output" "$AFFIRMATIVE_GIT_PATTERN"; then return 1; fi
@@ -116,8 +120,8 @@ MODEL: current/default model and reasoning effort
 START REPORT: expected critical path, parallel lanes, expected peak concurrency, serial phases and reasons
 COMPLETION REPORT: actual critical path, serial waits, retries, re-serialization, topology variance, and what actually overlapped
 TIMING: OMIT NUMBERS
-MERMAID THRESHOLD: at least three tracked plan nodes
-MERMAID AT THRESHOLD: EMIT FENCE
+DAG TRIGGER: implementation plan, including one node
+MERMAID FALLBACK: EMIT FENCE
 GIT: NONE
 EOF
 
@@ -170,8 +174,8 @@ MODEL_LINE="$(output_line "$FINAL_OUTPUT" 6)"
 START_REPORT_LINE="$(output_line "$FINAL_OUTPUT" 7)"
 COMPLETION_REPORT_LINE="$(output_line "$FINAL_OUTPUT" 8)"
 TIMING_LINE="$(output_line "$FINAL_OUTPUT" 9)"
-MERMAID_THRESHOLD_LINE="$(output_line "$FINAL_OUTPUT" 10)"
-MERMAID_AT_THRESHOLD_LINE="$(output_line "$FINAL_OUTPUT" 11)"
+DAG_TRIGGER_LINE="$(output_line "$FINAL_OUTPUT" 10)"
+MERMAID_FALLBACK_LINE="$(output_line "$FINAL_OUTPUT" 11)"
 GIT_LINE="$(output_line "$FINAL_OUTPUT" 12)"
 
 assert_contains "$INDEPENDENT_LINE" "$INDEPENDENT_PATTERN" "Independent tasks run in parallel" || FAILED=$((FAILED + 1))
@@ -195,9 +199,9 @@ assert_contains "$COMPLETION_REPORT_LINE" "retries" "Completion report identifie
 assert_contains "$COMPLETION_REPORT_LINE" "re-serialization" "Completion report identifies re-serialization" || FAILED=$((FAILED + 1))
 assert_contains "$COMPLETION_REPORT_LINE" "topology variance" "Completion report identifies topology variance" || FAILED=$((FAILED + 1))
 assert_contains "$TIMING_LINE" "$TIMING_PATTERN" "Unsupported timing omits numbers" || FAILED=$((FAILED + 1))
-assert_contains "$MERMAID_THRESHOLD_LINE" "^MERMAID THRESHOLD[[:space:]]*:" "Uses the Mermaid-threshold label" || FAILED=$((FAILED + 1))
-assert_contains "$MERMAID_THRESHOLD_LINE" "(at least[[:space:]]+)?(three|3)[[:space:]]+tracked([[:space:]]+plan)?[[:space:]]+nodes" "Mermaid threshold requires three tracked plan nodes" || FAILED=$((FAILED + 1))
-assert_contains "$MERMAID_AT_THRESHOLD_LINE" "$MERMAID_AT_THRESHOLD_PATTERN" "Mermaid fence is emitted at threshold" || FAILED=$((FAILED + 1))
+assert_contains "$DAG_TRIGGER_LINE" "^DAG TRIGGER[[:space:]]*:" "Uses the DAG-trigger label" || FAILED=$((FAILED + 1))
+assert_contains "$DAG_TRIGGER_LINE" "$DAG_TRIGGER_PATTERN" "DAG accompanies an implementation plan" || FAILED=$((FAILED + 1))
+assert_contains "$MERMAID_FALLBACK_LINE" "$MERMAID_FALLBACK_PATTERN" "Mermaid fence is emitted when native rendering is unavailable" || FAILED=$((FAILED + 1))
 assert_contains "$GIT_LINE" "$GIT_PATTERN" "Does not recommend git operations" || FAILED=$((FAILED + 1))
 assert_not_contains "$FINAL_OUTPUT" "$DOWNGRADE_PATTERN" "Does not downgrade delegated work" || FAILED=$((FAILED + 1))
 assert_not_contains "$FINAL_OUTPUT" "$AFFIRMATIVE_GIT_PATTERN" "Does not require git operations" || FAILED=$((FAILED + 1))

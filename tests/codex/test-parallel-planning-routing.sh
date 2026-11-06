@@ -16,7 +16,8 @@ install_repo_skills_symlink "$TEST_PROJECT"
 read -r -d '' PROMPT <<'EOF' || true
 Use the writing-plans and executing-plans skills from this repo.
 
-Show the task-heading metadata for two independent planned tasks. Explain
+Show the task-heading metadata for two independent planned tasks, including
+stable node IDs, objectives, ownership and completion criteria. Explain
 whether task order itself creates a dependency. Then explain how execution
 routes (a) two independently implementable tasks with disjoint ownership and
 (b) two tasks that modify the same files.
@@ -36,6 +37,10 @@ FINAL_OUTPUT="$(cat "$OUTPUT_DIR/final.md")"
 INDEPENDENT_LINE="$(printf '%s\n' "$FINAL_OUTPUT" | grep -Eim1 '^Independent:' || true)"
 OVERLAP_LINE="$(printf '%s\n' "$FINAL_OUTPUT" | grep -Eim1 '^Overlap:' || true)"
 FAILED=0
+
+assert_contains "$FINAL_OUTPUT" "Objective" "Records node objectives" || FAILED=$((FAILED + 1))
+assert_contains "$FINAL_OUTPUT" "Owner|Ownership" "Records ownership" || FAILED=$((FAILED + 1))
+assert_contains "$FINAL_OUTPUT" "Completion criteria|Complete when" "Records completion criteria" || FAILED=$((FAILED + 1))
 
 assert_contains "$FINAL_OUTPUT" "Depends on:\\*{0,2}[[:space:]]*None" "Uses explicit dependency metadata" || FAILED=$((FAILED + 1))
 assert_contains "$FINAL_OUTPUT" "order.*presentational|order.*no dependency|order.*does not.*depend" "Task order has no dependency meaning" || FAILED=$((FAILED + 1))

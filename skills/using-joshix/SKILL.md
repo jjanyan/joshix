@@ -220,13 +220,19 @@ the direction and authorizes finishing. Extending a preview does not start
 completion review. Explicit requests to review a spec, plan, or code still use
 the matching review skill.
 
-For an understood repair, write one short plan only when useful, implement,
+For an understood repair, record a short plan (inline when simple), implement,
 prove the intended result, and review the completed change. An isolated,
 disposable experiment may run before planning or review: state the question,
 run the smallest safe check, then use its evidence to decide what to retain.
 Neither path relaxes permissions, isolation, repository-required checks, or
 review of retained changes. Do not label a production change an experiment to
 avoid its requirements.
+
+Before implementation or worker dispatch, record the execution DAG in the
+existing plan (an inline one-node plan is enough for simple work). Follow
+`references/progress-dag.md` for the canonical plan contract, reviewed changes,
+native progress displays and Mermaid fallback. This does not change the
+proportional review selection below or authorize execution during discussion.
 
 Request advance spec or plan review for consequential unresolved product or
 architecture choices, or when the owner or repository explicitly requires

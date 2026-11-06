@@ -103,12 +103,26 @@ Gemini loads `GEMINI.md`, which points at the local `using-joshix` bootstrap and
 8. **commit-staged** commits only when all local changes are already staged.
 9. **verification-before-completion** requires fresh evidence before claiming work is done.
 
-When an active joshix planning or development workflow has at least three tracked nodes,
-the top-level agent emits a Mermaid source DAG at the start, on state or
-dependency changes, and at completion. Completed work is green, in-flight work
-is blue, and todo work keeps Mermaid's default styling. The source fence is the
-user-facing artifact; clients may render it natively, and agents do not create a
-PNG fallback. Subagents do not emit the DAG, and it is not shared task state.
+Implementation plans include an execution DAG before implementation or worker
+dispatch: stable node IDs, objectives, dependencies, completion criteria, roles,
+ownership, allowed parallelism and required gates. A short inline one-node plan
+is enough for simple work. Advance review remains proportional; when selected,
+opposing-model plan review includes the DAG. Material changes to a
+reviewer-approved graph need focused approval before affected execution.
+Ordinary scheduling and status updates within its constraints need no reapproval.
+
+The coordinator shows that plan using the client's native interactive capability
+when supported, including repeated commentary snapshots, with Mermaid fallback.
+Node details show owner/scope, completion criteria and useful progress, blockers
+or results; dependencies stay in the graph. Inspection is read-only.
+New snapshots focus an active
+node, falling back to the latest completed node; status colors remain visible
+independently of selection.
+Displays share the plan's IDs
+and recorded state; they are snapshots, not a second task-state store or a promise
+of live updates. Workers do not emit graphs. See the canonical
+[DAG contract](skills/using-joshix/references/progress-dag.md) for capability
+detection, review barriers, adjustments and examples.
 
 Plan, spec, and code review producers remain read-only and return detailed,
 evidence-backed reports. Top-level producers may use prior shared reasoning;
@@ -149,7 +163,7 @@ joshix-workflow-policy: <repo-relative-path>
 With or without a policy, ceremony follows the work. Discussion stays
 discussion, visual trials stay previews, and isolated disposable experiments
 can supply evidence before a formal plan. An understood repair uses one short
-plan when useful, implementation, focused outcome proof, and completed-change
+plan (inline when simple), implementation, focused outcome proof, and completed-change
 review. Advance spec or plan review is for consequential unresolved product or
 architecture choices, or an explicit owner or repository requirement. A plan
 file alone does not create a review gate.

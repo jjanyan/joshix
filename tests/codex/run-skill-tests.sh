@@ -67,6 +67,8 @@ tests=(
     "test-skill-discovery-smoke.sh"
     "test-task-context-behavior.sh"
     "test-progress-dag-guidance.sh"
+    "test-dag-rendering-guidance.sh"
+    "test-execution-dag-behavior.sh"
     "test-dispatching-parallel-agents-guidance.sh"
     "test-parallel-planning-routing.sh"
     "test-code-review-skill.sh"

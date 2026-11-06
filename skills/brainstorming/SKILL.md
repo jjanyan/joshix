@@ -14,7 +14,7 @@ A visual trial remains a preview until the owner authorizes finishing it.
 ## Select the useful work
 
 - Settled repair or mechanical work: use `joshix:writing-plans`' short-planning
-  branch when a plan helps. Do not manufacture a design discussion.
+  branch, inline when simple. Do not manufacture a design discussion.
 - Disposable investigation: state the uncertainty and run the smallest safe
   experiment before prescribing a design, under the bootstrap's boundaries.
 - Unresolved design: explore the relevant source and constraints, present the
@@ -72,9 +72,9 @@ or routine written-spec signoff is needed. Implementation authorization remains
 separate. Use the execution readiness hold only when execution is the next
 unauthorized phase.
 
-When this top-level workflow has at least three tracked nodes, follow
-`../using-joshix/references/progress-dag.md` for canonical trigger, rendering,
-state, topology, and updates.
+When planning is authorized, follow
+`../using-joshix/references/progress-dag.md` for the planned DAG, proportional
+review, rendering and updates. Discussion alone does not trigger a work graph.
 
 ## Visual Companion
 

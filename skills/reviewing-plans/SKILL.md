@@ -57,6 +57,13 @@ Check for:
 
 ## Calibration
 
+Apply `../using-joshix/references/progress-dag.md` when reviewing the execution
+DAG: check stable node IDs and completion criteria, dependency correctness,
+safe concurrency, ownership/shared-resource conflicts, and missing gates.
+For an adjustment, examine the delta and affected interactions against the
+approved revision. Review selection remains proportional; a one-node graph
+does not itself require independent advance review.
+
 Flag issues that would make an implementer build the wrong thing, get stuck,
 violate workflow rules, skip necessary verification, or leave important
 decisions undocumented.

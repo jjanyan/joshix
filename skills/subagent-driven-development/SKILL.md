@@ -12,15 +12,17 @@ review followed by quality review. With an active policy, the tier-defined
 review rigor selects additional lane gates; the outer core final review still
 runs once.
 
-When two or more plan tasks are ready and potentially safe to overlap, invoke
-`joshix:dispatching-parallel-agents` to classify, schedule, and report them.
+When two or more plan tasks are ready and their planned concurrency permits
+overlap, invoke `joshix:dispatching-parallel-agents` to validate, schedule, and
+report them. Apply the canonical DAG adjustment contract before expanding that
+concurrency or changing dependencies, ownership or gates.
 Keep one coordinator free to own shared context, questions, integration, and
 fresh verification. Do not duplicate capacity, wave, fallback, or timing rules
 in this skill.
 
 The top-level coordinator follows
 `../using-joshix/references/progress-dag.md`. Dispatched workers do not emit
-DAGs. Do not duplicate the canonical threshold, state, styling, or update rules
+DAGs. Do not duplicate the canonical plan, state, styling, or update rules
 here.
 
 **Core principle:** Each lane owns a bounded scope. Under policy absence it
@@ -74,11 +76,13 @@ after material artifact change or new evidence. The coordinator stops on an
 owner decision, repeated disagreement without new evidence, an unchanged
 concrete defect, or the absence of an objective authorized correction.
 
-1. Read the plan once; extract every task, `Depends on`, file/resource scope,
-   verification command, and full task text.
-2. Classify older tasks without `Depends on` conservatively.
+1. Read the plan once; extract stable node IDs, every task, `Depends on`,
+   completion criteria, planned concurrency/roles, file/resource scope,
+   verification and review gates, and full task text.
+2. Classify older tasks without `Depends on` conservatively; complete the DAG
+   through planning and applicable review before dispatch.
 3. Build the ready set from explicit dependencies and completed lane gates.
-4. If two or more ready tasks may overlap safely, invoke
+4. If the plan permits two or more ready tasks to overlap safely, invoke
    `joshix:dispatching-parallel-agents`; otherwise run the ready task inline or
    serially.
 5. Policy absent: for each lane, implementation and self-review → safe focused

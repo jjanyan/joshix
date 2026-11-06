@@ -42,7 +42,8 @@ Task tool (general-purpose):
     | Completeness | TODOs, placeholders, incomplete tasks, missing steps |
     | Spec Alignment | Plan covers spec requirements, no major scope creep |
     | Task Decomposition | Tasks have clear boundaries, steps are actionable |
-    | Dependencies and scope safety | Every task has `Depends on`; semantic prerequisites are explicit; order alone is not treated as dependency information; overlapping scopes or unsafe mutable resources are identified as serialization constraints, not inferred dependency edges |
+    | Execution DAG | Apply `skills/using-joshix/references/progress-dag.md`: stable node IDs, objectives, completion criteria, `Depends on`, ownership, planned concurrency rationale and explicit verification/review prerequisites; check cycles, missing edges, unsafe overlap and resource conflicts |
+    | Adjustments | Compare the proposed delta with the approved revision and evidence; inspect affected dependencies, ownership, gates and work underway, without reopening unrelated settled decisions |
     | Buildability | Could an engineer follow this plan without getting stuck? |
 
     ## Calibration

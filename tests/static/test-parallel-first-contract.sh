@@ -111,7 +111,7 @@ require_fixed "$DISPATCH" "actual critical path when identifiable" "completion r
 require_fixed "$DISPATCH" "serial waits, retries, or re-serialization" "completion report identifies waits and retries"
 require_fixed "$DISPATCH" "meaningful topology variance" "completion report identifies topology variance"
 require_fixed "$DISPATCH" "using-joshix/references/progress-dag.md" "dispatcher links canonical DAG guidance"
-require_fixed "$DAG" "at least three tracked nodes" "canonical Mermaid threshold is explicit"
+require_fixed "$DAG" "## Plan before execution" "canonical planned-DAG contract is explicit"
 require_fixed "$DAG" "When tracked node state changes" "canonical DAG updates on state changes"
 require_fixed "$DISPATCH" "omit numbers" "unsupported timing is omitted"
 require_fixed "$DISPATCH" 'An older plan without `Depends on:`' "legacy plans are classified conservatively"

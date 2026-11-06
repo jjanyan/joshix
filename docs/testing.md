@@ -275,6 +275,56 @@ The coupled fixture checks:
 - no Agent/Task call or parallel-topology report appears; and
 - unchanged git history.
 
+## Planned DAG and display checks
+
+The canonical contract is `skills/using-joshix/references/progress-dag.md`.
+Its static check verifies consumer links, planned dependencies/gates, review
+boundaries, native display selection and Mermaid fallback without invoking a model.
+
+Focused Codex coverage:
+
+```bash
+bash tests/codex/test-parallel-planning-routing.sh
+bash tests/codex/test-progress-dag-guidance.sh
+bash tests/codex/test-dag-rendering-guidance.sh
+bash tests/codex/test-dispatching-parallel-agents-guidance.sh
+bash tests/codex/test-execution-dag-behavior.sh
+```
+
+The planning case checks node metadata and ownership-based routing. The progress
+case checks stable IDs, Mermaid statuses and one-node plans. Renderer cases
+simulate native commentary, final-only client support, absent/failed rendering,
+read-only node inspection, active-first focus (including multiple active nodes,
+latest-completed fallback, out-of-ID-order completion and stale saved selection),
+shared status colors and proportional review. Compact-card cases cover active,
+blocked, done and todo details, concrete evidence links, omission of redundant
+or empty rows, accessible prerequisite inspection, and matching Mermaid details.
+They prove policy choices,
+not actual client delivery or browser layout.
+
+The execution fixture observes real command ordering with a simulated review
+transport: a material change to a reviewer-approved graph is reviewed before
+affected work; unavailable review holds that work; ordinary status updates and
+reduced concurrency do not trigger plan reapproval. It also preserves focused
+verification, final code review and completion checks. Select one case with
+`JOSHIX_DAG_CASE=approved|unavailable|status`; use `JOSHIX_TEST_SKILLS_DIR` to run
+the rendering or execution fixture against another skill tree. Keep fixtures
+with `KEEP_CODEX_TEST_PROJECT=1` when diagnosing failures.
+
+The repair and guarded cases in `test-workflow-proportionality-behavior.sh` run
+as top-level coordinators: they assert planning/completion DAG output as well
+as the existing review thresholds. When the transcript exposes a source-edit
+event, the first graph must precede it. Other cases retain delegated-worker
+scope; workers are intentionally exempt from graph emission.
+
+Actual native rendering must be checked on the exposed client surface or in an
+isolated preview, with those evidence limits reported. A headless preview can
+verify layout, default focus and that clicking preserves task state and status
+colors; it cannot prove that
+the host displayed a commentary attachment. Never borrow the user's browser
+profile to fill that gap. Plugin/cache refresh and bridge installation are
+separate from these checkout tests.
+
 ## Choosing the right layer
 
 - Use a static contract for exact text, file presence, or platform mapping.

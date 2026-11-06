@@ -32,7 +32,12 @@ capacity, fallback, or reporting rules here.
 1. Read plan file
 2. Check the plan against source and current requirements; resolve technical
    details locally and raise only consequential unanswered owner choices.
-3. Create or update the available task list and proceed with unblocked work.
+3. Confirm the planned DAG, ownership, allowed overlap and gates using
+   `../using-joshix/references/progress-dag.md`. Fill missing legacy metadata
+   through planning and the applicable review selection before implementation;
+   do not invent a new decomposition or concurrency decision during dispatch.
+4. Create or update the available task list from those node IDs and proceed
+   with unblocked work inside the plan's constraints.
 
 ### Step 2: Execute Tasks
 
@@ -55,15 +60,17 @@ architecture, or scope choices.
 For each task:
 1. Mark as in_progress
 2. Preserve the plan's outcome and constraints. Adapt implementation details to
-   new evidence within that scope; record the reason. A new owner choice stops
-   only the dependent work.
+   new evidence within that scope; record the reason. Apply the canonical DAG
+   adjustment contract before changing dependencies, ownership, overlap or gates.
+   Routine scheduling/status updates do not require reapproval. A new owner
+   choice stops only the dependent work.
 3. Run verifications as specified
 4. Mark as completed
 
 ## Progress DAG
 
-When this top-level workflow has at least three tracked nodes, follow the
-canonical trigger, rendering, state, topology, and update rules in
+Show the planned graph and meaningful state transitions using the canonical
+native rendering, Mermaid fallback, state and update rules in
 `../using-joshix/references/progress-dag.md`.
 
 ### Step 3: Complete Development

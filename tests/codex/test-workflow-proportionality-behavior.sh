@@ -93,7 +93,11 @@ EOF
     preview)
       request='The card border looks promising. Try the same border on the details panel so I can judge it. We are still trying the appearance; keep this as a preview.' ;;
   esac
-  prompt="You are a delegated worker; do not access shared task context. Read AGENTS.md
+  role='You are a delegated worker; do not access shared task context.'
+  if [[ "$scenario" == repair || "$scenario" == guarded ]]; then
+    role='You are the top-level coordinator of this isolated workflow fixture. Do not access shared task context. No native visualization surface is available.'
+  fi
+  prompt="$role Read AGENTS.md
 and the applicable joshix skills from .agents/skills, including using-joshix.
 $request
 
@@ -116,6 +120,14 @@ assert.equal(read('fixture.mjs'), read('fixture-original.mjs'));
 const events = read('events.jsonl').trim().split('\n').map(JSON.parse);
 const reviews = events.filter(e => e.action === 'review');
 if (scenario === 'repair' || scenario === 'guarded') {
+  const transcript = read('output/events.jsonl').trim().split('\n').map(JSON.parse);
+  const messages = transcript.filter(e => e.type === 'item.completed' && e.item?.type === 'agent_message');
+  const graphs = messages.filter(e => /```mermaid\b/.test(e.item.text));
+  assert(graphs.length >= 2, 'the coordinator displays the small implementation DAG at planning and completion');
+  const firstEdit = transcript.findIndex(e => e.item?.type === 'file_change' &&
+    e.item.changes?.some(c => c.path.endsWith('/src/drain.mjs')));
+  if (firstEdit >= 0) assert(transcript.indexOf(graphs[0]) < firstEdit,
+    'the planned DAG is displayed before the observed implementation edit');
   const checks = events.filter(e => e.action === 'check');
   assert.deepEqual(checks[0].result, ['a'], 'reproduce the original symptom first');
   assert.deepEqual(checks.at(-1).result, ['a', 'b', 'c']);

@@ -10,8 +10,8 @@ start/completion reporting policy. Callers identify candidate work and preserve
 their own quality gates; they do not copy this policy.
 
 **Core principle:** Parallel-first after execution authorization for safe
-independent work; serial when safety, independence, or coordination value is
-uncertain.
+independent work within the planned concurrency constraints; serial when
+safety, independence, or coordination value is uncertain.
 
 ## Authorization Boundary
 
@@ -32,6 +32,12 @@ state.
 
 ## Parallel-Safety Decision
 
+Before dispatch, load the plan's DAG, roles, scopes, concurrency decisions and
+gates. Apply `../using-joshix/references/progress-dag.md` for the plan contract
+and changes to reviewer-approved constraints. The checks below validate planned
+overlap; they do not authorize inventing new parallel lanes at runtime. Resolve
+missing decomposition through planning before implementation or dispatch.
+
 Parallelize only when at least two meaningful tasks have no semantic dependency,
 have disjoint write ownership, do not share unsafe mutable resources, and have
 a safe focused feedback loop or safely deferred feedback.
@@ -44,9 +50,10 @@ back.
 Briefly report why the work is serial; do not add orchestration machinery to a
 serial task.
 
-An older plan without `Depends on:` receives the same conservative
-classification as ad hoc work. Absence of the field is neither an error nor
-evidence of independence. File or resource overlap is a serialization
+An older plan without `Depends on:` receives conservative classification while
+the coordinator fills its missing DAG metadata through planning and applicable
+review. Absence is not evidence of independence or permission to dispatch.
+File or resource overlap is a serialization
 constraint, not a directed dependency.
 
 ## Scheduling
@@ -121,8 +128,8 @@ divided by serial-equivalent time, and throughput is serial-equivalent time
 divided by wall time.
 
 Use `../using-joshix/references/progress-dag.md` for the user-facing dependency
-graph, including its general three-node trigger, stable topology, state classes,
-and update cadence. Parallel scheduling reports still name expected and actual
+graph, native/Mermaid rendering, stable node identities and update cadence.
+Parallel scheduling reports still name expected and actual
 critical paths, concurrency, waits, retries, and re-serialization as described
 above; do not restate DAG policy here.
 
