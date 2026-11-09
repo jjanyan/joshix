@@ -111,21 +111,46 @@ merely to refresh a graph.
 
 ## Native display, Mermaid fallback
 
-Inspect the current client's exposed tools/skills and the specific response
-surface. Prefer its supported native interactive visualization or artifact
-capability: in-conversation visualization on supporting ChatGPT/Codex clients,
-inline visuals or artifacts on supporting Claude clients. The model name alone
-proves neither.
-When support is absent, unknown, or rendering fails, use Mermaid on that surface
-and continue. A client may support native output at handoff but not in commentary.
+Resolve the renderer before the first snapshot, including a serial or one-node
+plan. Node inspection is interactive even when the topology itself is simple.
+Do not start with the Mermaid example below and skip capability discovery.
+
+1. Inspect the current client's exposed tools/skills and the response surface.
+   Load the advertised native skill before choosing Mermaid: for example,
+   `visualize:visualize` on supporting ChatGPT/Codex clients, or the exposed
+   inline-visual/artifact instructions on Claude. Use the actual advertised
+   path or tool, not a guessed installation or the model name.
+2. When those instructions provide a usable native mechanism, use it. Having
+   no dedicated tool named visualize does not establish absence: a skill may
+   document a file-based attachment marker or another emission mechanism.
+   Do not require a separate renderer tool when the documented mechanism is
+   available. Author and emit the interactive snapshot, rather than merely
+   saying native rendering is preferred.
+3. Use Mermaid when inspection establishes that no native mechanism is exposed,
+   a real host restriction excludes this response surface, the available
+   instructions cannot be read, support remains indeterminate after inspection,
+   or an attempted native render fails. Unknown means still indeterminate after
+   inspection, not an advertised capability that was never checked. State the
+   concrete fallback reason once when selecting or changing to fallback, then
+   continue authorized work. Do not claim a render failed unless one was tried.
+
+Record the selected renderer and the supporting capability or fallback reason
+in the existing task context, not a new document. Reuse that decision for later
+snapshots on the same surface; revisit it when capabilities or the response
+surface change. Read the rendering skill again when its instructions require
+it. Do not repeatedly probe the client or ask the owner to choose a renderer.
 
 For execution DAGs, this policy overrides visualization-skill defaults that
-restrict visuals to final responses or prohibit progress updates. Emit repeated
+restrict visuals to final responses, prohibit progress updates, or express a
+static-diagram preference for Mermaid. These snapshots need selectable node
+details; a simple topology does not remove that requirement. Emit repeated
 native snapshots in commentary when the client supports it. This exception does
-not override actual client limitations, higher-priority instructions, or the
-visualization skill's accessibility and rendering requirements. Use supported
-update mechanisms; otherwise emit a new snapshot, without claiming earlier
-messages were updated. Do not turn the DAG into a separately hosted application.
+not override actual client limitations, higher-priority instructions, explicit
+owner preferences, or the visualization skill's accessibility and rendering
+requirements. A real final-only client uses Mermaid during commentary, then
+native output at a supported final handoff. Use supported update mechanisms;
+otherwise emit a new snapshot without claiming earlier messages were updated.
+Do not turn the DAG into a separately hosted application.
 
 Keep the overview compact: dependencies, current statuses and planned parallel
 work. Selecting a node shows its ID, name and status, then `Owner / scope` and
@@ -229,6 +254,11 @@ image just to satisfy the display requirement.
 - **Status:** T2 finishes its required check; mark its node done with that
   evidence. Starting an already-ready T3, reducing worker count, or selecting
   T2's details does not require another plan review.
+- **Discovery:** The client advertises visualize but has no dedicated renderer
+  tool. Read that skill; if it documents a usable attachment mechanism, emit
+  the interactive snapshot even for a serial plan. Generic static-diagram and
+  final-only skill defaults do not establish a host restriction. If the client
+  actually rejects the attachment, state that failure and continue with Mermaid.
 - **Display focus:** T9 finished before T2, and T4 is active. A fresh snapshot
   opens T4's details; if no node is active, it opens T2's evidence. T9 and T2
   stay green, T4 blue, and todo nodes neutral.

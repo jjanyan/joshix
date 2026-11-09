@@ -231,7 +231,9 @@ avoid its requirements.
 Before implementation or worker dispatch, record the execution DAG in the
 existing plan (an inline one-node plan is enough for simple work). Follow
 `references/progress-dag.md` for the canonical plan contract, reviewed changes,
-native progress displays and Mermaid fallback. This does not change the
+native progress displays and Mermaid fallback. Resolve the renderer before the
+first snapshot; load an advertised native visualization skill before falling
+back to Mermaid. This does not change the
 proportional review selection below or authorize execution during discussion.
 
 Request advance spec or plan review for consequential unresolved product or

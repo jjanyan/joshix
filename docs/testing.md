@@ -287,6 +287,7 @@ Focused Codex coverage:
 bash tests/codex/test-parallel-planning-routing.sh
 bash tests/codex/test-progress-dag-guidance.sh
 bash tests/codex/test-dag-rendering-guidance.sh
+bash tests/codex/test-dag-native-discovery-behavior.sh
 bash tests/codex/test-dispatching-parallel-agents-guidance.sh
 bash tests/codex/test-execution-dag-behavior.sh
 ```
@@ -299,8 +300,23 @@ latest-completed fallback, out-of-ID-order completion and stale saved selection)
 shared status colors and proportional review. Compact-card cases cover active,
 blocked, done and todo details, concrete evidence links, omission of redundant
 or empty rows, accessible prerequisite inspection, and matching Mermaid details.
-They prove policy choices,
-not actual client delivery or browser layout.
+They also check unread advertised skills, file-based mechanisms without a named
+renderer tool, simple serial plans, and explained fallback after inspection.
+These classification cases prove policy choices, not actual client delivery or
+browser layout.
+
+The native-discovery fixture observes actual reads of the selected joshix tree
+and a simulated visualization skill, adapter calls, and emitted messages before
+and after work. It covers successful native commentary despite generic
+static/final-only defaults, plus failed rendering followed by explained Mermaid
+fallback and continued execution. It uses a temporary Codex home with only a
+private authentication copy, removes that copy even when preserving the fixture,
+records its skill inventory, and asserts that the fixture skill was read.
+`JOSHIX_DAG_NATIVE_CASE=native|failed` selects one case; `JOSHIX_TEST_SKILLS_DIR`
+selects the instruction tree. An old-tree pass is not a reproduced failure:
+retain the real failing transcript as baseline evidence instead of distorting
+the fixture. This test proves renderer selection and emission behavior on a
+simulated surface, not browser rendering or delivery by every host.
 
 The execution fixture observes real command ordering with a simulated review
 transport: a material change to a reviewer-approved graph is reviewed before

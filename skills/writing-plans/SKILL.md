@@ -90,6 +90,8 @@ check to settle runtime claims before another speculative rewrite.
 
 Show the planned DAG using `../using-joshix/references/progress-dag.md` for
 native capability detection, Mermaid fallback, state, and meaningful updates.
+Resolve the renderer before emitting the first snapshot; inspect an advertised
+native skill rather than treating unchecked support as unavailable.
 
 Continue from a spec after required reviews and genuine owner decisions without
 another routine planning command. Honor explicit spec-only, review-only, or

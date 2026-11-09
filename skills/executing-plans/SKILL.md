@@ -71,7 +71,9 @@ For each task:
 
 Show the planned graph and meaningful state transitions using the canonical
 native rendering, Mermaid fallback, state and update rules in
-`../using-joshix/references/progress-dag.md`.
+`../using-joshix/references/progress-dag.md`. Resolve the renderer before the
+first snapshot; reuse its recorded capability decision for later updates on the
+same surface. An advertised native skill must be inspected before fallback.
 
 ### Step 3: Complete Development
 

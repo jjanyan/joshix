@@ -112,7 +112,11 @@ reviewer-approved graph need focused approval before affected execution.
 Ordinary scheduling and status updates within its constraints need no reapproval.
 
 The coordinator shows that plan using the client's native interactive capability
-when supported, including repeated commentary snapshots, with Mermaid fallback.
+when supported, including repeated commentary snapshots. Before choosing
+Mermaid, it reads any advertised visualization skill and checks the actual
+response surface. A serial plan or absence of a dedicated renderer tool does
+not justify skipping interactive output. Fallback includes a concrete reason
+and does not stop authorized work.
 Node details show owner/scope, completion criteria and useful progress, blockers
 or results; dependencies stay in the graph. Inspection is read-only.
 New snapshots focus an active

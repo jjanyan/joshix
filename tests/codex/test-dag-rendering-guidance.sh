@@ -20,6 +20,19 @@ D. The client itself supports native output only in final responses; work is
    still running and a commentary update is due.
 E. Client D now reaches a final planning handoff; native output is available.
 
+Also classify these discovery decisions. Apply the contract rather than assuming
+support from the model name. Return "unspecified" if it supplies no rule:
+- A native skill is advertised but its instructions have not been read yet.
+- There is no dedicated visualize tool; the advertised skill may document a
+  file-based attachment mechanism.
+- Native commentary support is established; the plan is serial or one-node,
+  and the generic skill prefers Mermaid for static labeled nodes and edges.
+- No capability inspection has occurred; the agent calls support "unknown".
+- After inspecting all exposed tools/skills, response-surface support still
+  cannot be established. Should work continue with Mermaid or stop?
+- A renderer becomes unavailable after earlier native snapshots: what kind of
+  fallback explanation is required, and does this require plan reapproval?
+
 Also classify: a user clicks a node; a short settled one-node implementation
 plan has no repository advance-review requirement; a required plan review has
 an unverified edge and two writers of the same file; and a proposed adjustment
@@ -57,6 +70,7 @@ does not specify a behavior, report that instead of inventing a rule.
 Return only JSON:
 {
   "renderers": {"A":"native|mermaid", "B":"native|mermaid", "C":"native|mermaid", "D":"native|mermaid", "E":"native|mermaid"},
+  "discovery": {"unreadSkill":"inspect|mermaid|unspecified", "noNamedTool":"inspect|mermaid|unspecified", "supportedSerial":"native|mermaid|unspecified", "uncheckedUnknown":"inspect|mermaid|unspecified", "stillUnknownAfterInspection":"mermaid|stop|unspecified", "fallbackExplanation":"specific|none|unspecified", "statusOnlyReapproval":true|false},
   "click": {"allowed":[], "forbidden":[]},
   "simplePlan": {"nodeCount":1, "advanceIndependentReview":true|false},
   "reviewChecks":[],
@@ -80,6 +94,7 @@ import assert from 'node:assert/strict';
 const text=fs.readFileSync(process.argv[2], 'utf8');
 const result=JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '').trim());
 assert.deepEqual(result.renderers, {A:'native', B:'mermaid', C:'mermaid', D:'mermaid', E:'native'});
+assert.deepEqual(result.discovery, {unreadSkill:'inspect', noNamedTool:'inspect', supportedSerial:'native', uncheckedUnknown:'inspect', stillUnknownAfterInspection:'mermaid', fallbackExplanation:'specific', statusOnlyReapproval:false});
 assert.equal(result.simplePlan.nodeCount, 1);
 assert.equal(result.simplePlan.advanceIndependentReview, false);
 assert.equal(result.pendingAdjustment.mayExecuteAffected, false);

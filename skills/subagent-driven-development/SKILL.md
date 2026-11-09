@@ -22,7 +22,9 @@ in this skill.
 
 The top-level coordinator follows
 `../using-joshix/references/progress-dag.md`. Dispatched workers do not emit
-DAGs. Do not duplicate the canonical plan, state, styling, or update rules
+DAGs. Resolve native capability before the first coordinator snapshot and reuse
+that decision for updates on the same surface. Do not duplicate the canonical
+plan, state, styling, or update rules
 here.
 
 **Core principle:** Each lane owns a bounded scope. Under policy absence it
